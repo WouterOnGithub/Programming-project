@@ -4,7 +4,7 @@ CAREER LAUNCH BEURS – WEBAPPLICATIE
 
 Deze webapplicatie is ontwikkeld voor de Career Launch beurs aan de Erasmushogeschool Brussel. Onze website brengt studenten/werknemers en bedrijven/zelfstandigen/werkgevers digitaal samen en laat hen via een Tinder-achtig systeem communiceren. Studenten kunnen bedrijven bekijken, een gesprek aanvragen, en indien beide partijen akkoord gaan, volgt een match met locatie-informatie van de beursstand. De applicatie stimuleert werkgelegenheid en investeert tegelijk in de reputatie van de school.
 
-🎯 FUNCTIONALITEITEN
+<H1> 🎯 FUNCTIONALITEITEN </H1>
 
 🔐 LOGIN- EN REGISTRATIEPAGINA
 
