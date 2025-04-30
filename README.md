@@ -55,6 +55,7 @@ Database: MySQL
 - Imad Ben Ali
 
 📆 DEADLINE
+
 Het project moet afgewerkt en gepresenteerd worden tegen het einde van het semester (exacte datum afhankelijk van de docent).
 
 🔗 BRONNEN
