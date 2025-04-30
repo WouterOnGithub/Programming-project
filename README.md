@@ -1,6 +1,6 @@
-CAREER LAUNCH BEURS – WEBAPPLICATIE
+<H1>CAREER LAUNCH BEURS – WEBAPPLICATIE</H1>
 
-📌 PROJECTBESCHRIJVING
+<H1>📌 PROJECTBESCHRIJVING</H1>
 
 Deze webapplicatie is ontwikkeld voor de Career Launch beurs aan de Erasmushogeschool Brussel. Onze website brengt studenten/werknemers en bedrijven/zelfstandigen/werkgevers digitaal samen en laat hen via een Tinder-achtig systeem communiceren. Studenten kunnen bedrijven bekijken, een gesprek aanvragen, en indien beide partijen akkoord gaan, volgt een match met locatie-informatie van de beursstand. De applicatie stimuleert werkgelegenheid en investeert tegelijk in de reputatie van de school.
 
@@ -10,11 +10,11 @@ Deze webapplicatie is ontwikkeld voor de Career Launch beurs aan de Erasmushoges
 
 Studenten/werknemers en bedrijven/werkgevers kunnen zich veilig aanmelden of registreren.
 
-👤 PROFIEL
+<H2> 👤 PROFIEL </H2>
 
 Gebruikers kunnen een profiel aanmaken met informatie zoals naam, geboortedatum, vaardigheden, CV (optioneel), werkervaring en profielfoto.
 
-📄 PROFIEL PREVIEW
+<H2> 📄 PROFIEL PREVIEW</H2>
 
 Kleine preview met de belangrijkste informatie uit het volledige profiel.
 
@@ -22,23 +22,23 @@ Kleine preview met de belangrijkste informatie uit het volledige profiel.
 
   - Voor bedrijven: Studentpagina’s bevatten naam, geboortedatum, vaardigheden, korte voorstelling en het type job dat ze zoeken.
 
-💬 MATCHING EN NOTIFICATIES
+<H2> 💬 MATCHING EN NOTIFICATIES</H2>
 
 Werknemers kunnen bedrijven liken om een gesprek aan te vragen. Als een bedrijf de aanvraag accepteert, ontvangt de werknemer een notificatie met de locatie van de beursstand. Het bedrijf krijgt vervolgens een notificatie dat de werknemer onderweg is.
 
-📍 BEURSLOCATIE (bron nog af te wachten)
+<H2> 📍 BEURSLOCATIE (bron nog af te wachten)</H2>
 
 Kaartweergave van de beurslocatie aan de Erasmushogeschool Brussel.
 
-❓ FAQ-PAGINA
+<H2> ❓ FAQ-PAGINA</H2>
 
 Overzicht van veelgestelde vragen.
 
-🗓️ BEURSINFO
+<H2> 🗓️ BEURSINFO</H2>
 
 Duidelijke informatie over waar en wanneer de beurs doorgaat.
 
-🛠️ TECHNOLOGIEËN
+<H1> 🛠️ TECHNOLOGIEËN</H1>
 
 Frontend: HTML, CSS, JavaScript
 
@@ -46,7 +46,7 @@ Backend: PHP of Java
 
 Database: MySQL
 
-👨‍💻 TEAM
+<H1> 👨‍💻 TEAM</H1>
 - Azaoum Rania
 - Dang Enwin
 - Eddouks Yassine
@@ -55,11 +55,11 @@ Database: MySQL
 - Wouter Van Den Bossche
 - Imad Ben Ali
 
-📆 DEADLINE
+<H1> 📆 DEADLINE</H1>
 
 Het project moet afgewerkt en gepresenteerd worden tegen het einde van het semester (exacte datum afhankelijk van de docent).
 
-🔗 BRONNEN
+<H1> 🔗 BRONNEN</H1>
 - ChatGPT
 - Eigen analyse
 
