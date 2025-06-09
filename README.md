@@ -40,9 +40,9 @@ Duidelijke informatie over waar en wanneer de beurs doorgaat.
 
 <H2> 🛠️ TECHNOLOGIEËN</H2>
 
-Frontend: HTML, CSS, JavaScript
+Frontend: HTML, CSS, JavaScript (-> Vue.js)
 
-Backend: PHP of Java
+Backend: Node.js met Express.js
 
 Database: MySQL
 
