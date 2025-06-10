@@ -1,15 +1,8 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
-
-body, .register-page {
-  font-family: 'Poppins', Arial, Helvetica, sans-serif;
-}
-
 .register-page {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding: 20px;
 }
 
@@ -19,8 +12,6 @@ body, .register-page {
   padding: 40px;
   width: 100%;
   max-width: 600px;
-  max-height: 90vh;
-  overflow-y: auto;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
 }
 
@@ -61,13 +52,13 @@ body, .register-page {
 }
 
 .type-card:hover {
-  border-color: #28a745;
+  border-color: #c20000;
   transform: translateY(-2px);
 }
 
 .type-card.active {
-  background: #28a745;
-  border-color: #28a745;
+  background: #c20000;
+  border-color: #c20000;
   color: white;
 }
 
@@ -78,7 +69,6 @@ body, .register-page {
 
 .type-card p {
   margin: 0 0 15px 0;
-  font-size: 1rem;
   color: inherit;
 }
 
@@ -119,18 +109,26 @@ body, .register-page {
   color: #333;
 }
 
-.form-section input {
+.form-section input,
+.form-section select {
   width: 100%;
   padding: 12px;
   border: 2px solid #e9ecef;
   border-radius: 8px;
   font-size: 1rem;
   transition: border-color 0.3s ease;
+  font-family: inherit;
 }
 
-.form-section input:focus {
+.form-section input:focus,
+.form-section select:focus {
   outline: none;
-  border-color: #28a745;
+  border-color: #c20000;
+}
+
+.form-section select {
+  background-color: white;
+  cursor: pointer;
 }
 
 .error-box {
@@ -144,7 +142,7 @@ body, .register-page {
 
 .register-btn {
   width: 100%;
-  background: #28a745;
+  background: #c20000;
   color: white;
   border: none;
   padding: 15px;
@@ -157,7 +155,7 @@ body, .register-page {
 }
 
 .register-btn:hover {
-  background: #1e7e34;
+  background: #a50000;
 }
 
 .footer {
@@ -172,7 +170,7 @@ body, .register-page {
 }
 
 .login-btn {
-  background: #007bff;
+  background: #c20000;
   color: white;
   border: none;
   padding: 12px 24px;
@@ -183,19 +181,5 @@ body, .register-page {
 }
 
 .login-btn:hover {
-  background: #0056b3;
-}
-
-@media (max-width: 768px) {
-  .register-card {
-    padding: 30px 20px;
-  }
-  
-  .type-cards {
-    grid-template-columns: 1fr;
-  }
-  
-  .register-card h1 {
-    font-size: 1.5rem;
-  }
+  background: #a50000;
 }

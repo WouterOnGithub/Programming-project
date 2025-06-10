@@ -3,7 +3,6 @@ import { reactive, ref } from 'vue';
 import axios from 'axios';
 import '../../css/register.css'
 
-
 // Simpele form state
 const selectedType = ref('student')
 
@@ -18,14 +17,34 @@ const studentData = ref({
 // Bedrijf form
 const companyData = ref({
   companyName: '',
-  contactName: '',
-  email: '',
+  sector: '',
+  address: '',
   phone: '',
+  email: '',
+  btwNumber: '',
+  contactName: '',
+  contactEmail: '',
+  linkedinUrl: '',
   password: '',
   confirmPassword: ''
 })
 
 const error = ref('')
+
+const sectors = [
+  'IT & Software',
+  'Marketing & Communicatie',
+  'Finance & Banking',
+  'Healthcare',
+  'Engineering',
+  'Education',
+  'Retail',
+  'Manufacturing',
+  'Consulting',
+  'Non-profit',
+  'Government',
+  'Other'
+]
 
 const isStudent = () => selectedType.value === 'student'
 const isBedrijf = () => selectedType.value === 'bedrijf'
@@ -45,9 +64,14 @@ const clearForms = () => {
   
   companyData.value = {
     companyName: '',
-    contactName: '',
-    email: '',
+    sector: '',
+    address: '',
     phone: '',
+    email: '',
+    btwNumber: '',
+    contactName: '',
+    contactEmail: '',
+    linkedinUrl: '',
     password: '',
     confirmPassword: ''
   }
@@ -80,7 +104,9 @@ const handleRegister = () => {
   } else {
     const data = companyData.value
     
-    if (!data.companyName || !data.contactName || !data.email || !data.phone || !data.password || !data.confirmPassword) {
+    if (!data.companyName || !data.sector || !data.address || !data.phone || 
+        !data.email || !data.btwNumber || !data.contactName || !data.contactEmail || 
+        !data.password || !data.confirmPassword) {
       error.value = 'Vul alle velden in'
       return
     }
@@ -173,8 +199,7 @@ const goToLogin = () => {
           </div>
         </div>
 
-        <!-- Bedrijf Form -->
-        <div v-if="isBedrijf()" class="form-section">
+               <div v-if="isBedrijf()" class="form-section">
           <h4>🏢 Bedrijf Registratie</h4>
           
           <div>
@@ -183,18 +208,48 @@ const goToLogin = () => {
           </div>
 
           <div>
-            <label>Contactpersoon:</label>
-            <input v-model="companyData.contactName" type="text" placeholder="Voor- en achternaam" />
+            <label>Sector:</label>
+            <select v-model="companyData.sector">
+              <option value="">Selecteer een sector</option>
+              <option v-for="sector in sectors" :key="sector" :value="sector">
+                {{ sector }}
+              </option>
+            </select>
           </div>
 
           <div>
-            <label>Email:</label>
-            <input v-model="companyData.email" type="email" placeholder="info@bedrijf.nl" />
+            <label>Straat en nummer:</label>
+            <input v-model="companyData.address" type="text" placeholder="Straatnaam 123, 1234 AB Plaats" />
           </div>
 
           <div>
             <label>Telefoonnummer:</label>
-            <input v-model="companyData.phone" type="tel" placeholder="+31 6 12345678" />
+            <input v-model="companyData.phone" type="tel" placeholder="+32 6 12345678" />
+          </div>
+
+          <div>
+            <label>E-mailadres:</label>
+            <input v-model="companyData.email" type="email" placeholder="info@bedrijf.be" />
+          </div>
+
+          <div>
+            <label>BTW-nummer:</label>
+            <input v-model="companyData.btwNumber" type="text" placeholder="BE123456789B01" />
+          </div>
+
+          <div>
+            <label>Naam contactpersoon vertegenwoordiger beurs:</label>
+            <input v-model="companyData.contactName" type="text" placeholder="Voor- en achternaam contactpersoon" />
+          </div>
+
+          <div>
+            <label>E-mailadres contactpersoon:</label>
+            <input v-model="companyData.contactEmail" type="email" placeholder="contact@bedrijf.be" />
+          </div>
+
+          <div>
+            <label>LinkedIn-URL van het bedrijf (optioneel):</label>
+            <input v-model="companyData.linkedinUrl" type="url" placeholder="https://linkedin.com/bedrijfsnaam" />
           </div>
 
           <div>

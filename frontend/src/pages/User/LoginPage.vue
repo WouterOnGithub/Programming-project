@@ -58,7 +58,7 @@ const handleLogin = () => {
 }
 
 const goToRegister = () => {
-  router.push('/register')
+
 }
 </script>
 
