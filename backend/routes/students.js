@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const pool = require('../db');  // let op het pad naar db.js
+const pool = require('../db');
 
 // GET alle studenten
 router.get('/', async (req, res) => {
