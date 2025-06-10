@@ -1,0 +1,185 @@
+.register-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.register-card {
+  background: white;
+  border-radius: 16px;
+  padding: 40px;
+  width: 100%;
+  max-width: 600px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.register-card h1 {
+  text-align: center;
+  color: #333;
+  margin-bottom: 10px;
+  font-size: 2rem;
+}
+
+.register-card p {
+  text-align: center;
+  color: #666;
+  margin-bottom: 30px;
+}
+
+.type-selection h3 {
+  text-align: center;
+  color: #333;
+  margin-bottom: 20px;
+}
+
+.type-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.type-card {
+  background: #f8f9fa;
+  border: 2px solid #e9ecef;
+  border-radius: 12px;
+  padding: 25px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.type-card:hover {
+  border-color: #c20000;
+  transform: translateY(-2px);
+}
+
+.type-card.active {
+  background: #c20000;
+  border-color: #c20000;
+  color: white;
+}
+
+.type-card h4 {
+  margin: 0 0 10px 0;
+  font-size: 1.3rem;
+}
+
+.type-card p {
+  margin: 0 0 15px 0;
+  color: inherit;
+}
+
+.type-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  text-align: left;
+}
+
+.type-card li {
+  font-size: 0.9rem;
+  margin-bottom: 5px;
+  color: inherit;
+}
+
+.form-section {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 25px;
+  margin-bottom: 20px;
+}
+
+.form-section h4 {
+  color: #333;
+  margin-bottom: 20px;
+  font-size: 1.3rem;
+}
+
+.form-section > div {
+  margin-bottom: 15px;
+}
+
+.form-section label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 600;
+  color: #333;
+}
+
+.form-section input,
+.form-section select {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+  font-family: inherit;
+}
+
+.form-section input:focus,
+.form-section select:focus {
+  outline: none;
+  border-color: #c20000;
+}
+
+.form-section select {
+  background-color: white;
+  cursor: pointer;
+}
+
+.error-box {
+  background: #f8d7da;
+  color: #721c24;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.register-btn {
+  width: 100%;
+  background: #c20000;
+  color: white;
+  border: none;
+  padding: 15px;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  margin-top: 10px;
+}
+
+.register-btn:hover {
+  background: #a50000;
+}
+
+.footer {
+  text-align: center;
+  padding-top: 20px;
+  border-top: 1px solid #e9ecef;
+}
+
+.footer p {
+  margin-bottom: 15px;
+  color: #666;
+}
+
+.login-btn {
+  background: #c20000;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.login-btn:hover {
+  background: #a50000;
+}
