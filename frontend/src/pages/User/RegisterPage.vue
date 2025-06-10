@@ -1,189 +1,225 @@
-<script setup lang="ts">
-import '../../css/home.css'
-import { reactive, ref } from 'vue'
-import axios from 'axios'
+<script setup>
+import { reactive, ref } from 'vue';
+import axios from 'axios';
+import '../../css/register.css'
 
-const form = reactive({
+
+// Simpele form state
+const selectedType = ref('student')
+
+// Student form
+const studentData = ref({
   name: '',
   email: '',
-  password: ''
+  password: '',
+  confirmPassword: ''
 })
 
-const message = ref('')
+// Bedrijf form
+const companyData = ref({
+  companyName: '',
+  contactName: '',
+  email: '',
+  phone: '',
+  password: '',
+  confirmPassword: ''
+})
 
-async function submitForm() {
-  try {
-    const response = await axios.post('http://localhost:3000/api/register', form)
-    message.value = response.data.message || 'Account created successfully!'
-    
-    // Reset form
-    Object.keys(form).forEach(key => form[key] = '')
-  } catch (error: any) {
-    message.value = error.response?.data?.message || 'Error registering account'
+const error = ref('')
+
+const isStudent = () => selectedType.value === 'student'
+const isBedrijf = () => selectedType.value === 'bedrijf'
+
+const selectType = (type) => {
+  selectedType.value = type
+  clearForms()
+}
+
+const clearForms = () => {
+  studentData.value = {
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
   }
+  
+  companyData.value = {
+    companyName: '',
+    contactName: '',
+    email: '',
+    phone: '',
+    password: '',
+    confirmPassword: ''
+  }
+  
+  error.value = ''
+}
+
+const handleRegister = () => {
+  error.value = ''
+  
+  if (isStudent()) {
+    const data = studentData.value
+    
+    if (!data.name || !data.email || !data.password || !data.confirmPassword) {
+      error.value = 'Vul alle velden in'
+      return
+    }
+    
+    if (data.password !== data.confirmPassword) {
+      error.value = 'Wachtwoorden komen niet overeen'
+      return
+    }
+    
+    if (data.password.length < 6) {
+      error.value = 'Wachtwoord moet minimaal 6 karakters zijn'
+      return
+    }
+    
+    alert(`Student account aangemaakt voor ${data.name}!`)
+  } else {
+    const data = companyData.value
+    
+    if (!data.companyName || !data.contactName || !data.email || !data.phone || !data.password || !data.confirmPassword) {
+      error.value = 'Vul alle velden in'
+      return
+    }
+    
+    if (data.password !== data.confirmPassword) {
+      error.value = 'Wachtwoorden komen niet overeen'
+      return
+    }
+    
+    if (data.password.length < 8) {
+      error.value = 'Wachtwoord moet minimaal 8 karakters zijn'
+      return
+    }
+    
+    alert(`Bedrijf account aangemaakt voor ${data.companyName}!`)
+  }
+}
+
+const goToLogin = () => {
+  router.push('/login')
 }
 </script>
 
 <template>
-  <div class="login-container">
-    <div class="login-card">
-      <div class="header">
-        <h2>Create an account</h2>
-        <p>Sign up to get started</p>
+  <div class="register-page">
+    <div class="register-card">
+      <h1>Account Aanmaken</h1>
+      <p>Word onderdeel van het Student & Bedrijf Portal</p>
+
+      <!-- Type Selectie -->
+      <div class="type-selection">
+        <h3>Kies uw account type</h3>
+        <div class="type-cards">
+          <div 
+            :class="['type-card', { active: isStudent() }]"
+            @click="selectType('student')"
+          >
+            <h4>👨‍🎓 Student</h4>
+            <p>Vind stages en vacatures</p>
+            <ul>
+              <li>✓ Zoek stages</li>
+              <li>✓ Maak profiel</li>
+              <li>✓ Solliciteer direct</li>
+            </ul>
+          </div>
+
+          <div 
+            :class="['type-card', { active: isBedrijf() }]"
+            @click="selectType('bedrijf')"
+          >
+            <h4>🏢 Bedrijf</h4>
+            <p>Vind stagiairs en werknemers</p>
+            <ul>
+              <li>✓ Plaats vacatures</li>
+              <li>✓ Beheer kandidaten</li>
+              <li>✓ Bedrijfsprofiel</li>
+            </ul>
+          </div>
+        </div>
       </div>
 
-      <form @submit.prevent="submitForm" class="form">
-        <div class="form-group">
-          <label for="name">Name</label>
-          <input
-            id="name"
-            type="text"
-            v-model="form.name"
-            required
-            placeholder="Your name"
-          />
+      <!-- Register Form -->
+      <form @submit.prevent="handleRegister" class="register-form">
+        <div v-if="error" class="error-box">
+          {{ error }}
         </div>
 
-        <div class="form-group">
-          <label for="email">Email</label>
-          <input
-            id="email"
-            type="email"
-            v-model="form.email"
-            required
-            placeholder="you@example.com"
-          />
+        <!-- Student Form -->
+        <div v-if="isStudent()" class="form-section">
+          <h4>👨‍🎓 Student Registratie</h4>
+          
+          <div>
+            <label>Volledige Naam:</label>
+            <input v-model="studentData.name" type="text" placeholder="Voor- en achternaam" />
+          </div>
+
+          <div>
+            <label>Email:</label>
+            <input v-model="studentData.email" type="email" placeholder="student@email.com" />
+          </div>
+
+          <div>
+            <label>Wachtwoord:</label>
+            <input v-model="studentData.password" type="password" placeholder="Minimaal 6 karakters" />
+          </div>
+
+          <div>
+            <label>Bevestig Wachtwoord:</label>
+            <input v-model="studentData.confirmPassword" type="password" placeholder="Herhaal wachtwoord" />
+          </div>
         </div>
 
-        <div class="form-group">
-          <label for="password">Password</label>
-          <input
-            id="password"
-            type="password"
-            v-model="form.password"
-            required
-            placeholder="••••••••"
-          />
+        <!-- Bedrijf Form -->
+        <div v-if="isBedrijf()" class="form-section">
+          <h4>🏢 Bedrijf Registratie</h4>
+          
+          <div>
+            <label>Bedrijfsnaam:</label>
+            <input v-model="companyData.companyName" type="text" placeholder="Naam van uw bedrijf" />
+          </div>
+
+          <div>
+            <label>Contactpersoon:</label>
+            <input v-model="companyData.contactName" type="text" placeholder="Voor- en achternaam" />
+          </div>
+
+          <div>
+            <label>Email:</label>
+            <input v-model="companyData.email" type="email" placeholder="info@bedrijf.nl" />
+          </div>
+
+          <div>
+            <label>Telefoonnummer:</label>
+            <input v-model="companyData.phone" type="tel" placeholder="+31 6 12345678" />
+          </div>
+
+          <div>
+            <label>Wachtwoord:</label>
+            <input v-model="companyData.password" type="password" placeholder="Minimaal 8 karakters" />
+          </div>
+
+          <div>
+            <label>Bevestig Wachtwoord:</label>
+            <input v-model="companyData.confirmPassword" type="password" placeholder="Herhaal wachtwoord" />
+          </div>
         </div>
 
-        <button type="submit" class="submit-btn">
-          Sign up
+        <button type="submit" class="register-btn">
+          {{ isStudent() ? 'Registreer als Student' : 'Registreer als Bedrijf' }}
         </button>
       </form>
 
+      <!-- Footer -->
       <div class="footer">
-        <p>
-          Already have an account?
-          <router-link to="/login" class="link">Sign in</router-link>
-        </p>
+        <p>Heeft u al een account?</p>
+        <button @click="goToLogin" class="login-btn">
+          Inloggen
+        </button>
       </div>
-
-      <p v-if="message" class="message">{{ message }}</p>
     </div>
   </div>
 </template>
-
-<style scoped>
-/* Stijl kopiëren van jouw login-pagina */
-.login-container {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #f9fafb;
-  padding: 1rem;
-}
-
-.login-card {
-  max-width: 28rem;
-  width: 100%;
-  background: white;
-  border-radius: 0.75rem;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
-              0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  padding: 2rem;
-}
-
-.header {
-  text-align: center;
-  margin-bottom: 2rem;
-}
-
-.header h2 {
-  font-size: 1.875rem;
-  font-weight: 700;
-  color: #111827;
-}
-
-.header p {
-  color: #6b7280;
-  margin: 0;
-}
-
-.form {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.form-group label {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #374151;
-  margin-bottom: 0.25rem;
-}
-
-.form-group input {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  border-radius: 0.5rem;
-  border: 1px solid #d1d5db;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  font-size: 1rem;
-}
-
-.submit-btn {
-  background-color: #2563eb;
-  color: white;
-  font-weight: 500;
-  padding: 0.75rem 1.5rem;
-  border-radius: 0.5rem;
-  border: none;
-  cursor: pointer;
-  font-size: 1rem;
-  transition: all 0.2s;
-}
-
-.submit-btn:hover {
-  background-color: #1d4ed8;
-}
-
-.footer {
-  text-align: center;
-  margin-top: 1.5rem;
-}
-
-.footer p {
-  font-size: 0.875rem;
-  color: #6b7280;
-  margin: 0;
-}
-
-.link {
-  font-weight: 500;
-  color: #2563eb;
-  text-decoration: none;
-  transition: color 0.2s;
-}
-
-.link:hover {
-  color: #1d4ed8;
-}
-
-.message {
-  margin-top: 1rem;
-  font-size: 0.875rem;
-  color: green;
-  text-align: center;
-}
-</style>

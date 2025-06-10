@@ -1,179 +1,144 @@
-<script setup lang="ts">
-import '../../css/home.css'
-import { reactive, ref } from 'vue'
-import axios from 'axios'
+<script setup>
+import { reactive, ref } from 'vue';
+import axios from 'axios';
+import '../../css/login.css'
 
-const form = reactive({
-  email: '',
-  password: ''
-})
+// Simpele form state
+const selectedRole = ref('student')
+const email = ref('')
+const password = ref('')
+const name = ref('')
+const companyName = ref('')
 
-const message = ref('')
+// Simpele validatie
+const error = ref('')
 
-async function submitForm() {
-  try {
-    const response = await axios.post('http://localhost:3000/api/login', form, {
-      withCredentials: true // als je cookies gebruikt
-    })
-    message.value = response.data.message || 'Login successful!'
-    // Eventueel router push hier
-  } catch (error: any) {
-    message.value = error.response?.data?.message || 'Login error'
+const isStudent = () => selectedRole.value === 'student'
+const isBedrijf = () => selectedRole.value === 'bedrijf'
+const isAdmin = () => selectedRole.value === 'admin'
+
+const selectRole = (role) => {
+  selectedRole.value = role
+  clearForm()
+}
+
+const clearForm = () => {
+  email.value = ''
+  password.value = ''
+  name.value = ''
+  companyName.value = ''
+  error.value = ''
+}
+
+const handleLogin = () => {
+  error.value = ''
+  
+  // Basis validatie
+  if (!email.value || !password.value) {
+    error.value = 'Vul alle velden in'
+    return
   }
+  
+  if (isStudent() && !name.value) {
+    error.value = 'Vul uw naam in'
+    return
+  }
+  
+  if (isBedrijf() && !companyName.value) {
+    error.value = 'Vul uw bedrijfsnaam in'
+    return
+  }
+  
+  let welcomeName = ''
+  if (isStudent()) welcomeName = name.value
+  else if (isBedrijf()) welcomeName = companyName.value
+  else welcomeName = 'Administrator'
+  
+  alert(`Welkom ${welcomeName}!`)
+}
+
+const goToRegister = () => {
+  router.push('/register')
 }
 </script>
 
 <template>
-  <div class="login-container">
+  <div class="login-page">
     <div class="login-card">
-      <div class="header">
-        <h2>Welcome back</h2>
-        <p>Sign in to your account</p>
+      <h1>Welkom Terug</h1>
+      <p>Log in op het Student & Bedrijf Portal</p>
+
+      <!-- Rol Selectie -->
+      <div class="role-selection">
+        <h3>Kies uw rol</h3>
+        <div class="role-cards">
+          <div 
+            :class="['role-card', { active: isStudent() }]"
+            @click="selectRole('student')"
+          >
+            <h4>👨‍🎓 Student</h4>
+            <p>Zoek stages en vacatures</p>
+          </div>
+
+          <div 
+            :class="['role-card', { active: isBedrijf() }]"
+            @click="selectRole('bedrijf')"
+          >
+            <h4>🏢 Bedrijf</h4>
+            <p>Vind stagiairs en werknemers</p>
+          </div>
+
+          <div 
+            :class="['role-card', { active: isAdmin() }]"
+            @click="selectRole('admin')"
+          >
+            <h4>⚙️ Administrator</h4>
+            <p>Beheer het systeem</p>
+          </div>
+        </div>
       </div>
 
-      <form @submit.prevent="submitForm" class="form">
-        <div class="form-group">
-          <label for="email">Email</label>
-          <input
-            id="email"
-            type="email"
-            v-model="form.email"
-            required
-            placeholder="you@example.com"
-          />
+      <!-- Login Form -->
+      <form @submit.prevent="handleLogin" class="login-form">
+        <div v-if="error" class="error-box">
+          {{ error }}
         </div>
 
-        <div class="form-group">
-          <div class="password-header">
-            <label for="password">Password</label>
-            <a href="#" class="forgot-link">Forgot password?</a>
-          </div>
-          <input
-            id="password"
-            type="password"
-            v-model="form.password"
-            required
-            placeholder="••••••••"
-          />
+        <!-- Student velden -->
+        <div v-if="isStudent()">
+          <label>Naam:</label>
+          <input v-model="name" type="text" placeholder="Uw volledige naam" />
         </div>
 
-        <button type="submit" class="submit-btn">
-          Sign in
+        <!-- Bedrijf velden -->
+        <div v-if="isBedrijf()">
+          <label>Bedrijfsnaam:</label>
+          <input v-model="companyName" type="text" placeholder="Uw bedrijfsnaam" />
+        </div>
+
+        <!-- Algemene velden -->
+        <div>
+          <label>Email:</label>
+          <input v-model="email" type="email" placeholder="uw@email.com" />
+        </div>
+
+        <div>
+          <label>Wachtwoord:</label>
+          <input v-model="password" type="password" placeholder="Uw wachtwoord" />
+        </div>
+
+        <button type="submit" class="login-btn">
+          Inloggen als {{ isStudent() ? 'Student' : isBedrijf() ? 'Bedrijf' : 'Administrator' }}
         </button>
       </form>
 
+      <!-- Footer -->
       <div class="footer">
-        <p>
-          Don't have an account?
-          <router-link to="/register" class="link">Sign up</router-link>
-        </p>
+        <p>Nog geen account?</p>
+        <button @click="goToRegister" class="register-btn">
+          Account aanmaken
+        </button>
       </div>
-
-      <p v-if="message" class="message">{{ message }}</p>
     </div>
   </div>
 </template>
-
-<style scoped>
-.login-container {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #f9fafb;
-  padding: 1rem;
-}
-
-.login-card {
-  max-width: 28rem;
-  width: 100%;
-  background: white;
-  border-radius: 0.75rem;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
-              0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  padding: 2rem;
-}
-
-.header {
-  text-align: center;
-  margin-bottom: 2rem;
-}
-
-.header h2 {
-  font-size: 1.875rem;
-  font-weight: 700;
-  color: #111827;
-}
-
-.header p {
-  color: #6b7280;
-  margin: 0;
-}
-
-.form {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.form-group label {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #374151;
-  margin-bottom: 0.25rem;
-}
-
-.form-group input {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  border-radius: 0.5rem;
-  border: 1px solid #d1d5db;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  font-size: 1rem;
-}
-
-.submit-btn {
-  background-color: #2563eb;
-  color: white;
-  font-weight: 500;
-  padding: 0.75rem 1.5rem;
-  border-radius: 0.5rem;
-  border: none;
-  cursor: pointer;
-  font-size: 1rem;
-  transition: all 0.2s;
-}
-
-.submit-btn:hover {
-  background-color: #1d4ed8;
-}
-
-.footer {
-  text-align: center;
-  margin-top: 1.5rem;
-}
-
-.footer p {
-  font-size: 0.875rem;
-  color: #6b7280;
-  margin: 0;
-}
-
-.link {
-  font-weight: 500;
-  color: #2563eb;
-  text-decoration: none;
-  transition: color 0.2s;
-}
-
-.link:hover {
-  color: #1d4ed8;
-}
-
-.message {
-  margin-top: 1rem;
-  font-size: 0.875rem;
-  color: red;
-  text-align: center;
-}
-</style>
