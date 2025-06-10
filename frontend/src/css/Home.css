@@ -1,27 +1,187 @@
-form > div {
-  margin-bottom: 1rem;
+/* Algemene layout */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(to bottom, #f9f9f9, #e0f7fa);
+  color: #333;
 }
 
-label {
-  display: block;
-  font-weight: bold;
+/* Container */
+.home {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem;
 }
 
-input {
-  width: 100%;
-  padding: 0.3rem;
-  box-sizing: border-box;
+/* Navigatiebalk */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: white;
+  padding: 1rem 1.5rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
 }
 
-button {
-  padding: 0.6rem 1.2rem;
-  background-color: #42b983;
+.logo {
+  height: 45px;
+}
+
+.menu {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.btn {
+  background-color: #c20000;
   color: white;
+  padding: 0.6rem 1.2rem;
   border: none;
-  border-radius: 4px;
+  border-radius: 25px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.btn:hover {
+  background-color: #a00000;
+}
+
+.menubar {
+  font-size: 1.6rem;
   cursor: pointer;
 }
 
-button:hover {
-  background-color: #369870;
+/* Intro met afbeelding */
+.intro {
+  margin-top: 2rem;
+  background-color: white;
+  padding: 1rem;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  text-align: center;
+}
+
+.intro img {
+  width: 100%;
+  max-height: 450px;
+  object-fit: cover;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+}
+
+.intro p {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #444;
+  margin: 0 auto;
+  max-width: 900px;
+}
+
+/* Planning */
+.planning {
+  margin-top: 2rem;
+  background-color: #f5f5f5;
+  padding: 1.2rem;
+  border-radius: 12px;
+}
+
+.planning ul {
+  padding-left: 1.2rem;
+  margin-top: 0.5rem;
+}
+
+/* Bedrijven */
+.bedrijven {
+  margin-top: 2.5rem;
+}
+
+.bedrijven-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.bedrijf-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: white;
+  padding: 1rem;
+  border-radius: 14px;
+  text-decoration: none;
+  color: black;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.07);
+  transition: transform 0.2s, box-shadow 0.2s;
+  width: 300;
+  height: 120px;
+  justify-content: center;
+}
+
+.bedrijf-tile:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.15);
+}
+
+.bedrijf-tile img {
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+}
+
+
+/* Map */
+.map {
+  margin-top: 2rem;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+/* Eerste footer (adresblok) */
+.adres {
+  margin-top: 2rem;
+  text-align: center;
+  font-weight: bold;
+  background-color: #c20000;
+  color: white;
+  padding: 1rem;
+  border-radius: 10px;
+}
+
+/* Tweede footer (contact – FAQ – Sociale Media) */
+.footer {
+  background-color: #e0e0e0;
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid #ccc;
+  margin-top: 2rem;
+  border-radius: 6px 6px 0 0;
+}
+
+.footer-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.footer-left a {
+  text-decoration: none;
+  color: black;
+  font-weight: bold;
+  transition: color 0.2s;
+}
+
+.footer-left a:hover {
+  color: #c20000;
+}
+
+.footer-right img {
+  height: 40px;
 }
