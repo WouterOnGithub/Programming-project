@@ -4,9 +4,8 @@
     <nav class="navbar">
       <img src="/Images/ehb-logo.png" alt="Erasmus logo" class="logo" />
       <div class="menu">
-        <button class="btn">Bedrijf</button>
-        <button class="btn">Student</button>
-        <button class="btn">Admin</button>
+        <button class="btn">Log In</button>
+        <button class="btn">Registratie</button>
       </div>
     </nav>
 
