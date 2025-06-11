@@ -1,0 +1,163 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background: linear-gradient(to bottom, #ffffff, #eaf7f7);
+}
+
+header {
+  width: 100%;
+  background-color: white;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 10;
+}
+
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: white;
+  padding: 1rem 1.5rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+}
+
+.logo {
+  height: 45px;
+}
+
+.menu {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.btn {
+  background-color: #c20000;
+  color: white;
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: 25px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.btn:hover {
+  background-color: #a00000;
+}
+
+.menubar {
+  font-size: 1.6rem;
+  cursor: pointer;
+}
+
+.main-content {
+  padding: 40px 30px 100px;
+  flex: 1;
+}
+
+.student-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+.student-info {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.circle {
+  width: 55px;
+  height: 55px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid #ffcccc;
+}
+
+.circle img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.student-text strong {
+  font-size: 16px;
+}
+
+.student-text p {
+  font-size: 14px;
+  color: #555;
+}
+
+/* Coeur */
+.student-row i {
+  font-size: 24px;
+  color: black;
+}
+
+/* Button */
+.button-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: 40px;
+}
+
+.search-btn {
+  background-color: #d91c1c;
+  color: white;
+  border: none;
+  border-radius: 25px;
+  padding: 12px 35px;
+  font-size: 16px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: 0.3s;
+}
+
+.search-btn:hover {
+  background-color: white;
+  color: #d91c1c;
+  border: 2px solid #d91c1c;
+}
+
+.footer {
+  background-color: #e0e0e0;
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid #ccc;
+  margin-top: 2rem;
+  border-radius: 6px 6px 0 0;
+}
+
+.footer-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.footer-left a {
+  text-decoration: none;
+  color: black;
+  font-weight: bold;
+  transition: color 0.2s;
+}
+
+.footer-left a:hover {
+  color: #c20000;
+}
+
+.footer-right img {
+  height: 40px;
+}
