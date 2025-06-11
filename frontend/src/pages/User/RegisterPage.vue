@@ -2,27 +2,23 @@
 import { reactive, ref } from 'vue';
 import { auth, db } from '../../firebase/config';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, setDoc } from 'firebase/firestore';
 import { useRouter } from 'vue-router';
 import axios from 'axios';
 import '../../css/register.css'
 import Navbar from '../../components/Navbar.vue'
 
 const router = useRouter();
+const error = ref('');
 
-// Simpele form state
-const selectedType = ref('student')
-
-// Student form
-const studentData = ref({
+const studentData = reactive({
   name: '',
   email: '',
   password: '',
   confirmPassword: ''
-})
+});
 
-// Bedrijf form
-const companyData = ref({
+const companyData = reactive({
   companyName: '',
   sector: '',
   address: '',
@@ -34,134 +30,107 @@ const companyData = ref({
   linkedinUrl: '',
   password: '',
   confirmPassword: ''
-})
+});
 
-const error = ref('')
+const selectedType = ref('student');
 
 const sectors = [
   'IT & Software',
   'Marketing & Communicatie',
-  'Finance & Banking',
-  'Healthcare',
-  'Engineering',
-  'Education',
-  'Retail',
-  'Manufacturing',
-  'Consulting',
-  'Non-profit',
-  'Government',
-  'Other'
-]
+  'Financiën & Administratie',
+  'Onderwijs & Training',
+  'Gezondheidszorg',
+  'Retail & Verkoop',
+  'Productie & Industrie',
+  'Overig'
+];
 
-const isStudent = () => selectedType.value === 'student'
-const isBedrijf = () => selectedType.value === 'bedrijf'
+const isStudent = () => selectedType.value === 'student';
+const isBedrijf = () => selectedType.value === 'bedrijf';
 
 const selectType = (type) => {
-  selectedType.value = type
-  clearForms()
-}
+  selectedType.value = type;
+};
 
 const clearForms = () => {
-  studentData.value = {
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: ''
-  }
-
-  companyData.value = {
-    companyName: '',
-    sector: '',
-    address: '',
-    phone: '',
-    email: '',
-    btwNumber: '',
-    contactName: '',
-    contactEmail: '',
-    linkedinUrl: '',
-    password: '',
-    confirmPassword: ''
-  }
-
-  error.value = ''
-}
+  Object.keys(studentData).forEach(key => {
+    studentData[key] = '';
+  });
+  Object.keys(companyData).forEach(key => {
+    companyData[key] = '';
+  });
+};
 
 const handleRegister = async () => {
-  error.value = ''
+  try {
+    if (isStudent()) {
+      if (studentData.password !== studentData.confirmPassword) {
+        error.value = 'Wachtwoorden komen niet overeen';
+        return;
+      }
 
-  if (isStudent()) {
-    const data = studentData.value
+      // Create user in Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        studentData.email,
+        studentData.password
+      );
 
-    if (!data.name || !data.email || !data.password || !data.confirmPassword) {
-      error.value = 'Vul alle velden in'
-      return
-    }
-
-    if (data.password !== data.confirmPassword) {
-      error.value = 'Wachtwoorden komen niet overeen'
-      return
-    }
-
-    if (data.password.length < 6) {
-      error.value = 'Wachtwoord moet minimaal 6 karakters zijn'
-      return
-    }
-
-    try {
-      const cred = await createUserWithEmailAndPassword(auth, data.email, data.password);
-      await addDoc(collection(db, 'student'), {
-        student_id: cred.user.uid,
-        email: data.email,
-        type: 'student'
+      // Create user document in Firestore
+      await setDoc(doc(db, 'users', userCredential.user.uid), {
+        name: studentData.name,
+        email: studentData.email,
+        type: 'student',
+        createdAt: new Date()
       });
-      alert(`Student account aangemaakt voor ${data.name}!`);
+
+      alert(`Student account aangemaakt voor ${studentData.name}!`);
       clearForms();
-    } catch (e) {
-      error.value = e.message;
-    }
-  } else {
-    const data = companyData.value
+      router.push('/Stinvoer');
+    } else {
+      if (companyData.password !== companyData.confirmPassword) {
+        error.value = 'Wachtwoorden komen niet overeen';
+        return;
+      }
 
-    if (!data.companyName || !data.sector || !data.address || !data.phone ||
-      !data.email || !data.btwNumber || !data.contactName || !data.contactEmail ||
-      !data.password || !data.confirmPassword) {
-      error.value = 'Vul alle velden in'
-      return
-    }
+      // Create user in Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        companyData.email,
+        companyData.password
+      );
 
-    if (data.password !== data.confirmPassword) {
-      error.value = 'Wachtwoorden komen niet overeen'
-      return
-    }
-
-    if (data.password.length < 8) {
-      error.value = 'Wachtwoord moet minimaal 8 karakters zijn'
-      return
-    }
-
-    try {
-      const cred = await createUserWithEmailAndPassword(auth, data.email, data.password);
-      await addDoc(collection(db, 'bedrijf'), {
-        bedrijf_id: cred.user.uid,
-        email: data.email,
-        type: 'bedrijf'
+      // Create user document in Firestore
+      await setDoc(doc(db, 'users', userCredential.user.uid), {
+        companyName: companyData.companyName,
+        sector: companyData.sector,
+        address: companyData.address,
+        phone: companyData.phone,
+        email: companyData.email,
+        btwNumber: companyData.btwNumber,
+        contactName: companyData.contactName,
+        contactEmail: companyData.contactEmail,
+        linkedinUrl: companyData.linkedinUrl,
+        type: 'bedrijf',
+        createdAt: new Date()
       });
-      alert(`Bedrijf account aangemaakt voor ${data.companyName}!`);
+
+      alert(`Bedrijf account aangemaakt voor ${companyData.companyName}!`);
       clearForms();
-    } catch (e) {
-      error.value = e.message;
+      router.push('/dashboard');
     }
+  } catch (e) {
+    error.value = e.message;
   }
-}
+};
 
 const goToLogin = () => {
-  router.push('/login')
-}
+  router.push('/login');
+};
 </script>
 
 <template>
-
-<Navbar />
+  <Navbar />
 
   <div class="register-page">
     <div class="register-card">
