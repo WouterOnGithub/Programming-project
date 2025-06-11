@@ -1,7 +1,9 @@
 <script setup>
 import { reactive, ref } from 'vue';
-import { auth } from '../../firebase/config';
+import { auth, db } from '../../firebase/config';
 import { signInWithEmailAndPassword } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { useRouter } from 'vue-router';
 import '../../css/login.css'
 import Navbar from '../../components/Navbar.vue'
 
@@ -15,6 +17,8 @@ const companyName = ref('')
 
 // Simpele validatie
 const error = ref('')
+
+const router = useRouter();
 
 const isStudent = () => selectedRole.value === 'student'
 const isBedrijf = () => selectedRole.value === 'bedrijf'
@@ -53,15 +57,28 @@ const handleLogin = async () => {
   }
 
   try {
-    await signInWithEmailAndPassword(auth, email.value, password.value);
+    const userCredential = await signInWithEmailAndPassword(auth, email.value, password.value);
+    const user = userCredential.user;
+    
+    // Check if user is admin
+    if (isAdmin()) {
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      if (userDoc.exists() && userDoc.data().role === 'admin') {
+        router.push('/admin/dashboard');
+        return;
+      } else {
+        error.value = 'Geen admin rechten';
+        await auth.signOut();
+        return;
+      }
+    }
+
     let welcomeName = ''
     if (isStudent()) welcomeName = name.value
     else if (isBedrijf()) welcomeName = companyName.value
-    else welcomeName = 'Administrator'
     
     alert(`Welkom ${welcomeName}!`);
-    // Optionally redirect to home page after successful login
-    // window.location.href = '/';
+    router.push('/');
   } catch (e) {
     error.value = e.message;
   }
