@@ -1,6 +1,7 @@
 <script setup>
 import { reactive, ref } from 'vue';
-import axios from 'axios';
+import { auth } from '../../firebase/config';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 import '../../css/login.css'
 import Navbar from '../../components/Navbar.vue'
 
@@ -32,7 +33,7 @@ const clearForm = () => {
   error.value = ''
 }
 
-const handleLogin = () => {
+const handleLogin = async () => {
   error.value = ''
 
   // Basis validatie
@@ -51,17 +52,23 @@ const handleLogin = () => {
     return
   }
 
-  let welcomeName = ''
-  if (isStudent()) welcomeName = name.value
-  else if (isBedrijf()) welcomeName = companyName.value
-  else welcomeName = 'Administrator'
-
-  alert(`Welkom ${welcomeName}!`)
+  try {
+    await signInWithEmailAndPassword(auth, email.value, password.value);
+    let welcomeName = ''
+    if (isStudent()) welcomeName = name.value
+    else if (isBedrijf()) welcomeName = companyName.value
+    else welcomeName = 'Administrator'
+    
+    alert(`Welkom ${welcomeName}!`);
+    // Optionally redirect to home page after successful login
+    // window.location.href = '/';
+  } catch (e) {
+    error.value = e.message;
+  }
 }
 
-
 const goToRegister = () => {
- 
+  window.location.href = '/register';
 }
 </script>
 

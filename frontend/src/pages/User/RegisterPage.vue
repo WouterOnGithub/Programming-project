@@ -1,9 +1,14 @@
 <script setup>
 import { reactive, ref } from 'vue';
+import { auth, db } from '../../firebase/config';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { collection, addDoc } from 'firebase/firestore';
+import { useRouter } from 'vue-router';
 import axios from 'axios';
 import '../../css/register.css'
 import Navbar from '../../components/Navbar.vue'
 
+const router = useRouter();
 
 // Simpele form state
 const selectedType = ref('student')
@@ -81,7 +86,7 @@ const clearForms = () => {
   error.value = ''
 }
 
-const handleRegister = () => {
+const handleRegister = async () => {
   error.value = ''
 
   if (isStudent()) {
@@ -102,7 +107,18 @@ const handleRegister = () => {
       return
     }
 
-    alert(`Student account aangemaakt voor ${data.name}!`)
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, data.email, data.password);
+      await addDoc(collection(db, 'student'), {
+        student_id: cred.user.uid,
+        email: data.email,
+        type: 'student'
+      });
+      alert(`Student account aangemaakt voor ${data.name}!`);
+      clearForms();
+    } catch (e) {
+      error.value = e.message;
+    }
   } else {
     const data = companyData.value
 
@@ -123,7 +139,18 @@ const handleRegister = () => {
       return
     }
 
-    alert(`Bedrijf account aangemaakt voor ${data.companyName}!`)
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, data.email, data.password);
+      await addDoc(collection(db, 'bedrijf'), {
+        bedrijf_id: cred.user.uid,
+        email: data.email,
+        type: 'bedrijf'
+      });
+      alert(`Bedrijf account aangemaakt voor ${data.companyName}!`);
+      clearForms();
+    } catch (e) {
+      error.value = e.message;
+    }
   }
 }
 
