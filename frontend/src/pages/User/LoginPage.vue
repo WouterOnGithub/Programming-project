@@ -2,6 +2,8 @@
 import { reactive, ref } from 'vue';
 import axios from 'axios';
 import '../../css/login.css'
+import Navbar from '../../components/Navbar.vue'
+
 
 // Simpele form state
 const selectedRole = ref('student')
@@ -32,37 +34,41 @@ const clearForm = () => {
 
 const handleLogin = () => {
   error.value = ''
-  
+
   // Basis validatie
   if (!email.value || !password.value) {
     error.value = 'Vul alle velden in'
     return
   }
-  
+
   if (isStudent() && !name.value) {
     error.value = 'Vul uw naam in'
     return
   }
-  
+
   if (isBedrijf() && !companyName.value) {
     error.value = 'Vul uw bedrijfsnaam in'
     return
   }
-  
+
   let welcomeName = ''
   if (isStudent()) welcomeName = name.value
   else if (isBedrijf()) welcomeName = companyName.value
   else welcomeName = 'Administrator'
-  
+
   alert(`Welkom ${welcomeName}!`)
 }
 
-const goToRegister = () => {
 
+const goToRegister = () => {
+ 
 }
 </script>
 
+
 <template>
+<Navbar />
+
   <div class="login-page">
     <div class="login-card">
       <h1>Welkom Terug</h1>
@@ -72,26 +78,17 @@ const goToRegister = () => {
       <div class="role-selection">
         <h3>Kies uw rol</h3>
         <div class="role-cards">
-          <div 
-            :class="['role-card', { active: isStudent() }]"
-            @click="selectRole('student')"
-          >
+          <div :class="['role-card', { active: isStudent() }]" @click="selectRole('student')">
             <h4>👨‍🎓 Student</h4>
             <p>Zoek stages en vacatures</p>
           </div>
 
-          <div 
-            :class="['role-card', { active: isBedrijf() }]"
-            @click="selectRole('bedrijf')"
-          >
+          <div :class="['role-card', { active: isBedrijf() }]" @click="selectRole('bedrijf')">
             <h4>🏢 Bedrijf</h4>
             <p>Vind stagiairs en werknemers</p>
           </div>
 
-          <div 
-            :class="['role-card', { active: isAdmin() }]"
-            @click="selectRole('admin')"
-          >
+          <div :class="['role-card', { active: isAdmin() }]" @click="selectRole('admin')">
             <h4>⚙️ Administrator</h4>
             <p>Beheer het systeem</p>
           </div>
@@ -135,9 +132,7 @@ const goToRegister = () => {
       <!-- Footer -->
       <div class="footer">
         <p>Nog geen account?</p>
-        <button @click="goToRegister" class="register-btn">
-          Account aanmaken
-        </button>
+        <router-link to="/register"> <button @click="goToRegister" class="register-btn"> Account aanmaken </button> </router-link>
       </div>
     </div>
   </div>

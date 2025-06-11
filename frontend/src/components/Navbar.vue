@@ -1,19 +1,21 @@
-<template>
-    <nav class="navbar">
-        <router-link to="/">
-            <img src="/Images/ehb-logo.png" alt="Erasmus logo" class="logo" />
-        </router-link>
+<script setup>
+import { useRoute } from 'vue-router'
+const route = useRoute()
+</script>
 
-        <div class="menu">
-            <button class="btn">Bedrijf</button>
-            <button class="btn">Student</button>
-            <button class="btn">Admin</button>
-        </div>
-    </nav>
+<template>
+  <nav class="navbar">
+    <router-link to="/">
+      <img src="/Images/ehb-logo.png" alt="Erasmus logo" class="logo" />
+    </router-link>
+
+    <div class="menu" v-if="!['/login', '/register'].includes(route.path)">
+      <router-link to="/login" class="btn">Log In</router-link>
+      <router-link to="/register" class="btn">Registratie</router-link>
+    </div>
+  </nav>
 </template>
 
-<script setup>
-</script>
 
 <style scoped>
 .navbar {

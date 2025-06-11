@@ -10,7 +10,6 @@ import RegisterPage from '../pages/User/RegisterPage.vue';
 const routes = [
   { path: '/', name: 'Home', component: HomePage },
   { path: '/students', name: 'Student', component: StudentsPage },
-
   { path: '/contact', component: ContactPage },
   {path: '/sociale-media', component: SocialMedia},
   {path: '/login', name: 'Login', component: LoginPage},

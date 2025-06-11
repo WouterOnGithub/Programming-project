@@ -1,13 +1,7 @@
 <template>
   <div class="home">
     <!-- Navigatiebalk -->
-    <nav class="navbar">
-      <img src="/Images/ehb-logo.png" alt="Erasmus logo" class="logo" />
-      <div class="menu">
-        <button class="btn">Log In</button>
-        <button class="btn">Registratie</button>
-      </div>
-    </nav>
+    <Navbar />
 
     <!-- Intro -->
     <section class="intro">
@@ -34,12 +28,7 @@
     <section class="bedrijven">
       <h3>Deelnemende bedrijven:</h3>
       <div class="bedrijven-grid">
-        <router-link
-          v-for="(bedrijf, index) in bedrijven"
-          :key="index"
-          :to="bedrijf.link"
-          class="bedrijf-tile"
-        >
+        <router-link v-for="(bedrijf, index) in bedrijven" :key="index" :to="bedrijf.link" class="bedrijf-tile">
           <img :src="bedrijf.logo" alt="Bedrijfslogo" />
         </router-link>
       </div>
@@ -49,9 +38,8 @@
     <section class="map">
       <iframe
         src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2519.191826378012!2d4.3252036!3d50.8451087!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x47c3c487ad8d2cfb%3A0xe35ab02f7b324878!2sErasmushogeschool%20Brussel!5e0!3m2!1snl!2sbe!4v1717588888888"
-        width="100%" height="250" style="border:0;" allowfullscreen
-        loading="lazy" referrerpolicy="no-referrer-when-downgrade"
-      ></iframe>
+        width="100%" height="250" style="border:0;" allowfullscreen loading="lazy"
+        referrerpolicy="no-referrer-when-downgrade"></iframe>
     </section>
 
     <!-- Adres -->
@@ -65,6 +53,8 @@
 
 <script setup>
 import '../../css/home.css'
+import Navbar from '../../components/Navbar.vue'
+
 
 const bedrijven = [
   {
@@ -83,6 +73,6 @@ const bedrijven = [
     logo: '/Images/cronos-logo.png',
     link: '/bedrijf/cronos'
   }
-  
+
 ]
 </script>
