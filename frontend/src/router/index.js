@@ -6,8 +6,6 @@ import SocialMedia from '../pages/user/SocialMedia.vue';
 import LoginPage from '../pages/User/LoginPage.vue'; 
 import RegisterPage from '../pages/User/RegisterPage.vue';
 
-
-
 const routes = [
   { path: '/', name: 'Home', component: HomePage },
   { path: '/Stinvoer', name: 'Student', component: Stprofielinvoer },
