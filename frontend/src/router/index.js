@@ -7,9 +7,11 @@ import ContactPage from '../pages/User/ContactPage.vue'
 import SocialMedia from '../pages/User/SocialMedia.vue'
 import LoginPage from '../pages/User/LoginPage.vue'
 import RegisterPage from '../pages/User/RegisterPage.vue'
+import GrondplanBedrijf from '../pages/User/GrondplanBedrijf.vue'
 
 // Adminroutes van jou
 import adminRoutes from './admin-routes.js'
+
 
 const userRoutes = [
   { path: '/', name: 'Home', component: HomePage },
@@ -17,7 +19,8 @@ const userRoutes = [
   { path: '/contact', name: 'Contact', component: ContactPage },
   { path: '/sociale-media', name: 'SocialMedia', component: SocialMedia },
   { path: '/login', name: 'Login', component: LoginPage },
-  { path: '/register', name: 'Register', component: RegisterPage }
+  { path: '/register', name: 'Register', component: RegisterPage },
+  { path: '/grondplan', name: 'GrondplanBedrijf', component: GrondplanBedrijf }
 ]
 
 // Combineer alles in één routerconfig
