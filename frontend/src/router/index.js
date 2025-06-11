@@ -13,7 +13,6 @@ import StudentList from '../pages/User/StudentList.vue';
 const routes = [
   { path: '/', name: 'Home', component: HomePage },
   { path: '/students', name: 'Student', component: StudentsPage },
-
   { path: '/contact', component: ContactPage },
   {path: '/sociale-media', component: SocialMedia},
   {path: '/login', name: 'Login', component: LoginPage},
