@@ -8,6 +8,7 @@ import SocialMedia from '../pages/User/SocialMedia.vue'
 import LoginPage from '../pages/User/LoginPage.vue'
 import RegisterPage from '../pages/User/RegisterPage.vue'
 import GrondplanBedrijf from '../pages/User/GrondplanBedrijf.vue'
+import KeuzepaginaStudent from '../pages/User/Keuzepagina-student.vue' 
 
 // Adminroutes van jou
 import adminRoutes from './admin-routes.js'
@@ -20,7 +21,8 @@ const userRoutes = [
   { path: '/sociale-media', name: 'SocialMedia', component: SocialMedia },
   { path: '/login', name: 'Login', component: LoginPage },
   { path: '/register', name: 'Register', component: RegisterPage },
-  { path: '/grondplan', name: 'GrondplanBedrijf', component: GrondplanBedrijf }
+  { path: '/grondplan', name: 'GrondplanBedrijf', component: GrondplanBedrijf },
+  { path: '/keuzepaginaStudent', name: 'KeuzepaginaStudent', component: KeuzepaginaStudent } 
 ]
 
 // Combineer alles in één routerconfig

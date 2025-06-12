@@ -1,0 +1,181 @@
+body {
+    margin: 0;
+    font-family: 'Arial', sans-serif;
+    background: #fff;
+  }
+  
+  main {
+    padding-top: 120px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .main-bg {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  
+  /* CARD SECTION */
+  .card-row {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 60px 80px;
+    width: clamp(320px, 75vw, 1100px);
+    min-height: 420px;
+    background: linear-gradient(135deg, #fff 40%, #d9d9d9 100%);
+    border-radius: 35px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    overflow: visible;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    animation: fadeInCard 0.6s ease;
+  }
+  
+  .card-row:hover {
+    transform: scale(1.015);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.25);
+  }
+  
+  .card-row::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 8px;
+    width: 100%;
+    background-color: #e02b20;
+    border-top-left-radius: 35px;
+    border-top-right-radius: 35px;
+  }
+  
+  .card-logo {
+    position: absolute;
+    top: -40px;
+    left: -40px;
+    width: clamp(60px, 8vw, 100px);
+    height: clamp(60px, 8vw, 100px);
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid black;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+  }
+  
+  .card-logo img {
+    width: 85%;
+    height: 85%;
+    object-fit: contain;
+    border-radius: 50%;
+  }
+  
+  .card-content {
+    width: 100%;
+    max-width: 900px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+    margin: 0 auto;
+    animation: fadeInText 0.8s ease-in-out;
+    position: relative;
+  }
+  
+  .card-title {
+    font-size: clamp(2.2rem, 3.5vw, 3rem);
+    font-weight: bold;
+    margin-bottom: 20px;
+    color: #e02b20;
+    letter-spacing: 0.5px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    align-self: center;
+    text-align: center;
+  }
+  
+  .card-location,
+  .card-job,
+  .card-desc {
+    font-size: clamp(1.3rem, 1.6vw, 1.6rem);
+    line-height: 1.6;
+    margin-bottom: 12px;
+    color: #333;
+    max-width: 90%;
+  }
+  
+  .card-desc {
+    margin-top: 20px;
+  }
+  
+  .card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 28px;
+    width: 100%;
+    font-size: clamp(1.1rem, 1.4vw, 1.3rem);
+    font-weight: bold;
+    color: #000;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    padding-top: 16px;
+  }
+  
+  /* Animations */
+  @keyframes fadeInCard {
+    0% { opacity: 0; transform: scale(0.97); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+  
+  @keyframes fadeInText {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  /* SWIPE BUTTONS */
+  .swipe-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: clamp(450px, 75vw, 1300px);
+    margin: 60px; 
+    padding: 0rem; 
+  }
+  
+  
+  .swipe-btn {
+    width: 45%;
+    max-width: 350px;
+    height: 60px;
+    border-radius: 30px;
+    border: none;
+    font-size: 2.3rem;
+    background: #d40000;
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.2s;
+    font-weight: bold;
+  }
+  
+  .swipe-btn:hover {
+    background-color: #c5001a;
+  }
+  
+  .swipe-btn:active {
+    background: #a80000;
+  }
+  
+  .swipe-btn.like {
+    background: #e53e3e;
+  }
+  
+  .swipe-btn.like:active {
+    background: #c53030;
+  }
+  
