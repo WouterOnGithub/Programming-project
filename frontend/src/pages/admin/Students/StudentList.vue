@@ -61,9 +61,15 @@
         <tbody>
           <tr v-for="student in filteredStudents" :key="student.id" class="student-row">
             <td class="student-info">
-              <div class="student-avatar">
-                <img v-if="student.photo" :src="student.photo" :alt="student.name">
-                <span v-else>{{ student.firstName.charAt(0) }}{{ student.lastName.charAt(0) }}</span>
+              <div class="student-photo">
+                <img 
+                  v-if="student.photoUrl" 
+                  :src="student.photoUrl" 
+                  :alt="`${student.firstName} ${student.lastName}`"
+                >
+                <div v-else class="no-photo">
+                  <span class="photo-icon">👤</span>
+                </div>
               </div>
               <div class="student-details">
                 <h4 class="student-name">{{ student.firstName }} {{ student.lastName }}</h4>
@@ -119,6 +125,9 @@
 </template>
 
 <script>
+import { db } from '../../../firebase/config'
+import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore'
+
 export default {
   name: 'StudentList',
   data() {
@@ -126,89 +135,48 @@ export default {
       searchQuery: '',
       filterStudyYear: '',
       filterOpportunity: '',
-      students: [
-        {
-          id: 1,
-          firstName: 'Emma',
-          lastName: 'van der Berg',
-          email: 'emma.vandenberg@email.com',
-          age: 21,
-          studyYear: '3e jaar',
-          domain: 'Informatica',
-          opportunity: 'Stage',
-          availableFrom: '2024-09-01',
-          photo: null,
-          skills: ['JavaScript', 'Vue.js', 'Python'],
-          linkedin: 'https://linkedin.com/in/emmavandenberg',
-          languages: ['Nederlands', 'Engels']
-        },
-        {
-          id: 2,
-          firstName: 'Lucas',
-          lastName: 'Janssen',
-          email: 'lucas.janssen@email.com',
-          age: 22,
-          studyYear: 'Afgestudeerd',
-          domain: 'Marketing',
-          opportunity: 'Voltijdse job',
-          availableFrom: '2024-07-01',
-          photo: null,
-          skills: ['Digital Marketing', 'SEO', 'Analytics'],
-          linkedin: 'https://linkedin.com/in/lucasjanssen',
-          languages: ['Nederlands', 'Engels', 'Duits']
-        },
-        {
-          id: 3,
-          firstName: 'Sophie',
-          lastName: 'de Vries',
-          email: 'sophie.devries@email.com',
-          age: 20,
-          studyYear: '2e jaar',
-          domain: 'Grafisch Ontwerp',
-          opportunity: 'Studentenjob',
-          availableFrom: '2024-06-15',
-          photo: null,
-          skills: ['Photoshop', 'Illustrator', 'UI/UX'],
-          linkedin: 'https://linkedin.com/in/sophiedevries',
-          languages: ['Nederlands', 'Engels']
-        }
-      ]
+      students: []
+    }
+  },
+  async mounted() {
+    await this.loadStudents()
+  },
+  methods: {
+    async loadStudents() {
+      const querySnapshot = await getDocs(collection(db, 'student'))
+      this.students = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    },
+    formatDate(dateString) {
+      if (!dateString) return ''
+      const date = new Date(dateString)
+      return date.toLocaleDateString('nl-NL')
+    },
+    async deleteStudent(id) {
+      if (confirm('Weet je zeker dat je deze student wilt verwijderen?')) {
+        await deleteDoc(doc(db, 'student', id))
+        this.students = this.students.filter(s => s.id !== id)
+      }
     }
   },
   computed: {
     filteredStudents() {
       let filtered = this.students;
-      
       if (this.searchQuery) {
         const query = this.searchQuery.toLowerCase();
         filtered = filtered.filter(student => 
-          student.firstName.toLowerCase().includes(query) ||
-          student.lastName.toLowerCase().includes(query) ||
-          student.email.toLowerCase().includes(query) ||
-          student.domain.toLowerCase().includes(query)
+          (student.firstName && student.firstName.toLowerCase().includes(query)) ||
+          (student.lastName && student.lastName.toLowerCase().includes(query)) ||
+          (student.email && student.email.toLowerCase().includes(query)) ||
+          (student.domain && student.domain.toLowerCase().includes(query))
         );
       }
-      
       if (this.filterStudyYear) {
         filtered = filtered.filter(student => student.studyYear === this.filterStudyYear);
       }
-      
       if (this.filterOpportunity) {
         filtered = filtered.filter(student => student.opportunity === this.filterOpportunity);
       }
-      
       return filtered;
-    }
-  },
-  methods: {
-    formatDate(dateString) {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('nl-NL');
-    },
-    deleteStudent(studentId) {
-      if (confirm('Weet je zeker dat je deze student wilt verwijderen?')) {
-        this.students = this.students.filter(student => student.id !== studentId);
-      }
     }
   }
 }
@@ -358,7 +326,7 @@ export default {
   gap: 12px;
 }
 
-.student-avatar {
+.student-photo {
   width: 48px;
   height: 48px;
   border-radius: 50%;
@@ -372,7 +340,7 @@ export default {
   flex-shrink: 0;
 }
 
-.student-avatar img {
+.student-photo img {
   width: 100%;
   height: 100%;
   object-fit: cover;

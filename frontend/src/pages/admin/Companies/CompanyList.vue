@@ -64,8 +64,14 @@
           <tr v-for="company in filteredCompanies" :key="company.id" class="company-row">
             <td class="company-info">
               <div class="company-logo">
-                <img v-if="company.logo" :src="company.logo" :alt="company.name">
-                <span v-else>{{ company.name.charAt(0) }}</span>
+                <img 
+                  v-if="company.logoUrl" 
+                  :src="company.logoUrl" 
+                  :alt="company.name"
+                >
+                <div v-else class="no-logo">
+                  <span class="logo-icon">🏢</span>
+                </div>
               </div>
               <div class="company-details">
                 <h4 class="company-name">{{ company.name }}</h4>
@@ -116,6 +122,9 @@
 </template>
 
 <script>
+import { db } from '../../../firebase/config'
+import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore'
+
 export default {
   name: 'CompanyList',
   data() {
@@ -123,39 +132,11 @@ export default {
       searchQuery: '',
       filterIndustry: '',
       filterSize: '',
-      companies: [
-        {
-          id: 1,
-          name: 'TechCorp Nederland',
-          location: 'Brussel, België',
-          industry: 'IT & Software',
-          size: '51-200',
-          lookingFor: 'Stagiairs en junior developers',
-          website: 'www.techcorp.be',
-          logo: null
-        },
-        {
-          id: 2,
-          name: 'Creative Agency Plus',
-          location: 'Gent, België',
-          industry: 'Marketing & Communicatie',
-          size: '11-50',
-          lookingFor: 'Grafisch ontwerpers en marketeers',
-          website: 'www.creativeplus.be',
-          logo: null
-        },
-        {
-          id: 3,
-          name: 'FinanceFlow BV',
-          location: 'Amsterdam, Nederland',
-          industry: 'Finance & Banking',
-          size: '201-500',
-          lookingFor: 'Finance studenten en analisten',
-          website: 'www.financeflow.nl',
-          logo: null
-        }
-      ]
+      companies: []
     }
+  },
+  async mounted() {
+    await this.loadCompanies()
   },
   computed: {
     filteredCompanies() {
@@ -183,14 +164,19 @@ export default {
     }
   },
   methods: {
+    async loadCompanies() {
+      const querySnapshot = await getDocs(collection(db, 'bedrijf'))
+      this.companies = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    },
+    async deleteCompany(id) {
+      if (confirm('Weet je zeker dat je dit bedrijf wilt verwijderen?')) {
+        await deleteDoc(doc(db, 'bedrijf', id))
+        this.companies = this.companies.filter(c => c.id !== id)
+      }
+    },
     viewCompany(companyId) {
       // Tijdelijk alert omdat CompanyDetail nog niet bestaat
       alert(`Bekijk bedrijf ${companyId} - CompanyDetail.vue nog niet geïmplementeerd`);
-    },
-    deleteCompany(companyId) {
-      if (confirm('Weet je zeker dat je dit bedrijf wilt verwijderen?')) {
-        this.companies = this.companies.filter(company => company.id !== companyId);
-      }
     }
   }
 }
