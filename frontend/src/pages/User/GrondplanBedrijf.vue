@@ -11,13 +11,8 @@
 
     <div class="aula-button-groups" v-if="!confirmingAula">
       <div class="aula-buttons" v-for="group in buttonGroups" :key="group[0]">
-        <button
-          v-for="aula in group"
-          :key="aula"
-          :class="getAulaClass(aula)"
-          @click="handleAulaClick(aula)"
-          :disabled="isTaken(aula) || selectedAula"
-        >
+        <button v-for="aula in group" :key="aula" :class="getAulaClass(aula)" @click="handleAulaClick(aula)"
+          :disabled="isTaken(aula) || selectedAula">
           {{ aula }}
         </button>
       </div>
@@ -38,6 +33,9 @@
     </div>
 
     <img class="grondplan" src="../../../public/Images/grondplan.png" alt="Grondplan" />
+    <button class="back-button">
+      Terug naar profiel
+    </button>
   </div>
 </template>
 
