@@ -1,6 +1,9 @@
 <script setup>
 import { useRoute } from 'vue-router'
 const route = useRoute()
+
+const showLogin = route.path === '/';
+const showBoth = !['/login', '/register', '/'].includes(route.path);
 </script>
 
 <template>
@@ -8,10 +11,10 @@ const route = useRoute()
     <router-link to="/">
       <img src="/Images/ehb-logo.png" alt="Erasmus logo" class="logo" />
     </router-link>
-
-    <div class="menu" v-if="!['/login', '/register'].includes(route.path)">
-      <router-link to="/login" class="btn">Log In</router-link>
-      <router-link to="/register" class="btn">Registratie</router-link>
+    <div class="menu">
+      <router-link v-if="showLogin" to="/login" class="btn">Log In</router-link>
+      <router-link v-if="showBoth" to="/login" class="btn">Log In</router-link>
+      <router-link v-if="showBoth" to="/register" class="btn">Registratie</router-link>
     </div>
   </nav>
 </template>
@@ -23,11 +26,13 @@ const route = useRoute()
     justify-content: space-between;
     align-items: center;
     background-color: white;
-    padding: 1rem 1.5rem;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-    border-radius: 12px;
-    margin: 1rem auto;
+    padding: 1rem 2.5vw;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border-radius: 16px;
+    margin: 1.5rem auto 2.5rem auto;
+    width: 97vw;
     max-width: 1200px;
+    position: relative;
 }
 
 .logo {
@@ -43,12 +48,14 @@ const route = useRoute()
 .btn {
     background-color: #c20000;
     color: white;
-    padding: 0.6rem 1.2rem;
+    padding: 0.6rem 1.5rem;
     border: none;
-    border-radius: 25px;
+    border-radius: 20px;
     cursor: pointer;
     font-weight: 500;
+    font-size: 1rem;
     transition: background-color 0.2s;
+    text-decoration: none;
 }
 
 .btn:hover {
