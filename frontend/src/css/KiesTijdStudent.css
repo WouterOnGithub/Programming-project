@@ -1,0 +1,112 @@
+.container {
+    max-width: 500px;
+    margin: 0 auto;
+    margin-top: px;
+    text-align: center;
+    font-family: sans-serif;
+    padding: 2rem 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* center inhoud horizontaal */
+    justify-content: center; /* optioneel voor verticale centrering */
+  }
+  
+  .title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 2rem;
+    text-align: center;
+  }
+  
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem 4rem;
+    justify-items: center;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 2rem;
+  }
+  
+  .slot-button {
+    background-color: #e0e0e0;
+    border: none;
+    padding: 1rem 2rem;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: 0.2s ease;
+    text-align: center;
+  }
+  
+  .slot-button:hover {
+    background-color: #d0d0d0;
+  }
+  
+  .slot-button.selected {
+    background-color: #00c853;
+    color: white;
+  }
+  
+  .slot-button.taken {
+    background-color: #999;
+    color: white;
+    cursor: not-allowed;
+  }
+  
+  .popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .popup-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 10px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .popup-actions {
+    margin-top: 1rem;
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+  }
+  
+  .popup-actions button {
+    padding: 0.5rem 1rem;
+    border: none;
+    background: #00c853;
+    color: white;
+    font-weight: bold;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  
+  .popup-actions button:last-child {
+    background: #d32f2f;
+  }
+  
+  .confirm-button {
+    background-color: #c70000;
+    color: white;
+    border: none;
+    padding: 1rem 3rem;
+    border-radius: 10px;
+    font-weight: bold;
+    font-size: 1.5rem;
+    cursor: pointer;
+  }
+  
