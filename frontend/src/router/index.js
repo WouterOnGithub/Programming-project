@@ -5,8 +5,8 @@ import ContactPage from '../pages/user/ContactPage.vue';
 import SocialMedia from '../pages/user/SocialMedia.vue';
 import LoginPage from '../pages/User/LoginPage.vue'; 
 import RegisterPage from '../pages/User/RegisterPage.vue';
-import FavoriteListStudent from '../pages/User/FavoriteListStudent.vue';
-import FavoriteListCompany from '../pages/User/FavoriteListCompany.vue';
+import StudentFavoriteList from '../pages/User/StudentFavoriteList.vue';
+import CompanyFavoriteList from '../pages/User/CompanyFavoriteList.vue';
 import StudentList from '../pages/User/StudentList.vue';
 
 
@@ -17,8 +17,8 @@ const routes = [
   {path: '/sociale-media', component: SocialMedia},
   {path: '/login', name: 'Login', component: LoginPage},
   {path: '/register', name: 'Register', component: RegisterPage},
-  { path: '/favoritestudent', name: 'Favorite', component: FavoriteListStudent},
-  {path: '/favoritecompany', name: 'Favorite', component: FavoriteListCompany},
+  { path: '/studentfavorite', name: 'Favorite', component: StudentFavoriteList},
+  {path: '/companyfavorite', name: 'Favorite', component: CompanyFavoriteList},
   {path: '/list', name: 'List', component: StudentList},
 ];
 

@@ -4,10 +4,10 @@
             <nav class="navbar">
                 <img src="/Images/ehb-logo.png" alt="Erasmus logo" class="logo" />
                 <div class="menu">
-                    <button class="btn"><i class="fas fa-heart"></i></button>
-                    <button class="btn"><i class="fas fa-home"></i></button>
-                    <button class="btn"><i class="fas fa-user"></i></button>
-                    <button class="btn"><i class="fas fa-comment-dots"></i></button>
+                  <button class="btn">❤️</button>
+                  <button class="btn">🏠</button>
+                  <button class="btn">👤</button>
+                  <button class="btn">💬</button>
                 </div>
             </nav>
         </div>
@@ -58,4 +58,4 @@ export default {
 };
 </script>
 
-<style src="../../css/FavoriteListCompany.css"></style>
+<style src="../../css/CompanyFavoriteList.css"></style>
