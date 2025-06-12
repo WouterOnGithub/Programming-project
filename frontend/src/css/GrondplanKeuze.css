@@ -210,6 +210,86 @@
   .title-text {
     margin-top: 1rem; 
   }
+
+  .popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+  }
+  
+  .popup-box {
+    background-color: #d9d9d9;
+    padding: 1.5rem;
+    border-radius: 10px;
+    width: clamp(300px, 60vw, 600px);
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  }
+  
+  .popup-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 1.5rem;
+    gap: 1.5rem;
+  }
+  
+  .popup-buttons button {
+    padding: 0.6rem 1.5rem;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: clamp(0.9rem, 1.5vw, 1.1rem);
+    min-width: 100px;
+  }
+  
+  .popup-buttons button:first-child {
+    background-color: #4caf50;
+    color: white;
+    border: 2px solid #023904;
+  }
+  
+  .popup-buttons button:last-child {
+    background-color: #f44336;
+    color: white;
+    border: 2px solid #b3211a;
+  }
+  
+  .warning-box {
+    background-color: #ffe8d5;
+    border-left: 6px solid #e02b20;
+    padding: 0.8rem 1rem;
+    border-radius: 6px;
+    margin-top: 1rem;
+    text-align: left;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  .warning-title {
+    color: #a7281a;
+    font-weight: bold;
+    font-size: clamp(0.9rem, 1.5vw, 1.1rem);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.25rem;
+  }
+  
+  .warning-text {
+    color: #b03a26;
+    font-size: clamp(0.85rem, 1.4vw, 1rem);
+    margin: 0;
+  }
+  
   
   @media screen and (max-width: 1024px) {
     .grondplan {
