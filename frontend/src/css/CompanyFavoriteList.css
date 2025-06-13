@@ -58,9 +58,16 @@ header {
   cursor: pointer;
 }
 
+.loading {
+  text-align: center;
+  margin-top: 20rem;
+  font-size: 18px;
+  color: #555;
+}
+
 .main-content {
   padding: 40px 30px 100px;
-  flex: 1;
+  margin-top: 30px;
 }
 
 .student-row {
@@ -107,9 +114,12 @@ header {
 
 /* Button */
 .button-wrapper {
+  width: 100%;
   display: flex;
   justify-content: center;
-  margin-top: 40px;
+  margin-top: 15px;
+  margin-bottom: 60px;
+  position: static;
 }
 
 .search-btn {

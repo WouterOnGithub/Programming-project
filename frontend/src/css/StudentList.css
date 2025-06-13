@@ -61,7 +61,6 @@ header {
   cursor: pointer;
 }
 
-/* MAIN CONTENT */
 .main-content {
   padding-top: 40px;
   padding-bottom: 100px;
@@ -71,7 +70,8 @@ header {
 }
 
 .search-bar {
-  background-color: #e0e0e0;
+  background-color: white;
+  color: red;
   padding: 0.5rem 1rem;
   border-radius: 10px;
   display: inline-block;
@@ -84,6 +84,10 @@ header {
   width: fit-content;
 }
 
+.search-bar strong {
+  color: red;
+}
+
 .search-bar span {
   background-color: #d9d9d9;
   padding: 10px 20px;
@@ -92,19 +96,42 @@ header {
 }
 
 .search-bar a {
-  color: blue;
+  color: red;
   font-weight: bold;
   margin-left: 5px;
   text-decoration: none;
 }
 
 .skill-link{
-  color: blue;
-  text-decoration: underline;
-  font-weight: bold;
+  color: white;
   margin-left: 5px;
+  transition: color 0.3s;
 }
 
+.skill-link:hover {
+  color: #ffe0e0;
+  font-weight: bolder;
+}
+
+.filter-panel {
+  margin-top: 10px;
+  padding: 10px;
+  background-color: white;
+  border-radius: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.filter-panel label {
+  font-size: 14px;
+}
+
+.custom-skill-input {
+  border: 2px solid red;
+  border-radius: 4px;
+  padding: 4px 8px;
+}
 .student-row {
   display: flex;
   align-items: center;
@@ -113,6 +140,7 @@ header {
   background-color: white;
   padding: 10px 20px;
   border-radius: 25px;
+  border: 2px solid red;
   margin: 10px auto;
 }
 
@@ -139,6 +167,12 @@ header {
   object-fit: cover;
 }
 
+.student-text p.skills {
+  font-size: 14px;
+  color: white;
+  margin-top: 4px;
+}
+
 .student-text {
   font-size: 16px;
 }
@@ -156,11 +190,12 @@ header {
   padding: 6px 14px;
   font-size: 12px;
   font-weight: bold;
+  text-decoration: none;
   cursor: pointer;
   transition: 0.3s;
 }
 
-.profile-btn {
+.profile-btn:hover{
   background-color: white;
   color: #c20000;
   border: 1.5px solid #c20000;

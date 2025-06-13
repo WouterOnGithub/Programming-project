@@ -17,8 +17,8 @@ const routes = [
   {path: '/sociale-media', component: SocialMedia},
   {path: '/login', name: 'Login', component: LoginPage},
   {path: '/register', name: 'Register', component: RegisterPage},
-  { path: '/studentfavorite', name: 'Favorite', component: StudentFavoriteList},
-  {path: '/companyfavorite', name: 'Favorite', component: CompanyFavoriteList},
+  { path: '/studentfavorite', name: 'StudentFavoriteList', component: StudentFavoriteList},
+  {path: '/companyfavorite', name: 'CompanyFavoriteList', component: CompanyFavoriteList},
   {path: '/list', name: 'List', component: StudentList},
 ];
 
