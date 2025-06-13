@@ -41,6 +41,12 @@ const adminRoutes = [
         component: () => import('../pages/admin/Students/StudentList.vue')
       },
       {
+        path: 'students/:id',
+        name: 'AdminStudentDetail',
+        component: () => import('../pages/admin/Students/StudentDetail.vue'),
+        props: true
+      },
+      {
         path: 'students/new',
         name: 'AdminStudentNew',
         component: () => import('../pages/admin/Students/StudentForm.vue')
@@ -55,6 +61,12 @@ const adminRoutes = [
         path: 'companies',
         name: 'AdminCompanies',
         component: () => import('../pages/admin/Companies/CompanyList.vue')
+      },
+      {
+        path: 'companies/:id',
+        name: 'AdminCompanyDetail',
+        component: () => import('../pages/admin/Companies/CompanyDetail.vue'),
+        props: true
       },
       {
         path: 'companies/new',

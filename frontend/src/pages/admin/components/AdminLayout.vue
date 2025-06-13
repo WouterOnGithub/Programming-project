@@ -4,7 +4,9 @@
     <header class="admin-header">
       <div class="header-content">
         <div class="logo">
-          <h1>Admin</h1>
+          <router-link to="/admin/dashboard" class="admin-link">
+            <h1>Admin</h1>
+          </router-link>
         </div>
         <div class="user-info">
           <span class="user-name">Administrator</span>
@@ -128,6 +130,16 @@ export default {
   .admin-sidebar {
     display: none;
   }
+}
+
+.admin-link {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.admin-link:hover {
+  opacity: 0.8;
 }
 </style>
 

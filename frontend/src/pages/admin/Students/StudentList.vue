@@ -54,7 +54,6 @@
             <th>Studiejaar</th>
             <th>Domein</th>
             <th>Gezochte Opportuniteit</th>
-            <th>Beschikbaar vanaf</th>
             <th>Acties</th>
           </tr>
         </thead>
@@ -72,7 +71,9 @@
                 </div>
               </div>
               <div class="student-details">
-                <h4 class="student-name">{{ student.firstName }} {{ student.lastName }}</h4>
+                <router-link :to="`/admin/students/${student.id}`" class="student-name">
+                  {{ student.firstName }} {{ student.lastName }}
+                </router-link>
                 <p class="student-email">{{ student.email }}</p>
               </div>
             </td>
@@ -86,7 +87,6 @@
                 {{ student.opportunity }}
               </span>
             </td>
-            <td>{{ formatDate(student.availableFrom) }}</td>
             <td class="actions">
               <router-link 
                 :to="`/admin/students/${student.id}`" 
@@ -125,8 +125,7 @@
 </template>
 
 <script>
-import { db } from '../../../firebase/config'
-import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore'
+
 
 export default {
   name: 'StudentList',
@@ -135,28 +134,7 @@ export default {
       searchQuery: '',
       filterStudyYear: '',
       filterOpportunity: '',
-      students: []
-    }
-  },
-  async mounted() {
-    await this.loadStudents()
-  },
-  methods: {
-    async loadStudents() {
-      const querySnapshot = await getDocs(collection(db, 'student'))
-      this.students = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-    },
-    formatDate(dateString) {
-      if (!dateString) return ''
-      const date = new Date(dateString)
-      return date.toLocaleDateString('nl-NL')
-    },
-    async deleteStudent(id) {
-      if (confirm('Weet je zeker dat je deze student wilt verwijderen?')) {
-        await deleteDoc(doc(db, 'student', id))
-        this.students = this.students.filter(s => s.id !== id)
-      }
-    }
+
   },
   computed: {
     filteredStudents() {
@@ -347,9 +325,15 @@ export default {
 }
 
 .student-name {
+  font-size: 1rem;
   font-weight: 600;
   color: #1a1a1a;
-  margin: 0 0 4px 0;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.student-name:hover {
+  color: #2563eb;
 }
 
 .student-email {
@@ -478,6 +462,15 @@ export default {
   .students-table {
     min-width: 800px;
   }
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #eee;
 }
 </style>
 
