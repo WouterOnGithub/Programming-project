@@ -7,9 +7,8 @@
     padding: 2rem 1rem;
     display: flex;
     flex-direction: column;
-    align-items: center; /* center inhoud horizontaal */
-    justify-content: center; /* optioneel voor verticale centrering */
-  }
+    align-items: center; 
+    justify-content: center; 
   
   .title {
     font-size: 1.5rem;
@@ -29,7 +28,7 @@
   }
   
   .slot-button {
-    background-color: #e0e0e0;
+    background-color: white;
     border: none;
     padding: 1rem 2rem;
     border-radius: 20px;
@@ -38,10 +37,11 @@
     cursor: pointer;
     transition: 0.2s ease;
     text-align: center;
+    border: 2px solid black
   }
   
   .slot-button:hover {
-    background-color: #d0d0d0;
+    background-color: #e0e0e0;
   }
   
   .slot-button.selected {
@@ -50,8 +50,8 @@
   }
   
   .slot-button.taken {
-    background-color: #999;
-    color: white;
+    background-color: #cbcbcb;
+    color: black;
     cursor: not-allowed;
   }
   
@@ -93,13 +93,23 @@
     font-weight: bold;
     border-radius: 5px;
     cursor: pointer;
+    transition: 0.2s ease;
+
+  }
+
+  .popup-actions button:hover {
+    background: darkgreen;
   }
   
   .popup-actions button:last-child {
     background: #d32f2f;
   }
+
+  .popup-actions button:last-child:hover {
+    background: darkred;
+  }
   
-  .confirm-button {
+  .Back-button {
     background-color: #c70000;
     color: white;
     border: none;

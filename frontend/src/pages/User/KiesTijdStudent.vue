@@ -3,7 +3,7 @@
     <div class="container">
         <!Name text should get replaced with database/backedn>
       <h2 class="title">
-        MATCH! 🎉<br />Deloitte wilt een gesprek met u,<br />Kies een tijdslot</h2>
+        MATCH! 🎉<br />Deloitte wilt een gesprek met u,<br />Kies een tijdslot:</h2>
   
       <div class="grid">
         <button
@@ -27,7 +27,7 @@
         </div>
       </div>
   
-      <button class="confirm-button">Bevestig</button>
+      <button class="Back-button">Terug naar dashboard</button>
     </div>
   </template>
   
