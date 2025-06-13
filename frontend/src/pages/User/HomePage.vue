@@ -88,17 +88,16 @@
         </div>
       </div>
     </section>
-    <Footer />
+
   </div>
 </template>
  
 <script>
 import Navbar from '../../components/Navbar.vue'
-import Footer from '../../components/Footer.vue'
 import '../../css/Home.css'
 export default {
   name: 'Homepage',
-  components: { Navbar, Footer },
+  components: { Navbar},
   data() {
     return {
       isMenuOpen: false,

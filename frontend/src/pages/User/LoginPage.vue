@@ -78,7 +78,7 @@ const handleLogin = async () => {
     else if (isBedrijf()) welcomeName = companyName.value
     
     alert(`Welkom ${welcomeName}!`);
-    router.push('/');
+    router.push('/dashboard');
   } catch (e) {
     error.value = e.message;
   }

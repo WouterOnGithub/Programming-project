@@ -60,9 +60,15 @@
         <tbody>
           <tr v-for="student in filteredStudents" :key="student.id" class="student-row">
             <td class="student-info">
-              <div class="student-avatar">
-                <img v-if="student.photo" :src="student.photo" :alt="student.name">
-                <span v-else>{{ student.firstName.charAt(0) }}{{ student.lastName.charAt(0) }}</span>
+              <div class="student-photo">
+                <img 
+                  v-if="student.photoUrl" 
+                  :src="student.photoUrl" 
+                  :alt="`${student.firstName} ${student.lastName}`"
+                >
+                <div v-else class="no-photo">
+                  <span class="photo-icon">👤</span>
+                </div>
               </div>
               <div class="student-details">
                 <router-link :to="`/admin/students/${student.id}`" class="student-name">
@@ -119,7 +125,7 @@
 </template>
 
 <script>
-import { getAllStudents } from '../../../data/studentData'
+
 
 export default {
   name: 'StudentList',
@@ -128,43 +134,27 @@ export default {
       searchQuery: '',
       filterStudyYear: '',
       filterOpportunity: '',
-      students: getAllStudents()
-    }
+
   },
   computed: {
     filteredStudents() {
       let filtered = this.students;
-      
       if (this.searchQuery) {
         const query = this.searchQuery.toLowerCase();
         filtered = filtered.filter(student => 
-          student.firstName.toLowerCase().includes(query) ||
-          student.lastName.toLowerCase().includes(query) ||
-          student.email.toLowerCase().includes(query) ||
-          student.domain.toLowerCase().includes(query)
+          (student.firstName && student.firstName.toLowerCase().includes(query)) ||
+          (student.lastName && student.lastName.toLowerCase().includes(query)) ||
+          (student.email && student.email.toLowerCase().includes(query)) ||
+          (student.domain && student.domain.toLowerCase().includes(query))
         );
       }
-      
       if (this.filterStudyYear) {
         filtered = filtered.filter(student => student.studyYear === this.filterStudyYear);
       }
-      
       if (this.filterOpportunity) {
         filtered = filtered.filter(student => student.opportunity === this.filterOpportunity);
       }
-      
       return filtered;
-    }
-  },
-  methods: {
-    formatDate(dateString) {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('nl-NL');
-    },
-    deleteStudent(studentId) {
-      if (confirm('Weet je zeker dat je deze student wilt verwijderen?')) {
-        this.students = this.students.filter(student => student.id !== studentId);
-      }
     }
   }
 }
@@ -314,7 +304,7 @@ export default {
   gap: 12px;
 }
 
-.student-avatar {
+.student-photo {
   width: 48px;
   height: 48px;
   border-radius: 50%;
@@ -328,7 +318,7 @@ export default {
   flex-shrink: 0;
 }
 
-.student-avatar img {
+.student-photo img {
   width: 100%;
   height: 100%;
   object-fit: cover;

@@ -161,9 +161,6 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { getStudentById } from '../../../data/studentData'
 
 export default {
   name: 'StudentDetail',
@@ -197,22 +194,6 @@ export default {
       }
     }
 
-    const formatDate = (dateString) => {
-      if (!dateString) return 'N/A'
-      return new Date(dateString).toLocaleDateString('nl-NL')
-    }
-
-    const goBack = () => {
-      router.push('/admin/students')
-    }
-
-    onMounted(loadStudent)
-
-    return {
-      student,
-      error,
-      formatDate,
-      goBack
     }
   }
 }

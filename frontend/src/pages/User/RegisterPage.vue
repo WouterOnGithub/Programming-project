@@ -2,7 +2,7 @@
 import { reactive, ref } from 'vue';
 import { auth, db } from '../../firebase/config';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { collection, addDoc, doc, setDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, setDoc, query, where, getDocs } from 'firebase/firestore';
 import { useRouter } from 'vue-router';
 import axios from 'axios';
 import '../../css/register.css'
@@ -69,6 +69,16 @@ const handleRegister = async () => {
         return;
       }
 
+      // Check if email already exists
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('email', '==', studentData.email));
+      const querySnapshot = await getDocs(q);
+      
+      if (!querySnapshot.empty) {
+        error.value = 'Dit e-mailadres is al in gebruik';
+        return;
+      }
+
       // Create user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(
         auth,
@@ -86,10 +96,20 @@ const handleRegister = async () => {
 
       alert(`Student account aangemaakt voor ${studentData.name}!`);
       clearForms();
-      router.push('/Stinvoer');
+      router.push('/dashboard');
     } else {
       if (companyData.password !== companyData.confirmPassword) {
         error.value = 'Wachtwoorden komen niet overeen';
+        return;
+      }
+
+      // Check if email already exists
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('email', '==', companyData.email));
+      const querySnapshot = await getDocs(q);
+      
+      if (!querySnapshot.empty) {
+        error.value = 'Dit e-mailadres is al in gebruik';
         return;
       }
 

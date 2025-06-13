@@ -303,6 +303,10 @@
 </template>
 
 <script>
+import { db, storage } from '../../../firebase/config'
+import { collection, addDoc, updateDoc, getDoc, doc } from 'firebase/firestore'
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
+
 export default {
   name: 'CompanyForm',
   props: {
@@ -333,32 +337,18 @@ export default {
       errors: {}
     }
   },
-  mounted() {
+  async mounted() {
     this.isEdit = !!this.id;
     if (this.isEdit) {
-      this.loadCompany();
+      await this.loadCompany();
     }
   },
   methods: {
-    loadCompany() {
-      // Simuleer het laden van bedrijf data
-      const mockCompany = {
-        companyName: 'TechCorp Nederland',
-        location: 'Amsterdam, Nederland',
-        linkedin: 'https://linkedin.com/company/techcorp',
-        lookingFor: 'Wij zoeken enthousiaste stagiairs en junior developers voor ons development team.',
-        jobTypes: ['Stage', 'Voltijdse job'],
-        requiredSkills: ['JavaScript', 'React', 'Node.js'],
-        aboutUs: 'TechCorp is een innovatief softwarebedrijf gespecialiseerd in webapplicaties...',
-        contactEmail: 'hr@techcorp.nl',
-        website: 'https://www.techcorp.nl',
-        phoneNumber: '+31 20 123 4567',
-        industry: 'IT & Software',
-        companySize: '51-200',
-        foundedYear: 2015
-      };
-      
-      Object.assign(this.form, mockCompany);
+    async loadCompany() {
+      const docSnap = await getDoc(doc(db, 'bedrijf', this.id))
+      if (docSnap.exists()) {
+        Object.assign(this.form, docSnap.data())
+      }
     },
     
     handleLogoUpload(event) {
@@ -448,21 +438,27 @@ export default {
       if (!this.validateForm()) {
         return;
       }
-      
       this.isSubmitting = true;
-      
       try {
-        // Simuleer API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // In een echte app zou je hier de data naar de API sturen
-        console.log('Company data:', this.form);
-        
-        // Redirect naar bedrijven lijst
+        const companyData = { ...this.form };
+        delete companyData.logoFile;
+        delete companyData.logoPreview;
+
+        // Upload logo if exists
+        if (this.form.logoFile) {
+          const logoRef = storageRef(storage, `company_logos/${Date.now()}_${this.form.logoFile.name}`);
+          await uploadBytes(logoRef, this.form.logoFile);
+          companyData.logoUrl = await getDownloadURL(logoRef);
+        }
+
+        if (this.isEdit) {
+          await updateDoc(doc(db, 'bedrijf', this.id), companyData);
+        } else {
+          await addDoc(collection(db, 'bedrijf'), companyData);
+        }
         this.$router.push('/admin/companies');
       } catch (error) {
-        console.error('Error saving company:', error);
-        alert('Er is een fout opgetreden bij het opslaan.');
+        alert('Fout bij opslaan bedrijf: ' + error.message);
       } finally {
         this.isSubmitting = false;
       }

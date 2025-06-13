@@ -59,8 +59,14 @@
           <tr v-for="company in filteredCompanies" :key="company.id" class="company-row">
             <td class="company-info">
               <div class="company-logo">
-                <img v-if="company.logo" :src="company.logo" :alt="company.name">
-                <span v-else>{{ company.name.charAt(0) }}</span>
+                <img 
+                  v-if="company.logoUrl" 
+                  :src="company.logoUrl" 
+                  :alt="company.name"
+                >
+                <div v-else class="no-logo">
+                  <span class="logo-icon">🏢</span>
+                </div>
               </div>
               <div class="company-details">
                 <router-link :to="`/admin/companies/${company.id}`" class="company-name">
@@ -110,7 +116,7 @@
 </template>
 
 <script>
-import { getAllCompanies } from '../../../data/companyData'
+
 
 export default {
   name: 'CompanyList',
@@ -119,8 +125,11 @@ export default {
       searchQuery: '',
       filterIndustry: '',
       filterSize: '',
-      companies: getAllCompanies()
+
     }
+  },
+  async mounted() {
+    await this.loadCompanies()
   },
   computed: {
     filteredCompanies() {
@@ -147,10 +156,15 @@ export default {
     }
   },
   methods: {
-    deleteCompany(companyId) {
+
       if (confirm('Weet je zeker dat je dit bedrijf wilt verwijderen?')) {
-        this.companies = this.companies.filter(company => company.id !== companyId);
+        await deleteDoc(doc(db, 'bedrijf', id))
+        this.companies = this.companies.filter(c => c.id !== id)
       }
+    },
+    viewCompany(companyId) {
+      // Tijdelijk alert omdat CompanyDetail nog niet bestaat
+      alert(`Bekijk bedrijf ${companyId} - CompanyDetail.vue nog niet geïmplementeerd`);
     }
   }
 }
