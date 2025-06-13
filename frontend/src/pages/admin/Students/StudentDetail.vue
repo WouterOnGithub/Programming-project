@@ -1,151 +1,218 @@
 <template>
   <div class="student-detail">
-    <!-- Page Header -->
     <div class="page-header">
       <div class="header-content">
-        <h1 class="page-title">Student Details</h1>
-        <p class="page-subtitle">Bekijk alle informatie van {{ student.firstName }} {{ student.lastName }}</p>
+        <h1 class="page-title">Student Profiel</h1>
+        <p class="page-subtitle">Gedetailleerde informatie over de student</p>
       </div>
       <div class="header-actions">
-        <router-link to="/admin/students" class="btn btn-secondary">
-          <span class="btn-icon">←</span>
-          Terug naar lijst
-        </router-link>
-        <router-link :to="`/admin/students/${student.id}/edit`" class="btn btn-primary">
+        <router-link v-if="student" :to="'/admin/students/' + student.id + '/edit'" class="btn btn-primary">
           <span class="btn-icon">✏️</span>
           Bewerken
         </router-link>
       </div>
     </div>
 
-    <!-- Student Info Card -->
-    <div class="detail-container">
-      <div class="detail-grid">
-        <!-- Profile Section -->
-        <div class="detail-card profile-card">
-          <div class="profile-header">
-            <div class="profile-avatar">
-              <img v-if="student.photo" :src="student.photo" :alt="student.firstName">
-              <span v-else>{{ student.firstName.charAt(0) }}{{ student.lastName.charAt(0) }}</span>
-            </div>
-            <div class="profile-info">
-              <h2 class="student-name">{{ student.firstName }} {{ student.lastName }}</h2>
-              <p class="student-email">{{ student.email }}</p>
-              <span class="status-badge active">Actief</span>
+    <div v-if="error" class="error-message">
+      {{ error }}
+    </div>
+
+    <div v-else-if="student" class="profile-content">
+      <!-- Basic Information -->
+      <div class="profile-section">
+        <div class="profile-header">
+          <div class="student-avatar">
+            <img v-if="student.photo" :src="student.photo" :alt="student.firstName">
+            <span v-else>{{ student.firstName.charAt(0) }}{{ student.lastName.charAt(0) }}</span>
+          </div>
+          <div class="student-info">
+            <h2>{{ student.firstName }} {{ student.lastName }}</h2>
+            <p class="student-title">{{ student.domain }} - {{ student.studyYear }}</p>
+            <div class="contact-info">
+              <p><span class="icon">📧</span> {{ student.email }}</p>
+              <p><span class="icon">📱</span> {{ student.phone }}</p>
             </div>
           </div>
-        </div>
-
-        <!-- Basic Info -->
-        <div class="detail-card">
-          <h3 class="card-title">Basis Informatie</h3>
-          <div class="info-grid">
-            <div class="info-item">
-              <label>Leeftijd</label>
-              <span>{{ student.age }} jaar</span>
-            </div>
-            <div class="info-item">
-              <label>Studiejaar</label>
-              <span>{{ student.studyYear }}</span>
-            </div>
-            <div class="info-item">
-              <label>Domein</label>
-              <span>{{ student.domain }}</span>
-            </div>
-            <div class="info-item">
-              <label>Gezochte Opportuniteit</label>
-              <span>{{ student.opportunity }}</span>
-            </div>
-            <div class="info-item">
-              <label>Beschikbaar vanaf</label>
-              <span>{{ formatDate(student.availableFrom) }}</span>
-            </div>
+          <div class="opportunity-badge" :class="student.opportunity.toLowerCase().replace(' ', '-')">
+            {{ student.opportunity }}
           </div>
         </div>
+      </div>
 
-        <!-- Skills -->
-        <div class="detail-card">
-          <h3 class="card-title">Vaardigheden</h3>
+      <!-- Skills & Languages -->
+      <div class="profile-grid">
+        <div class="profile-section">
+          <h3>Vaardigheden</h3>
           <div class="skills-list">
-            <span v-for="skill in student.skills" :key="skill" class="skill-tag">
-              {{ skill }}
-            </span>
+            <div v-for="skill in student.skills" :key="skill.name" class="skill-item">
+              <span class="skill-name">{{ skill.name }}</span>
+              <span class="skill-level">{{ skill.level }}</span>
+            </div>
           </div>
         </div>
 
-        <!-- Languages -->
-        <div class="detail-card">
-          <h3 class="card-title">Talenkennis</h3>
-          <p class="languages-text">{{ student.languages }}</p>
-        </div>
-
-        <!-- Introduction -->
-        <div class="detail-card full-width">
-          <h3 class="card-title">Introductie</h3>
-          <p class="introduction-text">{{ student.introduction }}</p>
-        </div>
-
-        <!-- Contact & Links -->
-        <div class="detail-card">
-          <h3 class="card-title">Contact & Links</h3>
-          <div class="contact-links">
-            <a v-if="student.linkedin" :href="student.linkedin" target="_blank" class="contact-link">
-              <span class="link-icon">🔗</span>
-              LinkedIn Profiel
-            </a>
-            <div v-if="student.cvFile" class="contact-link">
-              <span class="link-icon">📄</span>
-              CV Download
+        <div class="profile-section">
+          <h3>Talen</h3>
+          <div class="languages-list">
+            <div v-for="language in student.languages" :key="language.name" class="language-item">
+              <span class="language-name">{{ language.name }}</span>
+              <span class="language-level">{{ language.level }}</span>
             </div>
           </div>
         </div>
       </div>
+
+      <!-- Education & Experience -->
+      <div class="profile-grid">
+        <div class="profile-section">
+          <h3>Opleiding</h3>
+          <div class="timeline">
+            <div v-for="edu in student.education" :key="edu.degree" class="timeline-item">
+              <div class="timeline-content">
+                <h4>{{ edu.degree }}</h4>
+                <p class="institution">{{ edu.school }}</p>
+                <p class="date">{{ formatDate(edu.startDate) }} - {{ formatDate(edu.endDate) }}</p>
+                <span class="status-badge">{{ edu.status }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="profile-section">
+          <h3>Ervaring</h3>
+          <div class="timeline">
+            <div v-for="exp in student.experience" :key="exp.title" class="timeline-item">
+              <div class="timeline-content">
+                <h4>{{ exp.title }}</h4>
+                <p class="institution">{{ exp.company }}</p>
+                <p class="date">{{ formatDate(exp.startDate) }} - {{ formatDate(exp.endDate) }}</p>
+                <p class="description">{{ exp.description }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Projects -->
+      <div class="profile-section">
+        <h3>Projecten</h3>
+        <div class="projects-grid">
+          <div v-for="project in student.projects" :key="project.name" class="project-card">
+            <h4>{{ project.name }}</h4>
+            <p>{{ project.description }}</p>
+            <div class="technologies">
+              <span v-for="tech in project.technologies" :key="tech" class="tech-tag">
+                {{ tech }}
+              </span>
+            </div>
+            <a :href="project.link" target="_blank" class="project-link">Bekijk Project →</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Additional Information -->
+      <div class="profile-grid">
+        <div class="profile-section">
+          <h3>Interesses</h3>
+          <div class="interests-list">
+            <span v-for="interest in student.interests" :key="interest" class="interest-tag">
+              {{ interest }}
+            </span>
+          </div>
+        </div>
+
+        <div class="profile-section">
+          <h3>Voorkeuren</h3>
+          <div class="preferences">
+            <p><strong>Locatie:</strong> {{ student.preferredLocation }}</p>
+            <p><strong>Verplaatsing:</strong> {{ student.willingToRelocate ? 'Mogelijk' : 'Niet mogelijk' }}</p>
+            <p><strong>Beschikbaarheid:</strong> {{ student.availability }}</p>
+            <p><strong>Verwachte vergoeding:</strong> {{ student.expectedSalary }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Social Links -->
+      <div class="profile-section">
+        <h3>Sociale Media & Portfolio</h3>
+        <div class="social-links">
+          <a :href="student.linkedin" target="_blank" class="social-link linkedin">
+            <span class="icon">🔗</span> LinkedIn
+          </a>
+          <a :href="student.github" target="_blank" class="social-link github">
+            <span class="icon">📦</span> GitHub
+          </a>
+          <a :href="student.portfolio" target="_blank" class="social-link portfolio">
+            <span class="icon">🎨</span> Portfolio
+          </a>
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div class="profile-section">
+        <h3>Notities</h3>
+        <p class="notes">{{ student.notes }}</p>
+      </div>
+    </div>
+    <div v-else class="loading-message">
+      Laden...
     </div>
   </div>
 </template>
 
 <script>
+import { ref, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { getStudentById } from '../../../data/studentData'
+
 export default {
   name: 'StudentDetail',
-  props: {
-    id: {
-      type: String,
-      required: true
+  setup() {
+    const route = useRoute()
+    const router = useRouter()
+    const student = ref(null)
+    const error = ref(null)
+
+    const loadStudent = () => {
+      try {
+        const studentId = parseInt(route.params.id)
+        console.log('Loading student with ID:', studentId)
+        
+        if (isNaN(studentId)) {
+          throw new Error('Invalid student ID')
+        }
+
+        const foundStudent = getStudentById(studentId)
+        console.log('Found student:', foundStudent)
+        
+        if (!foundStudent) {
+          throw new Error('Student not found')
+        }
+
+        student.value = foundStudent
+      } catch (err) {
+        console.error('Error loading student:', err)
+        error.value = err.message
+        router.push('/admin/students')
+      }
     }
-  },
-  data() {
+
+    const formatDate = (dateString) => {
+      if (!dateString) return 'N/A'
+      return new Date(dateString).toLocaleDateString('nl-NL')
+    }
+
+    const goBack = () => {
+      router.push('/admin/students')
+    }
+
+    onMounted(loadStudent)
+
     return {
-      student: {}
-    }
-  },
-  mounted() {
-    this.loadStudent();
-  },
-  methods: {
-    loadStudent() {
-      // Simuleer het laden van student data
-      // In een echte app zou dit een API call zijn
-      this.student = {
-        id: this.id,
-        firstName: 'Emma',
-        lastName: 'van der Berg',
-        email: 'emma.vandenberg@email.com',
-        age: 21,
-        studyYear: '3e jaar',
-        domain: 'Informatica',
-        opportunity: 'Stage',
-        availableFrom: '2024-09-01',
-        skills: ['JavaScript', 'Vue.js', 'Python', 'HTML/CSS', 'Git'],
-        languages: 'Nederlands (moedertaal), Engels (vloeiend), Duits (basis)',
-        introduction: 'Ik ben een enthousiaste informatica student met een passie voor webdevelopment. Ik heb ervaring met moderne frameworks zoals Vue.js en React, en ben altijd bereid om nieuwe technologieën te leren. Ik zoek een uitdagende stage waar ik mijn skills kan toepassen en verder kan ontwikkelen.',
-        linkedin: 'https://linkedin.com/in/emmavandenberg',
-        photo: null,
-        cvFile: 'emma_cv.pdf'
-      };
-    },
-    formatDate(dateString) {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('nl-NL');
+      student,
+      error,
+      formatDate,
+      goBack
     }
   }
 }
@@ -153,7 +220,7 @@ export default {
 
 <style scoped>
 .student-detail {
-  padding: 0;
+  padding: 20px;
 }
 
 .page-header {
@@ -164,22 +231,245 @@ export default {
   gap: 20px;
 }
 
-.page-title {
+.header-content h1 {
   font-size: 2rem;
   font-weight: 700;
   color: #1a1a1a;
   margin: 0 0 8px 0;
 }
 
-.page-subtitle {
+.header-content p {
   color: #666;
   margin: 0;
   font-size: 1.1rem;
 }
 
-.header-actions {
+.profile-content {
   display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.profile-section {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+}
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.student-avatar {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: #e0e0e0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  color: #666;
+}
+
+.student-info {
+  flex: 1;
+}
+
+.student-info h2 {
+  margin: 0 0 8px 0;
+  font-size: 1.8rem;
+  color: #1a1a1a;
+}
+
+.student-title {
+  color: #666;
+  margin: 0 0 12px 0;
+}
+
+.contact-info {
+  display: flex;
+  gap: 16px;
+}
+
+.contact-info p {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.opportunity-badge {
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.opportunity-badge.stage {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.skills-list, .languages-list {
+  display: flex;
+  flex-wrap: wrap;
   gap: 12px;
+}
+
+.skill-item, .language-item {
+  background: #f5f5f5;
+  padding: 8px 16px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.skill-level, .language-level {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.timeline-item {
+  position: relative;
+  padding-left: 20px;
+  border-left: 2px solid #e0e0e0;
+}
+
+.timeline-content {
+  background: #f5f5f5;
+  padding: 16px;
+  border-radius: 8px;
+}
+
+.timeline-content h4 {
+  margin: 0 0 8px 0;
+  color: #1a1a1a;
+}
+
+.institution {
+  color: #666;
+  margin: 0 0 4px 0;
+}
+
+.date {
+  color: #666;
+  font-size: 0.9rem;
+  margin: 0 0 8px 0;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  background: #e8f5e9;
+  color: #2e7d32;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.projects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+}
+
+.project-card {
+  background: #f5f5f5;
+  padding: 16px;
+  border-radius: 8px;
+}
+
+.project-card h4 {
+  margin: 0 0 8px 0;
+  color: #1a1a1a;
+}
+
+.technologies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.tech-tag {
+  background: #e3f2fd;
+  color: #1976d2;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.project-link {
+  color: #1976d2;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.interests-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.interest-tag {
+  background: #e3f2fd;
+  color: #1976d2;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+}
+
+.preferences p {
+  margin: 8px 0;
+}
+
+.social-links {
+  display: flex;
+  gap: 16px;
+}
+
+.social-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: white;
+  font-weight: 600;
+}
+
+.social-link.linkedin {
+  background: #0077b5;
+}
+
+.social-link.github {
+  background: #333;
+}
+
+.social-link.portfolio {
+  background: #4CAF50;
+}
+
+.notes {
+  color: #666;
+  line-height: 1.6;
 }
 
 .btn {
@@ -190,224 +480,40 @@ export default {
   border-radius: 8px;
   text-decoration: none;
   font-weight: 600;
-  transition: all 0.2s ease;
   border: none;
   cursor: pointer;
 }
 
 .btn-primary {
-  background: #007bff;
+  background-color: #007bff;
   color: white;
-}
-
-.btn-primary:hover {
-  background: #0056b3;
-  transform: translateY(-1px);
 }
 
 .btn-secondary {
-  background: #6c757d;
+  background-color: #6c757d;
   color: white;
 }
 
-.btn-secondary:hover {
-  background: #545b62;
-}
-
-.detail-container {
-  background: white;
-  border-radius: 12px;
-  padding: 32px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.detail-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-}
-
-.detail-card {
-  background: #f8f9fa;
-  border-radius: 12px;
-  padding: 24px;
-  border: 1px solid #e9ecef;
-}
-
-.detail-card.full-width {
-  grid-column: 1 / -1;
-}
-
-.detail-card.profile-card {
-  grid-column: 1 / -1;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-}
-
-.card-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #1a1a1a;
-  margin: 0 0 16px 0;
-  padding-bottom: 8px;
-  border-bottom: 2px solid #e9ecef;
-}
-
-.profile-card .card-title {
-  color: white;
-  border-bottom-color: rgba(255,255,255,0.3);
-}
-
-.profile-header {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.profile-avatar {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.2);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.5rem;
-  font-weight: 700;
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-.profile-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.student-name {
-  font-size: 1.75rem;
-  font-weight: 700;
-  margin: 0 0 8px 0;
-}
-
-.student-email {
-  font-size: 1.1rem;
-  margin: 0 0 12px 0;
-  opacity: 0.9;
-}
-
-.status-badge {
-  background: rgba(255,255,255,0.2);
-  color: white;
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  display: inline-block;
-}
-
-.info-grid {
-  display: grid;
-  gap: 16px;
-}
-
-.info-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.info-item label {
-  font-weight: 600;
-  color: #666;
-  font-size: 0.875rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.info-item span {
-  font-size: 1rem;
-  color: #1a1a1a;
-  font-weight: 500;
-}
-
-.skills-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.skill-tag {
-  background: #e3f2fd;
-  color: #1976d2;
-  padding: 8px 12px;
-  border-radius: 20px;
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-
-.languages-text,
-.introduction-text {
-  color: #495057;
-  line-height: 1.6;
-  margin: 0;
-}
-
-.introduction-text {
-  font-size: 1.05rem;
-}
-
-.contact-links {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.contact-link {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  background: white;
-  border-radius: 8px;
-  text-decoration: none;
-  color: #495057;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  border: 1px solid #e9ecef;
-}
-
-.contact-link:hover {
-  background: #f8f9fa;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.link-icon {
+.btn-icon {
   font-size: 1.2rem;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .page-header {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  
-  .header-actions {
-    justify-content: stretch;
-  }
-  
-  .detail-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .profile-header {
-    flex-direction: column;
-    text-align: center;
-  }
+button:hover {
+  opacity: 0.9;
+}
+
+.error-message {
+  background-color: #fee2e2;
+  color: #dc2626;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  margin: 1rem 0;
+}
+
+.loading-message {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
 }
 </style>
 

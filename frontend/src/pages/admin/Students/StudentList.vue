@@ -54,7 +54,6 @@
             <th>Studiejaar</th>
             <th>Domein</th>
             <th>Gezochte Opportuniteit</th>
-            <th>Beschikbaar vanaf</th>
             <th>Acties</th>
           </tr>
         </thead>
@@ -66,7 +65,9 @@
                 <span v-else>{{ student.firstName.charAt(0) }}{{ student.lastName.charAt(0) }}</span>
               </div>
               <div class="student-details">
-                <h4 class="student-name">{{ student.firstName }} {{ student.lastName }}</h4>
+                <router-link :to="`/admin/students/${student.id}`" class="student-name">
+                  {{ student.firstName }} {{ student.lastName }}
+                </router-link>
                 <p class="student-email">{{ student.email }}</p>
               </div>
             </td>
@@ -80,7 +81,6 @@
                 {{ student.opportunity }}
               </span>
             </td>
-            <td>{{ formatDate(student.availableFrom) }}</td>
             <td class="actions">
               <router-link 
                 :to="`/admin/students/${student.id}`" 
@@ -119,6 +119,8 @@
 </template>
 
 <script>
+import { getAllStudents } from '../../../data/studentData'
+
 export default {
   name: 'StudentList',
   data() {
@@ -126,53 +128,7 @@ export default {
       searchQuery: '',
       filterStudyYear: '',
       filterOpportunity: '',
-      students: [
-        {
-          id: 1,
-          firstName: 'Emma',
-          lastName: 'van der Berg',
-          email: 'emma.vandenberg@email.com',
-          age: 21,
-          studyYear: '3e jaar',
-          domain: 'Informatica',
-          opportunity: 'Stage',
-          availableFrom: '2024-09-01',
-          photo: null,
-          skills: ['JavaScript', 'Vue.js', 'Python'],
-          linkedin: 'https://linkedin.com/in/emmavandenberg',
-          languages: ['Nederlands', 'Engels']
-        },
-        {
-          id: 2,
-          firstName: 'Lucas',
-          lastName: 'Janssen',
-          email: 'lucas.janssen@email.com',
-          age: 22,
-          studyYear: 'Afgestudeerd',
-          domain: 'Marketing',
-          opportunity: 'Voltijdse job',
-          availableFrom: '2024-07-01',
-          photo: null,
-          skills: ['Digital Marketing', 'SEO', 'Analytics'],
-          linkedin: 'https://linkedin.com/in/lucasjanssen',
-          languages: ['Nederlands', 'Engels', 'Duits']
-        },
-        {
-          id: 3,
-          firstName: 'Sophie',
-          lastName: 'de Vries',
-          email: 'sophie.devries@email.com',
-          age: 20,
-          studyYear: '2e jaar',
-          domain: 'Grafisch Ontwerp',
-          opportunity: 'Studentenjob',
-          availableFrom: '2024-06-15',
-          photo: null,
-          skills: ['Photoshop', 'Illustrator', 'UI/UX'],
-          linkedin: 'https://linkedin.com/in/sophiedevries',
-          languages: ['Nederlands', 'Engels']
-        }
-      ]
+      students: getAllStudents()
     }
   },
   computed: {
@@ -379,9 +335,15 @@ export default {
 }
 
 .student-name {
+  font-size: 1rem;
   font-weight: 600;
   color: #1a1a1a;
-  margin: 0 0 4px 0;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.student-name:hover {
+  color: #2563eb;
 }
 
 .student-email {
@@ -510,6 +472,15 @@ export default {
   .students-table {
     min-width: 800px;
   }
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #eee;
 }
 </style>
 

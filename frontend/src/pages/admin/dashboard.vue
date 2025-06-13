@@ -43,7 +43,9 @@
             >
               <div class="student-avatar">{{ student.name.charAt(0) }}</div>
               <div class="student-info">
-                <h4 class="student-name">{{ student.name }}</h4>
+                <router-link :to="`/admin/students/${student.id}`" class="student-name">
+                  {{ student.name }}
+                </router-link>
                 <p class="student-email">{{ student.email }}</p>
               </div>
               <div class="student-status">
@@ -339,10 +341,16 @@ export default {
 }
 
 .student-name {
+  font-size: 1rem;
   font-weight: 600;
   color: #1a1a1a;
+  text-decoration: none;
+  transition: color 0.2s;
   margin: 0 0 4px 0;
-  font-size: 0.95rem;
+}
+
+.student-name:hover {
+  color: #2563eb;
 }
 
 .student-email {
