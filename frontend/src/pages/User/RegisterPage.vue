@@ -96,7 +96,7 @@ const handleRegister = async () => {
 
       alert(`Student account aangemaakt voor ${studentData.name}!`);
       clearForms();
-      router.push('/Stinvoer');
+      router.push('/dashboard');
     } else {
       if (companyData.password !== companyData.confirmPassword) {
         error.value = 'Wachtwoorden komen niet overeen';
