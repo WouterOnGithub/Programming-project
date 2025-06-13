@@ -163,7 +163,9 @@
 </template>
 
 <script>
-import { loadGrondplannen, addGrondplan, deleteGrondplan } from '../../../data/grondplanData.js'
+import { db, storage } from '../../../firebase/config'
+import { collection, getDocs, addDoc, deleteDoc, doc } from 'firebase/firestore'
+import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'
 
 export default {
   name: 'GrondplanList',
@@ -189,19 +191,13 @@ export default {
   },
   methods: {
     async loadGrondplannen() {
-      try {
-        this.loading = true
-        this.grondplannen = await loadGrondplannen()
-        
-        // Selecteer het eerste grondplan als standaard
-        if (this.grondplannen.length > 0) {
-          this.currentGrondplan = this.grondplannen[0]
-        }
-      } catch (error) {
-        console.error('Fout bij laden grondplannen:', error)
-      } finally {
-        this.loading = false
+      this.loading = true
+      const querySnapshot = await getDocs(collection(db, 'grondplan'))
+      this.grondplannen = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+      if (this.grondplannen.length > 0) {
+        this.currentGrondplan = this.grondplannen[0]
       }
+      this.loading = false
     },
     
     selectGrondplan(grondplan) {
@@ -235,53 +231,73 @@ export default {
     },
     
     async uploadGrondplan() {
-      if (!this.selectedFile) return
+      if (!this.selectedFile) return;
       
       try {
-        this.uploading = true
+        this.uploading = true;
         
-        // Simuleer upload proces met mock data
+        // Upload image to Firebase Storage
+        const imageRef = storageRef(storage, `grondplannen/${Date.now()}_${this.selectedFile.name}`);
+        await uploadBytes(imageRef, this.selectedFile);
+        const imageUrl = await getDownloadURL(imageRef);
+        
+        // Create thumbnail (using same image for now)
+        const thumbnailUrl = imageUrl;
+        
         const grondplanData = {
           name: this.newGrondplan.name,
           building: this.newGrondplan.building,
           floors: this.newGrondplan.floors,
           description: this.newGrondplan.description,
-          imageUrl: URL.createObjectURL(this.selectedFile),
-          thumbnailUrl: URL.createObjectURL(this.selectedFile),
-          fileSize: this.formatFileSize(this.selectedFile.size)
-        }
+          imageUrl: imageUrl,
+          thumbnailUrl: thumbnailUrl,
+          fileSize: this.formatFileSize(this.selectedFile.size),
+          uploadDate: new Date()
+        };
         
-        const newGrondplan = await addGrondplan(grondplanData)
+        await addDoc(collection(db, 'grondplan'), grondplanData);
         
-        // Update lokale state
-        this.grondplannen.unshift(newGrondplan)
-        this.currentGrondplan = newGrondplan
-        this.closeModal()
+        await this.loadGrondplannen();
+        this.closeModal();
         
       } catch (error) {
-        console.error('Fout bij uploaden grondplan:', error)
-        alert('Er is een fout opgetreden bij het uploaden van het grondplan.')
+        console.error('Fout bij uploaden grondplan:', error);
+        alert('Er is een fout opgetreden bij het uploaden van het grondplan.');
       } finally {
-        this.uploading = false
+        this.uploading = false;
       }
     },
     
     async deleteGrondplanConfirm(id) {
       if (confirm('Weet je zeker dat je dit grondplan wilt verwijderen?')) {
-        try {
-          await deleteGrondplan(id)
+        await this.deleteGrondplan(id)
+      }
+    },
+    
+    async deleteGrondplan(id) {
+      try {
+        // Get the grondplan document first to get the image URLs
+        const grondplanDoc = await getDoc(doc(db, 'grondplan', id));
+        if (grondplanDoc.exists()) {
+          const grondplanData = grondplanDoc.data();
           
-          // Update lokale state
-          this.grondplannen = this.grondplannen.filter(g => g.id !== id)
-          
-          // Als het huidige grondplan wordt verwijderd, selecteer een ander
-          if (this.currentGrondplan?.id === id) {
-            this.currentGrondplan = this.grondplannen.length > 0 ? this.grondplannen[0] : null
+          // Delete the image from Storage if it exists
+          if (grondplanData.imageUrl) {
+            const imageRef = storageRef(storage, grondplanData.imageUrl);
+            try {
+              await deleteObject(imageRef);
+            } catch (error) {
+              console.error('Error deleting image from storage:', error);
+            }
           }
-        } catch (error) {
-          console.error('Fout bij verwijderen grondplan:', error)
-          alert('Er is een fout opgetreden bij het verwijderen van het grondplan.')
+          
+          // Delete the document from Firestore
+          await deleteDoc(doc(db, 'grondplan', id));
+          await this.loadGrondplannen();
         }
+      } catch (error) {
+        console.error('Error deleting grondplan:', error);
+        alert('Er is een fout opgetreden bij het verwijderen van het grondplan.');
       }
     },
     

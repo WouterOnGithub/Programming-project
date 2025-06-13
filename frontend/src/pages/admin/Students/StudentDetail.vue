@@ -105,6 +105,9 @@
 </template>
 
 <script>
+import { db } from '../../../firebase/config'
+import { getDoc, doc } from 'firebase/firestore'
+
 export default {
   name: 'StudentDetail',
   props: {
@@ -115,37 +118,23 @@ export default {
   },
   data() {
     return {
-      student: {}
+      student: null
     }
   },
-  mounted() {
-    this.loadStudent();
+  async mounted() {
+    await this.loadStudent()
   },
   methods: {
-    loadStudent() {
-      // Simuleer het laden van student data
-      // In een echte app zou dit een API call zijn
-      this.student = {
-        id: this.id,
-        firstName: 'Emma',
-        lastName: 'van der Berg',
-        email: 'emma.vandenberg@email.com',
-        age: 21,
-        studyYear: '3e jaar',
-        domain: 'Informatica',
-        opportunity: 'Stage',
-        availableFrom: '2024-09-01',
-        skills: ['JavaScript', 'Vue.js', 'Python', 'HTML/CSS', 'Git'],
-        languages: 'Nederlands (moedertaal), Engels (vloeiend), Duits (basis)',
-        introduction: 'Ik ben een enthousiaste informatica student met een passie voor webdevelopment. Ik heb ervaring met moderne frameworks zoals Vue.js en React, en ben altijd bereid om nieuwe technologieën te leren. Ik zoek een uitdagende stage waar ik mijn skills kan toepassen en verder kan ontwikkelen.',
-        linkedin: 'https://linkedin.com/in/emmavandenberg',
-        photo: null,
-        cvFile: 'emma_cv.pdf'
-      };
+    async loadStudent() {
+      const docSnap = await getDoc(doc(db, 'student', this.id))
+      if (docSnap.exists()) {
+        this.student = docSnap.data()
+      }
     },
     formatDate(dateString) {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('nl-NL');
+      if (!dateString) return ''
+      const date = new Date(dateString)
+      return date.toLocaleDateString('nl-NL')
     }
   }
 }

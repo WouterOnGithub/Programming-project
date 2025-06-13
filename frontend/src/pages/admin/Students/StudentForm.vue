@@ -305,6 +305,10 @@
 </template>
 
 <script>
+import { db, storage } from '../../../firebase/config'
+import { collection, addDoc, updateDoc, getDoc, doc } from 'firebase/firestore'
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
+
 export default {
   name: 'StudentForm',
   props: {
@@ -334,31 +338,18 @@ export default {
       errors: {}
     }
   },
-  mounted() {
+  async mounted() {
     this.isEdit = !!this.id;
     if (this.isEdit) {
-      this.loadStudent();
+      await this.loadStudent();
     }
   },
   methods: {
-    loadStudent() {
-      // Simuleer het laden van student data
-      // In een echte app zou dit een API call zijn
-      const mockStudent = {
-        firstName: 'Emma',
-        lastName: 'van der Berg',
-        age: 21,
-        studyYear: '3e jaar',
-        domain: 'Informatica',
-        skills: ['JavaScript', 'Vue.js', 'Python'],
-        languages: 'Nederlands (moedertaal), Engels (vloeiend)',
-        linkedin: 'https://linkedin.com/in/emmavandenberg',
-        opportunity: 'Stage',
-        availableFrom: '2024-09-01',
-        introduction: 'Ik ben een enthousiaste informatica student met passie voor webdevelopment...'
-      };
-      
-      Object.assign(this.form, mockStudent);
+    async loadStudent() {
+      const docSnap = await getDoc(doc(db, 'student', this.id))
+      if (docSnap.exists()) {
+        Object.assign(this.form, docSnap.data())
+      }
     },
     
     handlePhotoUpload(event) {
@@ -483,21 +474,35 @@ export default {
       if (!this.validateForm()) {
         return;
       }
-      
       this.isSubmitting = true;
-      
       try {
-        // Simuleer API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // In een echte app zou je hier de data naar de API sturen
-        console.log('Student data:', this.form);
-        
-        // Redirect naar student lijst
+        const studentData = { ...this.form };
+        delete studentData.photoFile;
+        delete studentData.cvFile;
+        delete studentData.photoPreview;
+
+        // Upload photo if exists
+        if (this.form.photoFile) {
+          const photoRef = storageRef(storage, `student_photos/${Date.now()}_${this.form.photoFile.name}`);
+          await uploadBytes(photoRef, this.form.photoFile);
+          studentData.photoUrl = await getDownloadURL(photoRef);
+        }
+
+        // Upload CV if exists
+        if (this.form.cvFile) {
+          const cvRef = storageRef(storage, `student_cvs/${Date.now()}_${this.form.cvFile.name}`);
+          await uploadBytes(cvRef, this.form.cvFile);
+          studentData.cvUrl = await getDownloadURL(cvRef);
+        }
+
+        if (this.isEdit) {
+          await updateDoc(doc(db, 'student', this.id), studentData);
+        } else {
+          await addDoc(collection(db, 'student'), studentData);
+        }
         this.$router.push('/admin/students');
       } catch (error) {
-        console.error('Error saving student:', error);
-        alert('Er is een fout opgetreden bij het opslaan.');
+        alert('Fout bij opslaan student: ' + error.message);
       } finally {
         this.isSubmitting = false;
       }
