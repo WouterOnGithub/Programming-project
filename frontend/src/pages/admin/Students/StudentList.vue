@@ -54,25 +54,20 @@
             <th>Studiejaar</th>
             <th>Domein</th>
             <th>Gezochte Opportuniteit</th>
-            <th>Beschikbaar vanaf</th>
             <th>Acties</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="student in filteredStudents" :key="student.id" class="student-row">
             <td class="student-info">
-              <div class="student-photo">
-                <img 
-                  v-if="student.photoUrl" 
-                  :src="student.photoUrl" 
-                  :alt="`${student.firstName} ${student.lastName}`"
-                >
-                <div v-else class="no-photo">
-                  <span class="photo-icon">👤</span>
-                </div>
+              <div class="student-avatar">
+                <img v-if="student.photo" :src="student.photo" :alt="student.name">
+                <span v-else>{{ student.firstName.charAt(0) }}{{ student.lastName.charAt(0) }}</span>
               </div>
               <div class="student-details">
-                <h4 class="student-name">{{ student.firstName }} {{ student.lastName }}</h4>
+                <router-link :to="`/admin/students/${student.id}`" class="student-name">
+                  {{ student.firstName }} {{ student.lastName }}
+                </router-link>
                 <p class="student-email">{{ student.email }}</p>
               </div>
             </td>
@@ -86,7 +81,6 @@
                 {{ student.opportunity }}
               </span>
             </td>
-            <td>{{ formatDate(student.availableFrom) }}</td>
             <td class="actions">
               <router-link 
                 :to="`/admin/students/${student.id}`" 
@@ -125,8 +119,7 @@
 </template>
 
 <script>
-import { db } from '../../../firebase/config'
-import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore'
+import { getAllStudents } from '../../../data/studentData'
 
 export default {
   name: 'StudentList',
@@ -135,48 +128,43 @@ export default {
       searchQuery: '',
       filterStudyYear: '',
       filterOpportunity: '',
-      students: []
-    }
-  },
-  async mounted() {
-    await this.loadStudents()
-  },
-  methods: {
-    async loadStudents() {
-      const querySnapshot = await getDocs(collection(db, 'student'))
-      this.students = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-    },
-    formatDate(dateString) {
-      if (!dateString) return ''
-      const date = new Date(dateString)
-      return date.toLocaleDateString('nl-NL')
-    },
-    async deleteStudent(id) {
-      if (confirm('Weet je zeker dat je deze student wilt verwijderen?')) {
-        await deleteDoc(doc(db, 'student', id))
-        this.students = this.students.filter(s => s.id !== id)
-      }
+      students: getAllStudents()
     }
   },
   computed: {
     filteredStudents() {
       let filtered = this.students;
+      
       if (this.searchQuery) {
         const query = this.searchQuery.toLowerCase();
         filtered = filtered.filter(student => 
-          (student.firstName && student.firstName.toLowerCase().includes(query)) ||
-          (student.lastName && student.lastName.toLowerCase().includes(query)) ||
-          (student.email && student.email.toLowerCase().includes(query)) ||
-          (student.domain && student.domain.toLowerCase().includes(query))
+          student.firstName.toLowerCase().includes(query) ||
+          student.lastName.toLowerCase().includes(query) ||
+          student.email.toLowerCase().includes(query) ||
+          student.domain.toLowerCase().includes(query)
         );
       }
+      
       if (this.filterStudyYear) {
         filtered = filtered.filter(student => student.studyYear === this.filterStudyYear);
       }
+      
       if (this.filterOpportunity) {
         filtered = filtered.filter(student => student.opportunity === this.filterOpportunity);
       }
+      
       return filtered;
+    }
+  },
+  methods: {
+    formatDate(dateString) {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('nl-NL');
+    },
+    deleteStudent(studentId) {
+      if (confirm('Weet je zeker dat je deze student wilt verwijderen?')) {
+        this.students = this.students.filter(student => student.id !== studentId);
+      }
     }
   }
 }
@@ -326,7 +314,7 @@ export default {
   gap: 12px;
 }
 
-.student-photo {
+.student-avatar {
   width: 48px;
   height: 48px;
   border-radius: 50%;
@@ -340,16 +328,22 @@ export default {
   flex-shrink: 0;
 }
 
-.student-photo img {
+.student-avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
 .student-name {
+  font-size: 1rem;
   font-weight: 600;
   color: #1a1a1a;
-  margin: 0 0 4px 0;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.student-name:hover {
+  color: #2563eb;
 }
 
 .student-email {
@@ -478,6 +472,15 @@ export default {
   .students-table {
     min-width: 800px;
   }
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #eee;
 }
 </style>
 
