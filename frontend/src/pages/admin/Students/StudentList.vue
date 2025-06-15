@@ -19,7 +19,7 @@
       <div class="search-box">
         <input 
           type="text" 
-          v-model="searchQuery"
+          v-model="searchQuery" 
           placeholder="Zoek studenten..."
           class="search-input"
         >
@@ -69,6 +69,8 @@
                   {{ student.firstName }} {{ student.lastName }}
                 </router-link>
                 <p class="student-email">{{ student.email }}</p>
+                <p class="student-phone">{{ student.phone }}</p>
+                <p class="student-location">{{ student.location }}</p>
               </div>
             </td>
             <td>{{ student.age }}</td>
@@ -194,6 +196,11 @@ export default {
   color: #666;
   margin: 0;
   font-size: 1.1rem;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
 }
 
 .btn {
@@ -352,6 +359,18 @@ export default {
   font-size: 0.875rem;
 }
 
+.student-phone {
+  color: #666;
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.student-location {
+  color: #666;
+  margin: 0;
+  font-size: 0.875rem;
+}
+
 .study-year-badge {
   background: #e3f2fd;
   color: #1976d2;
@@ -445,42 +464,139 @@ export default {
   margin: 0;
 }
 
-/* Responsive */
+/* Responsive Design */
 @media (max-width: 768px) {
   .page-header {
     flex-direction: column;
     align-items: stretch;
+    gap: 16px;
   }
-  
+
   .filters-section {
     flex-direction: column;
-    align-items: stretch;
+    gap: 12px;
+    padding: 16px;
   }
-  
+
   .search-box {
-    min-width: auto;
+    width: 100%;
   }
-  
+
   .filter-controls {
+    width: 100%;
     flex-direction: column;
+    gap: 8px;
   }
-  
+
+  .filter-select {
+    width: 100%;
+  }
+
   .table-container {
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
-  
+
   .students-table {
     min-width: 800px;
   }
+
+  .student-info {
+    min-width: 250px;
+  }
+
+  .actions {
+    min-width: 120px;
+  }
+
+  .study-year-badge,
+  .opportunity-badge {
+    white-space: nowrap;
+  }
 }
 
-.page-title {
-  font-size: 24px;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 20px;
-  padding-bottom: 10px;
-  border-bottom: 2px solid #eee;
+@media (max-width: 480px) {
+  .page-header {
+    margin-bottom: 20px;
+  }
+
+  .header-content h1 {
+    font-size: 1.5rem;
+  }
+
+  .header-content p {
+    font-size: 0.9rem;
+  }
+
+  .filters-section {
+    padding: 12px;
+  }
+
+  .search-input {
+    padding: 10px 16px 10px 36px;
+    font-size: 0.9rem;
+  }
+
+  .filter-select {
+    padding: 10px 12px;
+    font-size: 0.9rem;
+  }
+
+  .students-table th,
+  .students-table td {
+    padding: 12px;
+    font-size: 0.9rem;
+  }
+
+  .student-avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 0.9rem;
+  }
+
+  .student-name {
+    font-size: 0.9rem;
+  }
+
+  .student-email {
+    font-size: 0.8rem;
+  }
+
+  .student-phone {
+    font-size: 0.8rem;
+  }
+
+  .student-location {
+    font-size: 0.8rem;
+  }
+
+  .study-year-badge,
+  .opportunity-badge {
+    font-size: 0.8rem;
+    padding: 3px 6px;
+  }
+
+  .action-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 0.9rem;
+  }
+
+  .empty-state {
+    padding: 32px 16px;
+  }
+
+  .empty-icon {
+    font-size: 2.5rem;
+  }
+
+  .empty-state h3 {
+    font-size: 1.2rem;
+  }
+
+  .empty-state p {
+    font-size: 0.9rem;
+  }
 }
 </style>
 

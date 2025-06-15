@@ -134,23 +134,17 @@
 
       <!-- Social Links -->
       <div class="profile-section">
-        <h3>Sociale Media & Portfolio</h3>
+        <h3>Linkedin</h3>
         <div class="social-links">
           <a :href="student.linkedin" target="_blank" class="social-link linkedin">
             <span class="icon">🔗</span> LinkedIn
-          </a>
-          <a :href="student.github" target="_blank" class="social-link github">
-            <span class="icon">📦</span> GitHub
-          </a>
-          <a :href="student.portfolio" target="_blank" class="social-link portfolio">
-            <span class="icon">🎨</span> Portfolio
           </a>
         </div>
       </div>
 
       <!-- Notes -->
       <div class="profile-section">
-        <h3>Notities</h3>
+        <h3>Over de student</h3>
         <p class="notes">{{ student.notes }}</p>
       </div>
     </div>
