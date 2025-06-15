@@ -99,15 +99,6 @@
           <a v-if="company.socialMedia.linkedin" :href="company.socialMedia.linkedin" target="_blank" class="social-link linkedin">
             <span class="icon">🔗</span> LinkedIn
           </a>
-          <a v-if="company.socialMedia.twitter" :href="company.socialMedia.twitter" target="_blank" class="social-link twitter">
-            <span class="icon">🐦</span> Twitter
-          </a>
-          <a v-if="company.socialMedia.facebook" :href="company.socialMedia.facebook" target="_blank" class="social-link facebook">
-            <span class="icon">👍</span> Facebook
-          </a>
-          <a v-if="company.socialMedia.instagram" :href="company.socialMedia.instagram" target="_blank" class="social-link instagram">
-            <span class="icon">📸</span> Instagram
-          </a>
           <a v-if="company.socialMedia.behance" :href="company.socialMedia.behance" target="_blank" class="social-link behance">
             <span class="icon">🎨</span> Behance
           </a>

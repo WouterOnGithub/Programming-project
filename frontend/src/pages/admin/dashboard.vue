@@ -48,11 +48,6 @@
                 </router-link>
                 <p class="student-email">{{ student.email }}</p>
               </div>
-              <div class="student-status">
-                <span :class="['status-badge', student.status]">
-                  {{ student.status === 'active' ? 'Actief' : 'Inactief' }}
-                </span>
-              </div>
             </div>
           </div>
         </div>
@@ -120,26 +115,22 @@ export default {
         {
           id: 1,
           name: 'Emma van der Berg',
-          email: 'emma.vandenberg@email.com',
-          status: 'active'
+          email: 'emma.vandenberg@email.com'
         },
         {
           id: 2,
           name: 'Lucas Janssen',
-          email: 'lucas.janssen@email.com',
-          status: 'active'
+          email: 'lucas.janssen@email.com'
         },
         {
           id: 3,
           name: 'Sophie de Vries',
-          email: 'sophie.devries@email.com',
-          status: 'inactive'
+          email: 'sophie.devries@email.com'
         },
         {
           id: 4,
           name: 'Daan Bakker',
-          email: 'daan.bakker@email.com',
-          status: 'active'
+          email: 'daan.bakker@email.com'
         }
       ],
       recentActivity: [
@@ -149,7 +140,6 @@ export default {
           text: 'Nieuwe student Emma van der Berg is toegevoegd',
           time: '12:34'
         },
-        
         {
           id: 3,
           icon: '✅',
@@ -359,24 +349,6 @@ export default {
   font-size: 0.875rem;
 }
 
-.status-badge {
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.status-badge.active {
-  background: #e8f5e8;
-  color: #2d7d32;
-}
-
-.status-badge.inactive {
-  background: #fff3e0;
-  color: #f57c00;
-}
-
 /* Quick Actions */
 .quick-actions {
   display: grid;
@@ -442,12 +414,11 @@ export default {
   width: 36px;
   height: 36px;
   background: #f8f9fa;
-  border-radius: 50%;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.1rem;
-  flex-shrink: 0;
+  font-size: 1.2rem;
 }
 
 .activity-content {
@@ -457,7 +428,6 @@ export default {
 .activity-text {
   margin: 0 0 4px 0;
   color: #1a1a1a;
-  font-weight: 500;
 }
 
 .activity-time {
@@ -487,6 +457,40 @@ export default {
   
   .stat-number {
     font-size: 1.75rem;
+  }
+
+  .student-item {
+    padding: 8px;
+  }
+
+  .student-avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 0.9rem;
+  }
+
+  .student-name {
+    font-size: 0.95rem;
+  }
+
+  .student-email {
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .student-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 0.85rem;
+  }
+
+  .student-name {
+    font-size: 0.9rem;
+  }
+
+  .student-email {
+    font-size: 0.75rem;
   }
 }
 </style>
