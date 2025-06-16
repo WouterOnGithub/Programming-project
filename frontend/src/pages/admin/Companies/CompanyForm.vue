@@ -59,31 +59,31 @@
           <h3 class="section-title">Bedrijfsinformatie</h3>
           
           <div class="form-group">
-            <label for="companyName" class="form-label">Bedrijfsnaam *</label>
+            <label for="bedrijfsnaam" class="form-label">Bedrijfsnaam *</label>
             <input 
               type="text" 
-              id="companyName"
-              v-model="form.companyName" 
+              id="bedrijfsnaam"
+              v-model="form.bedrijfsnaam" 
               class="form-input"
-              :class="{ 'error': errors.companyName }"
+              :class="{ 'error': errors.bedrijfsnaam }"
               placeholder="Voer bedrijfsnaam in"
               required
             >
-            <span v-if="errors.companyName" class="error-message">{{ errors.companyName }}</span>
+            <span v-if="errors.bedrijfsnaam" class="error-message">{{ errors.bedrijfsnaam }}</span>
           </div>
 
           <div class="form-group">
-            <label for="location" class="form-label">Gesitueerd in *</label>
+            <label for="gesitueerdIn" class="form-label">Gesitueerd in *</label>
             <input 
               type="text" 
-              id="location"
-              v-model="form.location" 
+              id="gesitueerdIn"
+              v-model="form.gesitueerdIn" 
               class="form-input"
-              :class="{ 'error': errors.location }"
+              :class="{ 'error': errors.gesitueerdIn }"
               placeholder="Bijv. Amsterdam, Nederland"
               required
             >
-            <span v-if="errors.location" class="error-message">{{ errors.location }}</span>
+            <span v-if="errors.gesitueerdIn" class="error-message">{{ errors.gesitueerdIn }}</span>
           </div>
 
           <div class="form-group">
@@ -304,7 +304,11 @@
 
 <script>
 import { db, storage } from '../../../firebase/config'
+<<<<<<< Updated upstream
 import { collection, addDoc, updateDoc, getDoc, doc } from 'firebase/firestore'
+=======
+import { doc, getDoc, setDoc, addDoc, collection } from 'firebase/firestore'
+>>>>>>> Stashed changes
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
 
 export default {
@@ -318,8 +322,8 @@ export default {
       isSubmitting: false,
       skillInput: '',
       form: {
-        companyName: '',
-        location: '',
+        bedrijfsnaam: '',
+        gesitueerdIn: '',
         linkedin: '',
         lookingFor: '',
         jobTypes: [],
@@ -345,9 +349,21 @@ export default {
   },
   methods: {
     async loadCompany() {
+<<<<<<< Updated upstream
       const docSnap = await getDoc(doc(db, 'bedrijf', this.id))
       if (docSnap.exists()) {
         Object.assign(this.form, docSnap.data())
+=======
+      try {
+        const docSnap = await getDoc(doc(db, 'bedrijf', this.id))
+        if (docSnap.exists()) {
+          const data = docSnap.data()
+          Object.assign(this.form, data)
+          this.form.logoPreview = data.logo || null
+        }
+      } catch (e) {
+        alert('Fout bij laden bedrijf: ' + e.message)
+>>>>>>> Stashed changes
       }
     },
     
@@ -389,12 +405,12 @@ export default {
     validateForm() {
       this.errors = {};
       
-      if (!this.form.companyName.trim()) {
-        this.errors.companyName = 'Bedrijfsnaam is verplicht';
+      if (!this.form.bedrijfsnaam.trim()) {
+        this.errors.bedrijfsnaam = 'Bedrijfsnaam is verplicht';
       }
       
-      if (!this.form.location.trim()) {
-        this.errors.location = 'Locatie is verplicht';
+      if (!this.form.gesitueerdIn.trim()) {
+        this.errors.gesitueerdIn = 'Locatie is verplicht';
       }
       
       if (!this.form.lookingFor.trim()) {
@@ -440,6 +456,7 @@ export default {
       }
       this.isSubmitting = true;
       try {
+<<<<<<< Updated upstream
         const companyData = { ...this.form };
         delete companyData.logoFile;
         delete companyData.logoPreview;
@@ -459,6 +476,41 @@ export default {
         this.$router.push('/admin/companies');
       } catch (error) {
         alert('Fout bij opslaan bedrijf: ' + error.message);
+=======
+        let logoUrl = this.form.logoPreview;
+        if (this.form.logoFile) {
+          const fileRef = storageRef(storage, `company_logos/${Date.now()}_${this.form.logoFile.name}`);
+          await uploadBytes(fileRef, this.form.logoFile);
+          logoUrl = await getDownloadURL(fileRef);
+        }
+
+        const companyData = {
+          bedrijfsnaam: this.form.bedrijfsnaam,
+          gesitueerdIn: this.form.gesitueerdIn,
+          linkedin: this.form.linkedin,
+          lookingFor: this.form.lookingFor,
+          jobTypes: this.form.jobTypes,
+          requiredSkills: this.form.requiredSkills,
+          aboutUs: this.form.aboutUs,
+          contactEmail: this.form.contactEmail,
+          website: this.form.website,
+          phoneNumber: this.form.phoneNumber,
+          industry: this.form.industry,
+          companySize: this.form.companySize,
+          foundedYear: this.form.foundedYear,
+          logo: logoUrl
+        };
+
+        if (this.isEdit) {
+          await setDoc(doc(db, 'bedrijf', this.id), companyData);
+        } else {
+          await addDoc(collection(db, 'bedrijf'), companyData);
+        }
+
+        this.$router.push('/admin/companies');
+      } catch (error) {
+        alert('Er is een fout opgetreden bij het opslaan: ' + error.message);
+>>>>>>> Stashed changes
       } finally {
         this.isSubmitting = false;
       }

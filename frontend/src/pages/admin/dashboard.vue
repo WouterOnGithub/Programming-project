@@ -114,6 +114,7 @@ export default {
         totalStudents: 1247,
         totalCompanies: 50,
       },
+<<<<<<< Updated upstream
       recentStudents: [
         {
           id: 1,
@@ -155,6 +156,138 @@ export default {
           time: '11:56'
         },
       ]
+=======
+      recentStudents: [],
+      recentActivity: [],
+      loading: {
+        stats: true,
+        students: true,
+        activity: true
+      },
+      error: {
+        stats: null,
+        students: null,
+        activity: null
+      },
+      unsubscribeStudents: null,
+      unsubscribeCompanies: null
+    }
+  },
+  async mounted() {
+    await Promise.all([
+      this.loadStats(),
+      this.loadRecentStudents(),
+      this.loadRecentActivity()
+    ])
+  },
+  methods: {
+    async loadStats() {
+      try {
+        this.loading.stats = true
+        const studentsRef = collection(db, 'student')
+        // Live teller met onSnapshot
+        this.unsubscribeStudents && this.unsubscribeStudents();
+        this.unsubscribeStudents = onSnapshot(studentsRef, (snapshot) => {
+          this.stats.totalStudents = snapshot.size;
+        })
+        // Live teller bedrijven
+        const companiesRef = collection(db, 'bedrijf')
+        this.unsubscribeCompanies && this.unsubscribeCompanies();
+        this.unsubscribeCompanies = onSnapshot(companiesRef, (snapshot) => {
+          this.stats.totalCompanies = snapshot.size;
+        })
+      } catch (err) {
+        console.error('Error loading stats:', err)
+        this.error.stats = 'Er is een fout opgetreden bij het laden van de statistieken.'
+      } finally {
+        this.loading.stats = false
+      }
+    },
+    beforeUnmount() {
+      this.unsubscribeStudents && this.unsubscribeStudents();
+      this.unsubscribeCompanies && this.unsubscribeCompanies();
+    },
+    async loadRecentStudents() {
+      try {
+        this.loading.students = true
+        const usersRef = collection(db, 'users')
+        const q = query(
+          usersRef,
+          where('type', '==', 'student'),
+          orderBy('createdAt', 'desc'),
+          limit(4)
+        )
+        const snap = await getDocs(q)
+        this.recentStudents = snap.docs.map(doc => ({
+          id: doc.id,
+          name: doc.data().name || 'Naamloos',
+          email: doc.data().email,
+          status: 'active',
+          createdAt: doc.data().createdAt
+        }))
+      } catch (err) {
+        console.error('Error loading recent students:', err)
+        this.error.students = 'Er is een fout opgetreden bij het laden van recente studenten.'
+      } finally {
+        this.loading.students = false
+      }
+    },
+   
+    async loadRecentActivity() {
+      try {
+        this.loading.activity = true
+        const activities = []
+       
+        // Get recent student registrations
+        const usersRef = collection(db, 'users')
+        const recentUsersQuery = query(
+          usersRef,
+          orderBy('createdAt', 'desc'),
+          limit(5)
+        )
+        const recentUsersSnap = await getDocs(recentUsersQuery)
+       
+        recentUsersSnap.forEach(doc => {
+          const userData = doc.data()
+          activities.push({
+            id: doc.id,
+            icon: userData.type === 'student' ? '👨‍🎓' : '🏢',
+            text: `${userData.type === 'student' ? 'Nieuwe student' : 'Nieuw bedrijf'} geregistreerd: ${userData.name || userData.companyName}`,
+            time: this.formatTimeAgo(userData.createdAt)
+          })
+        })
+       
+        // Sort activities by time
+        activities.sort((a, b) => b.time.localeCompare(a.time))
+        this.recentActivity = activities
+      } catch (err) {
+        console.error('Error loading recent activity:', err)
+        this.error.activity = 'Er is een fout opgetreden bij het laden van recente activiteit.'
+      } finally {
+        this.loading.activity = false
+      }
+    },
+   
+    formatTimeAgo(timestamp) {
+      if (!timestamp) return 'Onbekende tijd'
+     
+      const date = timestamp instanceof Timestamp ? timestamp.toDate() : new Date(timestamp)
+      const now = new Date()
+      const seconds = Math.floor((now - date) / 1000)
+     
+      if (seconds < 60) return 'Zojuist'
+     
+      const minutes = Math.floor(seconds / 60)
+      if (minutes < 60) return `${minutes} minuten geleden`
+     
+      const hours = Math.floor(minutes / 60)
+      if (hours < 24) return `${hours} uur geleden`
+     
+      const days = Math.floor(hours / 24)
+      if (days < 7) return `${days} dagen geleden`
+     
+      return date.toLocaleDateString('nl-NL')
+>>>>>>> Stashed changes
     }
   }
 }
