@@ -1,6 +1,6 @@
 import { auth, db } from '../firebase/config';
 import { doc, getDoc } from 'firebase/firestore';
-
+ 
 const adminRoutes = [
   {
     path: '/admin',
@@ -12,10 +12,10 @@ const adminRoutes = [
         next('/login');
         return;
       }
-
+ 
       try {
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        if (userDoc.exists() && userDoc.data().role === 'admin') {
+        const userDoc = await getDoc(doc(db, 'admin', user.uid));
+        if (userDoc.exists()) {
           next();
         } else {
           next('/');
@@ -39,6 +39,12 @@ const adminRoutes = [
         path: 'students',
         name: 'AdminStudents',
         component: () => import('../pages/admin/Students/StudentList.vue')
+      },
+      {
+        path: 'students/:id',
+        name: 'AdminStudentDetail',
+        component: () => import('../pages/admin/Students/StudentDetail.vue'),
+        props: true
       },
       {
         path: 'students/new',
@@ -75,5 +81,5 @@ const adminRoutes = [
     ]
   }
 ]
-
+ 
 export default adminRoutes

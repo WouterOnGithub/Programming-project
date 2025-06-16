@@ -1,14 +1,19 @@
 <template>
   <div class="grondplan-list">
     <div class="page-header">
-      <h1 class="page-title">Grondplan</h1>
-      <button 
-        @click="showUploadModal = true" 
-        class="upload-button"
-      >
-        <span class="upload-icon">+</span>
-        Nieuwe grondplan uploaden
-      </button>
+      <div class="header-content">
+        <h1 class="page-title">Grondplan</h1>
+        <p class="page-subtitle">Beheer alle grondplannen in het systeem</p>
+      </div>
+      <div class="header-actions">
+        <button 
+          @click="showUploadModal = true" 
+          class="btn btn-primary"
+        >
+          <span class="btn-icon">+</span>
+          Nieuwe grondplan uploaden
+        </button>
+      </div>
     </div>
 
     <div class="grondplan-container">
@@ -336,7 +341,6 @@ export default {
   display: grid;
   grid-template-columns: 1fr 300px;
   gap: 20px;
-  height: calc(100vh - 100px);
   padding: 20px;
 }
 
@@ -344,44 +348,55 @@ export default {
   grid-column: 1 / -1;
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
+  align-items: flex-start;
+  margin-bottom: 32px;
+  gap: 20px;
 }
 
-.page-title {
+.header-content h1 {
   font-size: 2rem;
-  color: #333;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 8px 0;
+}
+
+.header-content p {
+  color: #666;
   margin: 0;
-}
-
-.upload-button {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: #007bff;
-  color: white;
-  border: none;
-  padding: 12px 20px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: background-color 0.2s;
-}
-
-.upload-button:hover {
-  background: #0056b3;
-}
-
-.upload-icon {
-  font-size: 1.2rem;
-  font-weight: bold;
+  font-size: 1.1rem;
 }
 
 .grondplan-container {
+  grid-column: 1;
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-  overflow: hidden;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background-color: #007bff;
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: #0056b3;
+}
+
+.btn-icon {
+  font-size: 1.2rem;
 }
 
 .grondplan-viewer {
@@ -695,28 +710,167 @@ export default {
   cursor: not-allowed;
 }
 
-/* Responsive */
-@media (max-width: 1024px) {
+/* Responsive Design */
+@media (max-width: 768px) {
   .grondplan-list {
     grid-template-columns: 1fr;
     grid-template-rows: auto 1fr auto;
+    height: auto;
+    min-height: calc(100vh - 140px);
+    padding: 16px;
+  }
+  
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .header-actions {
+    width: 100%;
+  }
+
+  .header-actions .btn {
+    width: 100%;
+    justify-content: center;
   }
   
   .grondplan-sidebar {
     order: 3;
-    max-height: 200px;
+    max-height: 300px;
+    margin-top: 20px;
   }
   
   .grondplan-list-items {
     flex-direction: row;
     overflow-x: auto;
-    gap: 8px;
+    padding-bottom: 10px;
+    gap: 12px;
+    -webkit-overflow-scrolling: touch;
   }
   
   .grondplan-item {
     flex-direction: column;
-    min-width: 120px;
+    min-width: 160px;
     text-align: center;
+    padding: 8px;
+  }
+
+  .grondplan-thumbnail {
+    width: 100%;
+    height: 80px;
+  }
+
+  .grondplan-details {
+    padding: 8px 0;
+  }
+
+  .grondplan-details h4 {
+    font-size: 0.85rem;
+  }
+
+  .upload-date, .building-info {
+    font-size: 0.75rem;
+  }
+
+  .grondplan-viewer {
+    height: auto;
+    min-height: 400px;
+  }
+
+  .grondplan-display {
+    min-height: 300px;
+  }
+
+  .grondplan-controls {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .control-btn {
+    padding: 6px 10px;
+    font-size: 0.9rem;
+  }
+
+  .modal-content {
+    width: 95%;
+    margin: 10px;
+  }
+
+  .form-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .form-actions button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .grondplan-list {
+    padding: 10px;
+  }
+
+  .page-header {
+    margin-bottom: 16px;
+  }
+
+  .header-content h1 {
+    font-size: 1.5rem;
+  }
+
+  .header-content p {
+    font-size: 0.9rem;
+  }
+
+  .grondplan-viewer {
+    min-height: 300px;
+  }
+
+  .grondplan-display {
+    min-height: 200px;
+    padding: 10px;
+  }
+
+  .grondplan-info {
+    padding: 12px;
+  }
+
+  .grondplan-info p {
+    font-size: 0.85rem;
+  }
+
+  .grondplan-sidebar {
+    max-height: 250px;
+  }
+
+  .grondplan-item {
+    min-width: 140px;
+  }
+
+  .grondplan-thumbnail {
+    height: 60px;
+  }
+
+  .modal-content {
+    width: 100%;
+    margin: 0;
+    border-radius: 0;
+  }
+
+  .form-group input,
+  .form-group textarea {
+    font-size: 0.9rem;
+    padding: 10px;
+  }
+
+  .form-group label {
+    font-size: 0.9rem;
+  }
+
+  .form-group small {
+    font-size: 0.8rem;
   }
 }
 </style>

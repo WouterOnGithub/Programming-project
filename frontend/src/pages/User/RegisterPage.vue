@@ -78,17 +78,9 @@ const handleRegister = async () => {
         studentData.password
       );
 
-      // Create user document in Firestore
-      await setDoc(doc(db, 'users', userCredential.user.uid), {
-        name: studentData.name,
-        email: studentData.email,
-        type: 'student',
-        createdAt: new Date()
-      });
-
       alert(`Student account aangemaakt voor ${studentData.name}!`);
       clearForms();
-      router.push('/dashboard');
+      router.push({ path: '/Stinvoer', query: { fromRegister: '1' } });
     } else {
       if (companyData.password !== companyData.confirmPassword) {
         error.value = 'Wachtwoorden komen niet overeen';
