@@ -10,6 +10,7 @@ import CompanyFavoriteList from '../pages/User/CompanyFavoriteList.vue';
 import StudentList from '../pages/User/StudentList.vue';
 import Stprofielinvoer from '../pages/User/Stprofielinvoer.vue';
 import Dashboard from '../pages/User/Dashboard.vue';
+import StudentDetail from '../pages/admin/Students/StudentDetail.vue';
 
 import adminRoutes from './admin-routes.js';
 
@@ -24,16 +25,17 @@ const userRoutes = [
   {path: '/list', name: 'List', component: StudentList},
   { path: '/Stinvoer', name: 'Student', component: Stprofielinvoer },
   { path: '/dashboard', name: 'Dashboard', component: Dashboard },
+  { path: '/student/:id', name: 'StudentDetail', component: StudentDetail }
 ];
 
 const routes = [
   ...userRoutes,
   ...adminRoutes
-]
+];
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes
-})
+});
 
-export default router
+export default router;

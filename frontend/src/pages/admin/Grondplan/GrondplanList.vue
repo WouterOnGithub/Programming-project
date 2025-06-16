@@ -710,28 +710,167 @@ export default {
   cursor: not-allowed;
 }
 
-/* Responsive */
-@media (max-width: 1024px) {
+/* Responsive Design */
+@media (max-width: 768px) {
   .grondplan-list {
     grid-template-columns: 1fr;
     grid-template-rows: auto 1fr auto;
+    height: auto;
+    min-height: calc(100vh - 140px);
+    padding: 16px;
+  }
+  
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .header-actions {
+    width: 100%;
+  }
+
+  .header-actions .btn {
+    width: 100%;
+    justify-content: center;
   }
   
   .grondplan-sidebar {
     order: 3;
-    max-height: 200px;
+    max-height: 300px;
+    margin-top: 20px;
   }
   
   .grondplan-list-items {
     flex-direction: row;
     overflow-x: auto;
-    gap: 8px;
+    padding-bottom: 10px;
+    gap: 12px;
+    -webkit-overflow-scrolling: touch;
   }
   
   .grondplan-item {
     flex-direction: column;
-    min-width: 120px;
+    min-width: 160px;
     text-align: center;
+    padding: 8px;
+  }
+
+  .grondplan-thumbnail {
+    width: 100%;
+    height: 80px;
+  }
+
+  .grondplan-details {
+    padding: 8px 0;
+  }
+
+  .grondplan-details h4 {
+    font-size: 0.85rem;
+  }
+
+  .upload-date, .building-info {
+    font-size: 0.75rem;
+  }
+
+  .grondplan-viewer {
+    height: auto;
+    min-height: 400px;
+  }
+
+  .grondplan-display {
+    min-height: 300px;
+  }
+
+  .grondplan-controls {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .control-btn {
+    padding: 6px 10px;
+    font-size: 0.9rem;
+  }
+
+  .modal-content {
+    width: 95%;
+    margin: 10px;
+  }
+
+  .form-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .form-actions button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .grondplan-list {
+    padding: 10px;
+  }
+
+  .page-header {
+    margin-bottom: 16px;
+  }
+
+  .header-content h1 {
+    font-size: 1.5rem;
+  }
+
+  .header-content p {
+    font-size: 0.9rem;
+  }
+
+  .grondplan-viewer {
+    min-height: 300px;
+  }
+
+  .grondplan-display {
+    min-height: 200px;
+    padding: 10px;
+  }
+
+  .grondplan-info {
+    padding: 12px;
+  }
+
+  .grondplan-info p {
+    font-size: 0.85rem;
+  }
+
+  .grondplan-sidebar {
+    max-height: 250px;
+  }
+
+  .grondplan-item {
+    min-width: 140px;
+  }
+
+  .grondplan-thumbnail {
+    height: 60px;
+  }
+
+  .modal-content {
+    width: 100%;
+    margin: 0;
+    border-radius: 0;
+  }
+
+  .form-group input,
+  .form-group textarea {
+    font-size: 0.9rem;
+    padding: 10px;
+  }
+
+  .form-group label {
+    font-size: 0.9rem;
+  }
+
+  .form-group small {
+    font-size: 0.8rem;
   }
 }
 </style>

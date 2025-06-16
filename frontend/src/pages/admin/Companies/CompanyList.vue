@@ -379,5 +379,129 @@ export default {
   margin: 0;
   color: #6b7280;
 }
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .header-actions {
+    width: 100%;
+  }
+
+  .header-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .filters-section {
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .search-box {
+    width: 100%;
+  }
+
+  .filter-controls {
+    width: 100%;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .filter-select {
+    width: 100%;
+  }
+
+  .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .companies-table {
+    min-width: 800px;
+  }
+
+  .company-info {
+    min-width: 250px;
+  }
+
+  .actions {
+    min-width: 120px;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-header {
+    margin-bottom: 20px;
+  }
+
+  .header-content h1 {
+    font-size: 1.5rem;
+  }
+
+  .header-content p {
+    font-size: 0.9rem;
+  }
+
+  .filters-section {
+    padding: 12px;
+  }
+
+  .search-input {
+    padding: 10px 16px 10px 36px;
+    font-size: 0.9rem;
+  }
+
+  .filter-select {
+    padding: 10px 12px;
+    font-size: 0.9rem;
+  }
+
+  .companies-table th,
+  .companies-table td {
+    padding: 12px;
+    font-size: 0.9rem;
+  }
+
+  .company-logo {
+    width: 32px;
+    height: 32px;
+    font-size: 0.9rem;
+  }
+
+  .company-name {
+    font-size: 0.9rem;
+  }
+
+  .company-email {
+    font-size: 0.8rem;
+  }
+
+  .action-btn {
+    padding: 6px;
+    font-size: 0.9rem;
+  }
+
+  .empty-state {
+    padding: 32px 16px;
+  }
+
+  .empty-icon {
+    font-size: 2.5rem;
+  }
+
+  .empty-state h3 {
+    font-size: 1.2rem;
+  }
+
+  .empty-state p {
+    font-size: 0.9rem;
+  }
+}
 </style>
 

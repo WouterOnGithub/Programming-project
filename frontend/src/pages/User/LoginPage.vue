@@ -62,8 +62,9 @@ const handleLogin = async () => {
     
     // Check if user is admin
     if (isAdmin()) {
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      if (userDoc.exists() && userDoc.data().role === 'admin') {
+      const userDoc = await getDoc(doc(db, 'admin', user.uid));
+      console.log('Admin doc exists:', userDoc.exists(), 'UID:', user.uid);
+      if (userDoc.exists()) {
         router.push('/admin/dashboard');
         return;
       } else {
