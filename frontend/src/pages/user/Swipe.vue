@@ -137,6 +137,30 @@ export default {
         schedule: 'Op campus van 10 tot 16 uur',
         skills: ['IT', 'Consulting', 'Communicatie'],
         linkedinUrl: 'https://linkedin.com/company/deloitte',
+      },
+      {
+        id: 2,
+        company: 'ASML',
+        title: 'Software Engineer Intern',
+        location: 'Eindhoven',
+        type: 'Stage',
+        description: 'ASML is een toonaangevend bedrijf in de halfgeleiderindustrie. Werk aan de nieuwste technologieën en maak impact op de wereld.',
+        duration: 'Elk gesprek duurt 10 min',
+        schedule: 'Op campus van 10 tot 16 uur',
+        skills: ['Engineering', 'Semiconductors', 'Innovation'],
+        linkedinUrl: 'https://linkedin.com/company/asml',
+      },
+      {
+        id: 3,
+        company: 'Philips',
+        title: 'UX Design Trainee',
+        location: 'Amsterdam',
+        type: 'Stage',
+        description: 'Philips zoekt creatieve UX designers die willen bijdragen aan innovatieve gezondheidsoplossingen.',
+        duration: 'Elk gesprek duurt 10 min',
+        schedule: 'Op campus van 10 tot 16 uur',
+        skills: ['UX', 'Design', 'Creativiteit'],
+        linkedinUrl: 'https://linkedin.com/company/philips',
       }
     ]);
 
