@@ -97,7 +97,7 @@ async function bevestigGegevens() {
       aangemaaktOp: new Date()
     })
     alert('Bedrijfsprofiel succesvol opgeslagen!')
-    router.push('/dashboard')
+    router.push('/BedrijfDashboard')
   } catch (error) {
     console.error('Error saving company profile:', error)
     foutmelding.value = 'Er is een fout opgetreden bij het opslaan van het bedrijfsprofiel.'

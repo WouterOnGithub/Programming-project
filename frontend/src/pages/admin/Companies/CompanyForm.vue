@@ -303,217 +303,174 @@
 </template>
 
 <script>
-import { db, storage } from '../../../firebase/config'
-<<<<<<< Updated upstream
-import { collection, addDoc, updateDoc, getDoc, doc } from 'firebase/firestore'
-=======
-import { doc, getDoc, setDoc, addDoc, collection } from 'firebase/firestore'
->>>>>>> Stashed changes
-import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { ref, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { db } from '../../../firebase/config'
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore'
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
 
 export default {
   name: 'CompanyForm',
-  props: {
-    id: String
-  },
-  data() {
-    return {
-      isEdit: false,
-      isSubmitting: false,
-      skillInput: '',
-      form: {
-        bedrijfsnaam: '',
-        gesitueerdIn: '',
-        linkedin: '',
-        lookingFor: '',
-        jobTypes: [],
-        requiredSkills: [],
-        aboutUs: '',
-        contactEmail: '',
-        website: '',
-        phoneNumber: '',
-        industry: '',
-        companySize: '',
-        foundedYear: '',
-        logoPreview: null,
-        logoFile: null
-      },
-      errors: {}
+  setup() {
+    const route = useRoute()
+    const router = useRouter()
+    const isEdit = ref(!!route.params.id)
+    const logoInput = ref(null)
+    const skillInput = ref('')
+    const loading = ref(false)
+    const errors = ref({})
+
+    const form = ref({
+      bedrijfsnaam: '',
+      gesitueerdIn: '',
+      linkedin: '',
+      lookingFor: '',
+      jobTypes: [],
+      requiredSkills: [],
+      aboutUs: '',
+      contactEmail: '',
+      website: '',
+      phoneNumber: '',
+      industry: '',
+      size: '',
+      logo: '',
+      logoPreview: ''
+    })
+
+    const validateForm = () => {
+      errors.value = {}
+      let isValid = true
+
+      if (!form.value.bedrijfsnaam) {
+        errors.value.bedrijfsnaam = 'Bedrijfsnaam is verplicht'
+        isValid = false
+      }
+
+      if (!form.value.gesitueerdIn) {
+        errors.value.gesitueerdIn = 'Locatie is verplicht'
+        isValid = false
+      }
+
+      if (!form.value.lookingFor) {
+        errors.value.lookingFor = 'Beschrijf wat je zoekt'
+        isValid = false
+      }
+
+      if (!form.value.aboutUs) {
+        errors.value.aboutUs = 'Over het bedrijf is verplicht'
+        isValid = false
+      }
+
+      if (form.value.contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.value.contactEmail)) {
+        errors.value.contactEmail = 'Ongeldig e-mailadres'
+        isValid = false
+      }
+
+      return isValid
     }
-  },
-  async mounted() {
-    this.isEdit = !!this.id;
-    if (this.isEdit) {
-      await this.loadCompany();
-    }
-  },
-  methods: {
-    async loadCompany() {
-<<<<<<< Updated upstream
-      const docSnap = await getDoc(doc(db, 'bedrijf', this.id))
-      if (docSnap.exists()) {
-        Object.assign(this.form, docSnap.data())
-=======
+
+    const handleLogoUpload = async (event) => {
+      const file = event.target.files[0]
+      if (!file) return
+
+      // Preview
+      form.value.logoPreview = URL.createObjectURL(file)
+
+      // Upload to Firebase Storage
       try {
-        const docSnap = await getDoc(doc(db, 'bedrijf', this.id))
+        const storage = getStorage()
+        const logoRef = storageRef(storage, `company-logos/${Date.now()}-${file.name}`)
+        const snapshot = await uploadBytes(logoRef, file)
+        form.value.logo = await getDownloadURL(snapshot.ref)
+      } catch (error) {
+        console.error('Error uploading logo:', error)
+        errors.value.logo = 'Fout bij uploaden logo'
+      }
+    }
+
+    const removeLogo = () => {
+      form.value.logo = ''
+      form.value.logoPreview = ''
+      if (logoInput.value) {
+        logoInput.value.value = ''
+      }
+    }
+
+    const addSkill = () => {
+      const skill = skillInput.value.trim()
+      if (skill && !form.value.requiredSkills.includes(skill)) {
+        form.value.requiredSkills.push(skill)
+      }
+      skillInput.value = ''
+    }
+
+    const removeSkill = (index) => {
+      form.value.requiredSkills.splice(index, 1)
+    }
+
+    const loadCompany = async () => {
+      if (!isEdit.value) return
+
+      try {
+        const docRef = doc(db, 'bedrijf', route.params.id)
+        const docSnap = await getDoc(docRef)
+
         if (docSnap.exists()) {
           const data = docSnap.data()
-          Object.assign(this.form, data)
-          this.form.logoPreview = data.logo || null
-        }
-      } catch (e) {
-        alert('Fout bij laden bedrijf: ' + e.message)
->>>>>>> Stashed changes
-      }
-    },
-    
-    handleLogoUpload(event) {
-      const file = event.target.files[0];
-      if (file) {
-        if (file.size > 5 * 1024 * 1024) { // 5MB limit
-          alert('Bestand is te groot. Maximum grootte is 5MB.');
-          return;
-        }
-        
-        this.form.logoFile = file;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          this.form.logoPreview = e.target.result;
-        };
-        reader.readAsDataURL(file);
-      }
-    },
-    
-    removeLogo() {
-      this.form.logoPreview = null;
-      this.form.logoFile = null;
-      this.$refs.logoInput.value = '';
-    },
-    
-    addSkill() {
-      const skill = this.skillInput.trim();
-      if (skill && !this.form.requiredSkills.includes(skill)) {
-        this.form.requiredSkills.push(skill);
-        this.skillInput = '';
-      }
-    },
-    
-    removeSkill(index) {
-      this.form.requiredSkills.splice(index, 1);
-    },
-    
-    validateForm() {
-      this.errors = {};
-      
-      if (!this.form.bedrijfsnaam.trim()) {
-        this.errors.bedrijfsnaam = 'Bedrijfsnaam is verplicht';
-      }
-      
-      if (!this.form.gesitueerdIn.trim()) {
-        this.errors.gesitueerdIn = 'Locatie is verplicht';
-      }
-      
-      if (!this.form.lookingFor.trim()) {
-        this.errors.lookingFor = 'Beschrijving van wat jullie zoeken is verplicht';
-      }
-      
-      if (!this.form.aboutUs.trim()) {
-        this.errors.aboutUs = 'About us beschrijving is verplicht';
-      }
-      
-      if (this.form.linkedin && !this.isValidUrl(this.form.linkedin)) {
-        this.errors.linkedin = 'Voer een geldige LinkedIn URL in';
-      }
-      
-      if (this.form.website && !this.isValidUrl(this.form.website)) {
-        this.errors.website = 'Voer een geldige website URL in';
-      }
-      
-      if (this.form.contactEmail && !this.isValidEmail(this.form.contactEmail)) {
-        this.errors.contactEmail = 'Voer een geldig e-mailadres in';
-      }
-      
-      return Object.keys(this.errors).length === 0;
-    },
-    
-    isValidUrl(string) {
-      try {
-        new URL(string);
-        return true;
-      } catch (_) {
-        return false;
-      }
-    },
-    
-    isValidEmail(email) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      return emailRegex.test(email);
-    },
-    
-    async submitForm() {
-      if (!this.validateForm()) {
-        return;
-      }
-      this.isSubmitting = true;
-      try {
-<<<<<<< Updated upstream
-        const companyData = { ...this.form };
-        delete companyData.logoFile;
-        delete companyData.logoPreview;
-
-        // Upload logo if exists
-        if (this.form.logoFile) {
-          const logoRef = storageRef(storage, `company_logos/${Date.now()}_${this.form.logoFile.name}`);
-          await uploadBytes(logoRef, this.form.logoFile);
-          companyData.logoUrl = await getDownloadURL(logoRef);
-        }
-
-        if (this.isEdit) {
-          await updateDoc(doc(db, 'bedrijf', this.id), companyData);
+          form.value = {
+            ...data,
+            logoPreview: data.logo || ''
+          }
         } else {
-          await addDoc(collection(db, 'bedrijf'), companyData);
+          router.push('/admin/companies')
         }
-        this.$router.push('/admin/companies');
       } catch (error) {
-        alert('Fout bij opslaan bedrijf: ' + error.message);
-=======
-        let logoUrl = this.form.logoPreview;
-        if (this.form.logoFile) {
-          const fileRef = storageRef(storage, `company_logos/${Date.now()}_${this.form.logoFile.name}`);
-          await uploadBytes(fileRef, this.form.logoFile);
-          logoUrl = await getDownloadURL(fileRef);
-        }
+        console.error('Error loading company:', error)
+        router.push('/admin/companies')
+      }
+    }
 
+    const submitForm = async () => {
+      if (!validateForm()) return
+
+      loading.value = true
+      try {
         const companyData = {
-          bedrijfsnaam: this.form.bedrijfsnaam,
-          gesitueerdIn: this.form.gesitueerdIn,
-          linkedin: this.form.linkedin,
-          lookingFor: this.form.lookingFor,
-          jobTypes: this.form.jobTypes,
-          requiredSkills: this.form.requiredSkills,
-          aboutUs: this.form.aboutUs,
-          contactEmail: this.form.contactEmail,
-          website: this.form.website,
-          phoneNumber: this.form.phoneNumber,
-          industry: this.form.industry,
-          companySize: this.form.companySize,
-          foundedYear: this.form.foundedYear,
-          logo: logoUrl
-        };
-
-        if (this.isEdit) {
-          await setDoc(doc(db, 'bedrijf', this.id), companyData);
-        } else {
-          await addDoc(collection(db, 'bedrijf'), companyData);
+          ...form.value,
+          updatedAt: new Date().toISOString()
         }
 
-        this.$router.push('/admin/companies');
+        if (isEdit.value) {
+          await updateDoc(doc(db, 'bedrijf', route.params.id), companyData)
+        } else {
+          companyData.createdAt = new Date().toISOString()
+          const newDocRef = doc(collection(db, 'bedrijf'))
+          await setDoc(newDocRef, companyData)
+        }
+
+        router.push('/admin/companies')
       } catch (error) {
-        alert('Er is een fout opgetreden bij het opslaan: ' + error.message);
->>>>>>> Stashed changes
+        console.error('Error saving company:', error)
+        errors.value.submit = 'Fout bij opslaan bedrijf'
       } finally {
-        this.isSubmitting = false;
+        loading.value = false
       }
+    }
+
+    onMounted(loadCompany)
+
+    return {
+      isEdit,
+      form,
+      errors,
+      loading,
+      logoInput,
+      skillInput,
+      handleLogoUpload,
+      removeLogo,
+      addSkill,
+      removeSkill,
+      submitForm
     }
   }
 }

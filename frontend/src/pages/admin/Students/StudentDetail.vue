@@ -4,29 +4,40 @@
     <div class="page-header">
       <div class="header-content">
         <h1 class="page-title">Student Details</h1>
-        <p class="page-subtitle">Bekijk alle informatie van {{ student.firstName }} {{ student.lastName }}</p>
+        <p class="page-subtitle" v-if="student">Bekijk alle informatie van {{ student.firstName }} {{ student.lastName }}</p>
       </div>
       <div class="header-actions">
         <router-link to="/admin/students" class="btn btn-secondary">
           <span class="btn-icon">←</span>
           Terug naar lijst
         </router-link>
-        <router-link :to="`/admin/students/${student.id}/edit`" class="btn btn-primary">
+        <router-link v-if="student" :to="`/admin/students/${student.id}/edit`" class="btn btn-primary">
           <span class="btn-icon">✏️</span>
           Bewerken
         </router-link>
       </div>
     </div>
 
+    <!-- Loading State -->
+    <div v-if="loading" class="loading-state">
+      <div class="loading-spinner"></div>
+      <p>Student gegevens laden...</p>
+    </div>
+
+    <!-- Error State -->
+    <div v-else-if="error" class="error-state">
+      <p>{{ error }}</p>
+    </div>
+
     <!-- Student Info Card -->
-    <div class="detail-container">
+    <div v-else-if="student" class="detail-container">
       <div class="detail-grid">
         <!-- Profile Section -->
         <div class="detail-card profile-card">
           <div class="profile-header">
             <div class="profile-avatar">
               <img v-if="student.photo" :src="student.photo" :alt="student.firstName">
-              <span v-else>{{ student.firstName.charAt(0) }}{{ student.lastName.charAt(0) }}</span>
+              <span v-else>{{ student.firstName?.charAt(0) }}{{ student.lastName?.charAt(0) }}</span>
             </div>
             <div class="profile-info">
               <h2 class="student-name">{{ student.firstName }} {{ student.lastName }}</h2>
@@ -107,7 +118,8 @@
 <script>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getStudentById } from '../../../data/studentData'
+import { db } from '../../../firebase/config'
+import { doc, getDoc } from 'firebase/firestore'
 
 export default {
   name: 'StudentDetail',
@@ -115,35 +127,49 @@ export default {
     const route = useRoute()
     const router = useRouter()
     const student = ref(null)
+    const loading = ref(true)
     const error = ref(null)
 
-    const loadStudent = () => {
+    const loadStudent = async () => {
       try {
-        const studentId = parseInt(route.params.id)
-        console.log('Loading student with ID:', studentId)
-        
-        if (isNaN(studentId)) {
-          throw new Error('Invalid student ID')
+        const studentId = route.params.id
+        if (!studentId) {
+          throw new Error('Geen student ID gevonden')
         }
 
-        const foundStudent = getStudentById(studentId)
-        console.log('Found student:', foundStudent)
-        
-        if (!foundStudent) {
-          throw new Error('Student not found')
-        }
+        const docRef = doc(db, 'student', studentId)
+        const docSnap = await getDoc(docRef)
 
-        student.value = foundStudent
+        if (docSnap.exists()) {
+          student.value = {
+            id: docSnap.id,
+            ...docSnap.data()
+          }
+        } else {
+          throw new Error('Student niet gevonden')
+        }
       } catch (err) {
         console.error('Error loading student:', err)
         error.value = err.message
         router.push('/admin/students')
+      } finally {
+        loading.value = false
       }
-    },
-    formatDate(dateString) {
+    }
+
+    const formatDate = (dateString) => {
       if (!dateString) return ''
       const date = new Date(dateString)
       return date.toLocaleDateString('nl-NL')
+    }
+
+    onMounted(loadStudent)
+
+    return {
+      student,
+      loading,
+      error,
+      formatDate
     }
   }
 }
@@ -212,6 +238,30 @@ export default {
   background: #545b62;
 }
 
+.loading-state,
+.error-state {
+  text-align: center;
+  padding: 40px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.loading-spinner {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #007bff;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 .detail-container {
   background: white;
   border-radius: 12px;
@@ -248,34 +298,25 @@ export default {
   font-weight: 600;
   color: #1a1a1a;
   margin: 0 0 16px 0;
-  padding-bottom: 8px;
-  border-bottom: 2px solid #e9ecef;
-}
-
-.profile-card .card-title {
-  color: white;
-  border-bottom-color: rgba(255,255,255,0.3);
 }
 
 .profile-header {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 24px;
 }
 
 .profile-avatar {
-  width: 80px;
-  height: 80px;
+  width: 100px;
+  height: 100px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.2);
-  color: white;
+  background: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-size: 2rem;
+  color: #1a1a1a;
   overflow: hidden;
-  flex-shrink: 0;
 }
 
 .profile-avatar img {
@@ -284,30 +325,36 @@ export default {
   object-fit: cover;
 }
 
+.profile-info {
+  flex: 1;
+}
+
 .student-name {
-  font-size: 1.75rem;
+  font-size: 1.5rem;
   font-weight: 700;
   margin: 0 0 8px 0;
 }
 
 .student-email {
-  font-size: 1.1rem;
   margin: 0 0 12px 0;
   opacity: 0.9;
 }
 
 .status-badge {
-  background: rgba(255,255,255,0.2);
-  color: white;
-  padding: 6px 12px;
+  display: inline-block;
+  padding: 4px 12px;
   border-radius: 20px;
   font-size: 0.875rem;
   font-weight: 600;
-  display: inline-block;
+}
+
+.status-badge.active {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .info-grid {
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 16px;
 }
 
@@ -318,17 +365,8 @@ export default {
 }
 
 .info-item label {
-  font-weight: 600;
-  color: #666;
   font-size: 0.875rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.info-item span {
-  font-size: 1rem;
-  color: #1a1a1a;
-  font-weight: 500;
+  color: #666;
 }
 
 .skills-list {
@@ -338,23 +376,16 @@ export default {
 }
 
 .skill-tag {
-  background: #e3f2fd;
-  color: #1976d2;
-  padding: 8px 12px;
+  background: #e9ecef;
+  padding: 4px 12px;
   border-radius: 20px;
   font-size: 0.875rem;
-  font-weight: 500;
 }
 
 .languages-text,
 .introduction-text {
-  color: #495057;
-  line-height: 1.6;
   margin: 0;
-}
-
-.introduction-text {
-  font-size: 1.05rem;
+  line-height: 1.6;
 }
 
 .contact-links {
@@ -366,46 +397,13 @@ export default {
 .contact-link {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  background: white;
-  border-radius: 8px;
+  gap: 8px;
+  color: #007bff;
   text-decoration: none;
-  color: #495057;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  border: 1px solid #e9ecef;
 }
 
 .contact-link:hover {
-  background: #f8f9fa;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.link-icon {
-  font-size: 1.2rem;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .page-header {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  
-  .header-actions {
-    justify-content: stretch;
-  }
-  
-  .detail-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .profile-header {
-    flex-direction: column;
-    text-align: center;
-  }
+  text-decoration: underline;
 }
 </style>
 

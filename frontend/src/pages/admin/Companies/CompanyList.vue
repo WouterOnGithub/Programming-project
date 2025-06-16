@@ -64,30 +64,14 @@
           <tr v-for="company in filteredCompanies" :key="company.id" class="company-row">
             <td class="company-info">
               <div class="company-logo">
-<<<<<<< Updated upstream
                 <img 
-                  v-if="company.logoUrl" 
-                  :src="company.logoUrl" 
-                  :alt="company.name"
+                  v-if="company.logo" 
+                  :src="company.logo" 
+                  :alt="company.bedrijfsnaam"
                 >
                 <div v-else class="no-logo">
-                  <span class="logo-icon">🏢</span>
+                  <span class="logo-icon">{{ (company.bedrijfsnaam || '?').charAt(0) }}</span>
                 </div>
-              </div>
-              <div class="company-details">
-                <h4 class="company-name">{{ company.name }}</h4>
-                <p class="company-website">{{ company.website }}</p>
-              </div>
-            </td>
-            <td>{{ company.location }}</td>
-            <td>
-              <span class="industry-badge">{{ company.industry }}</span>
-            </td>
-            <td>{{ company.size }}</td>
-            <td class="looking-for">{{ company.lookingFor }}</td>
-=======
-                <img v-if="company.logo" :src="company.logo" :alt="company.name">
-                <span v-else>{{ (company.bedrijfsnaam || '?').charAt(0) }}</span>
               </div>
               <div class="company-details">
                 <router-link :to="`/admin/companies/${company.id}`" class="company-name">
@@ -96,10 +80,12 @@
                 <p class="company-email">{{ company.email || 'Onbekend' }}</p>
               </div>
             </td>
-            <td>{{ company.industry || '-' }}</td>
-            <td>{{ company.size || '-' }}</td>
             <td>{{ company.gesitueerdIn || '-' }}</td>
->>>>>>> Stashed changes
+            <td>
+              <span class="industry-badge">{{ company.industry || '-' }}</span>
+            </td>
+            <td>{{ company.size || '-' }}</td>
+            <td class="looking-for">{{ company.lookingFor || '-' }}</td>
             <td class="actions">
               <button 
                 @click="viewCompany(company.id)" 
@@ -139,11 +125,7 @@
 
 <script>
 import { db } from '../../../firebase/config'
-<<<<<<< Updated upstream
-import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore'
-=======
 import { collection, onSnapshot, deleteDoc, doc } from 'firebase/firestore'
->>>>>>> Stashed changes
 
 export default {
   name: 'CompanyList',
@@ -152,9 +134,6 @@ export default {
       searchQuery: '',
       filterIndustry: '',
       filterSize: '',
-<<<<<<< Updated upstream
-      companies: []
-=======
       companies: [],
       unsubscribe: null
     }
@@ -165,11 +144,7 @@ export default {
   beforeUnmount() {
     if (this.unsubscribe) {
       this.unsubscribe()
->>>>>>> Stashed changes
     }
-  },
-  async mounted() {
-    await this.loadCompanies()
   },
   computed: {
     filteredCompanies() {
@@ -177,38 +152,21 @@ export default {
       if (this.searchQuery) {
         const query = this.searchQuery.toLowerCase();
         filtered = filtered.filter(company => 
-<<<<<<< Updated upstream
-          company.name.toLowerCase().includes(query) ||
-          company.location.toLowerCase().includes(query) ||
-          company.industry.toLowerCase().includes(query) ||
-          company.lookingFor.toLowerCase().includes(query)
-=======
           (company.bedrijfsnaam && company.bedrijfsnaam.toLowerCase().includes(query)) ||
-          (company.contactEmail && company.contactEmail.toLowerCase().includes(query)) ||
+          (company.email && company.email.toLowerCase().includes(query)) ||
           (company.gesitueerdIn && company.gesitueerdIn.toLowerCase().includes(query))
->>>>>>> Stashed changes
         );
       }
       if (this.filterIndustry) {
         filtered = filtered.filter(company => company.industry === this.filterIndustry);
       }
       if (this.filterSize) {
-        filtered = filtered.filter(company => company.companySize === this.filterSize);
+        filtered = filtered.filter(company => company.size === this.filterSize);
       }
       return filtered;
     }
   },
   methods: {
-<<<<<<< Updated upstream
-    async loadCompanies() {
-      const querySnapshot = await getDocs(collection(db, 'bedrijf'))
-      this.companies = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-    },
-    async deleteCompany(id) {
-      if (confirm('Weet je zeker dat je dit bedrijf wilt verwijderen?')) {
-        await deleteDoc(doc(db, 'bedrijf', id))
-        this.companies = this.companies.filter(c => c.id !== id)
-=======
     loadCompanies() {
       const companiesRef = collection(db, 'bedrijf')
       this.unsubscribe = onSnapshot(companiesRef, (snapshot) => {
@@ -225,7 +183,6 @@ export default {
         } catch (error) {
           alert('Fout bij verwijderen: ' + error.message)
         }
->>>>>>> Stashed changes
       }
     },
     viewCompany(companyId) {
@@ -407,7 +364,7 @@ export default {
   margin: 0 0 4px 0;
 }
 
-.company-website {
+.company-email {
   color: #666;
   margin: 0;
   font-size: 0.875rem;

@@ -11,6 +11,9 @@ import BedrijfProfielInvoeren from '../pages/User/Bedrijf/BedrijfInvoeren.vue'
 import BedrijfDashboard from '../pages/User/Bedrijf/BedrijfDashboard.vue'
 // Adminroutes van jou
 import adminRoutes from './admin-routes.js'
+// Voeg deze imports toe:
+import Swipe from '../pages/User/Swipe.vue'
+import Appointments from '../pages/User/Appointments.vue'
 
 
 const userRoutes = [
@@ -21,7 +24,10 @@ const userRoutes = [
   { path: '/dashboard', name: 'Dashboard', component: Dashboard },
   { path: '/student/:id', name: 'StudentDetail', component: StudentDetail },
   { path: '/InvoerenBd', name: 'InvoerenBd', component: BedrijfProfielInvoeren },
-  { path: '/BedrijfDashboard', name: 'BedrijfDashboard', component: BedrijfDashboard }
+  { path: '/BedrijfDashboard', name: 'BedrijfDashboard', component: BedrijfDashboard },
+  // Toevoegen:
+  { path: '/swipe', name: 'Swipe', component: Swipe },
+  { path: '/appointments', name: 'Appointments', component: Appointments }
 ]
  
 // Combineer alles in één routerconfig
