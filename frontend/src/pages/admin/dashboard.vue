@@ -23,32 +23,84 @@
           <p class="stat-label">Totaal bedrijven</p>
         </div>
       </div>
+
+      <div class="stat-card">
+        <div class="stat-icon matches">💫</div>
+        <div class="stat-content">
+          <h3 class="stat-number">{{ stats.totalMatches }}</h3>
+          <p class="stat-label">Totaal Matches</p>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon appointments">📅</div>
+        <div class="stat-content">
+          <h3 class="stat-number">{{ stats.totalAppointments }}</h3>
+          <p class="stat-label">Totaal Afspraken</p>
+        </div>
+      </div>
     </div>  
 
 
     <!-- Dashboard Content Grid -->
     <div class="dashboard-grid">
-      <!-- Recent Students -->
+      <!-- Recent Matches -->
       <div class="dashboard-card">
         <div class="card-header">
-          <h2 class="card-title">Recente Studenten</h2>
-          <router-link to="/admin/students" class="view-all-link">Bekijk alle</router-link>
+          <h2 class="card-title">Recente Matches</h2>
+          <router-link to="/admin/matches" class="view-all-link">Bekijk alle</router-link>
         </div>
         <div class="card-content">
-          <div class="student-list">
+          <div class="match-list">
             <div 
-              v-for="student in recentStudents" 
-              :key="student.id"
-              class="student-item"
+              v-for="match in recentMatches" 
+              :key="match.id"
+              class="match-item"
             >
-              <div class="student-avatar">{{ student.name.charAt(0) }}</div>
-              <div class="student-info">
-                <h4 class="student-name">{{ student.name }}</h4>
-                <p class="student-email">{{ student.email }}</p>
+              <div class="match-info">
+                <div class="match-parties">
+                  <span class="student-name">{{ match.studentName }}</span>
+                  <span class="match-arrow">↔️</span>
+                  <span class="company-name">{{ match.companyName }}</span>
+                </div>
+                <p class="match-date">{{ formatDate(match.createdAt) }}</p>
               </div>
-              <div class="student-status">
-                <span :class="['status-badge', student.status]">
-                  {{ student.status === 'active' ? 'Actief' : 'Inactief' }}
+              <div class="match-status">
+                <span :class="['status-badge', match.status]">
+                  {{ getMatchStatus(match.status) }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Upcoming Appointments -->
+      <div class="dashboard-card">
+        <div class="card-header">
+          <h2 class="card-title">Aankomende Afspraken</h2>
+          <router-link to="/admin/appointments" class="view-all-link">Bekijk alle</router-link>
+        </div>
+        <div class="card-content">
+          <div class="appointment-list">
+            <div 
+              v-for="appointment in upcomingAppointments" 
+              :key="appointment.id"
+              class="appointment-item"
+            >
+              <div class="appointment-time">
+                <span class="time">{{ formatTime(appointment.startTime) }}</span>
+                <span class="date">{{ formatDate(appointment.startTime) }}</span>
+              </div>
+              <div class="appointment-info">
+                <h4 class="appointment-title">{{ appointment.title }}</h4>
+                <p class="appointment-participants">
+                  {{ appointment.studentName }} & {{ appointment.companyName }}
+                </p>
+              </div>
+              <div class="appointment-status">
+                <span :class="['status-badge', appointment.status]">
+                  {{ getAppointmentStatus(appointment.status) }}
                 </span>
               </div>
             </div>
@@ -67,14 +119,17 @@
               <span class="action-icon">➕</span>
               <span class="action-text">Nieuwe Student</span>
             </router-link>
-            <router-link to="/admin/students/new" class="action-button secondary">
+            <router-link to="/admin/companies/new" class="action-button secondary">
               <span class="action-icon">➕</span>
-              <span class="action-text">Nieuwe Bedrijf</span>
+              <span class="action-text">Nieuw Bedrijf</span>
             </router-link>
-            
-            <router-link to="/admin/reports" class="action-button secondary">
-              <span class="action-icon">📊</span>
-              <span class="action-text">Rapporten Bekijken</span>
+            <router-link to="/admin/matches" class="action-button secondary">
+              <span class="action-icon">💫</span>
+              <span class="action-text">Matches Beheren</span>
+            </router-link>
+            <router-link to="/admin/appointments" class="action-button secondary">
+              <span class="action-icon">📅</span>
+              <span class="action-text">Afspraken Beheren</span>
             </router-link>
           </div>
         </div>
@@ -106,188 +161,204 @@
 </template>
 
 <script>
+import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { db } from '../../firebase/config'
+import { collection, query, where, orderBy, limit, getDocs, onSnapshot, getDoc, doc } from 'firebase/firestore'
+
 export default {
   name: 'Dashboard',
-  data() {
-    return {
-      stats: {
-        totalStudents: 1247,
-        totalCompanies: 50,
-      },
-<<<<<<< Updated upstream
-      recentStudents: [
-        {
-          id: 1,
-          name: 'Emma van der Berg',
-          email: 'emma.vandenberg@email.com',
-          status: 'active'
-        },
-        {
-          id: 2,
-          name: 'Lucas Janssen',
-          email: 'lucas.janssen@email.com',
-          status: 'active'
-        },
-        {
-          id: 3,
-          name: 'Sophie de Vries',
-          email: 'sophie.devries@email.com',
-          status: 'inactive'
-        },
-        {
-          id: 4,
-          name: 'Daan Bakker',
-          email: 'daan.bakker@email.com',
-          status: 'active'
-        }
-      ],
-      recentActivity: [
-        {
-          id: 1,
-          icon: '👤',
-          text: 'Nieuwe student Emma van der Berg is toegevoegd',
-          time: '12:34'
-        },
-        
-        {
-          id: 3,
-          icon: '✅',
-          text: 'Lucas Janssen wijzigd profiel',
-          time: '11:56'
-        },
-      ]
-=======
-      recentStudents: [],
-      recentActivity: [],
-      loading: {
-        stats: true,
-        students: true,
-        activity: true
-      },
-      error: {
-        stats: null,
-        students: null,
-        activity: null
-      },
-      unsubscribeStudents: null,
-      unsubscribeCompanies: null
-    }
-  },
-  async mounted() {
-    await Promise.all([
-      this.loadStats(),
-      this.loadRecentStudents(),
-      this.loadRecentActivity()
-    ])
-  },
-  methods: {
-    async loadStats() {
+  setup() {
+    const stats = ref({
+      totalStudents: 0,
+      totalCompanies: 0,
+      totalMatches: 0,
+      totalAppointments: 0
+    })
+    const recentStudents = ref([])
+    const recentMatches = ref([])
+    const upcomingAppointments = ref([])
+    const recentActivity = ref([])
+    const loading = ref({
+      stats: true,
+      students: true,
+      matches: true,
+      appointments: true,
+      activity: true
+    })
+    const error = ref({
+      stats: null,
+      students: null,
+      matches: null,
+      appointments: null,
+      activity: null
+    })
+    let unsubscribeStudents = null
+    let unsubscribeCompanies = null
+    let unsubscribeMatches = null
+    let unsubscribeAppointments = null
+
+    const loadStats = async () => {
       try {
-        this.loading.stats = true
+        loading.value.stats = true
+        // Students count
         const studentsRef = collection(db, 'student')
-        // Live teller met onSnapshot
-        this.unsubscribeStudents && this.unsubscribeStudents();
-        this.unsubscribeStudents = onSnapshot(studentsRef, (snapshot) => {
-          this.stats.totalStudents = snapshot.size;
+        unsubscribeStudents && unsubscribeStudents()
+        unsubscribeStudents = onSnapshot(studentsRef, (snapshot) => {
+          stats.value.totalStudents = snapshot.size
         })
-        // Live teller bedrijven
+
+        // Companies count
         const companiesRef = collection(db, 'bedrijf')
-        this.unsubscribeCompanies && this.unsubscribeCompanies();
-        this.unsubscribeCompanies = onSnapshot(companiesRef, (snapshot) => {
-          this.stats.totalCompanies = snapshot.size;
+        unsubscribeCompanies && unsubscribeCompanies()
+        unsubscribeCompanies = onSnapshot(companiesRef, (snapshot) => {
+          stats.value.totalCompanies = snapshot.size
+        })
+
+        // Matches count
+        const matchesRef = collection(db, 'matches')
+        unsubscribeMatches && unsubscribeMatches()
+        unsubscribeMatches = onSnapshot(matchesRef, (snapshot) => {
+          stats.value.totalMatches = snapshot.size
+        })
+
+        // Appointments count
+        const appointmentsRef = collection(db, 'appointments')
+        unsubscribeAppointments && unsubscribeAppointments()
+        unsubscribeAppointments = onSnapshot(appointmentsRef, (snapshot) => {
+          stats.value.totalAppointments = snapshot.size
         })
       } catch (err) {
         console.error('Error loading stats:', err)
-        this.error.stats = 'Er is een fout opgetreden bij het laden van de statistieken.'
+        error.value.stats = 'Er is een fout opgetreden bij het laden van de statistieken.'
       } finally {
-        this.loading.stats = false
+        loading.value.stats = false
       }
-    },
-    beforeUnmount() {
-      this.unsubscribeStudents && this.unsubscribeStudents();
-      this.unsubscribeCompanies && this.unsubscribeCompanies();
-    },
-    async loadRecentStudents() {
+    }
+
+    const loadRecentMatches = async () => {
       try {
-        this.loading.students = true
-        const usersRef = collection(db, 'users')
+        loading.value.matches = true
+        const matchesRef = collection(db, 'matches')
         const q = query(
-          usersRef,
-          where('type', '==', 'student'),
-          orderBy('createdAt', 'desc'),
-          limit(4)
-        )
-        const snap = await getDocs(q)
-        this.recentStudents = snap.docs.map(doc => ({
-          id: doc.id,
-          name: doc.data().name || 'Naamloos',
-          email: doc.data().email,
-          status: 'active',
-          createdAt: doc.data().createdAt
-        }))
-      } catch (err) {
-        console.error('Error loading recent students:', err)
-        this.error.students = 'Er is een fout opgetreden bij het laden van recente studenten.'
-      } finally {
-        this.loading.students = false
-      }
-    },
-   
-    async loadRecentActivity() {
-      try {
-        this.loading.activity = true
-        const activities = []
-       
-        // Get recent student registrations
-        const usersRef = collection(db, 'users')
-        const recentUsersQuery = query(
-          usersRef,
+          matchesRef,
           orderBy('createdAt', 'desc'),
           limit(5)
         )
-        const recentUsersSnap = await getDocs(recentUsersQuery)
-       
-        recentUsersSnap.forEach(doc => {
-          const userData = doc.data()
-          activities.push({
+        const snap = await getDocs(q)
+        recentMatches.value = await Promise.all(snap.docs.map(async doc => {
+          const data = doc.data()
+          // Get student and company names
+          const studentDoc = await getDoc(doc(db, 'student', data.studentId))
+          const companyDoc = await getDoc(doc(db, 'bedrijf', data.companyId))
+          return {
             id: doc.id,
-            icon: userData.type === 'student' ? '👨‍🎓' : '🏢',
-            text: `${userData.type === 'student' ? 'Nieuwe student' : 'Nieuw bedrijf'} geregistreerd: ${userData.name || userData.companyName}`,
-            time: this.formatTimeAgo(userData.createdAt)
-          })
-        })
-       
-        // Sort activities by time
-        activities.sort((a, b) => b.time.localeCompare(a.time))
-        this.recentActivity = activities
+            studentName: studentDoc.exists() ? `${studentDoc.data().firstName} ${studentDoc.data().lastName}` : 'Onbekende student',
+            companyName: companyDoc.exists() ? companyDoc.data().bedrijfsnaam : 'Onbekend bedrijf',
+            status: data.status,
+            createdAt: data.createdAt
+          }
+        }))
       } catch (err) {
-        console.error('Error loading recent activity:', err)
-        this.error.activity = 'Er is een fout opgetreden bij het laden van recente activiteit.'
+        console.error('Error loading recent matches:', err)
+        error.value.matches = 'Er is een fout opgetreden bij het laden van recente matches.'
       } finally {
-        this.loading.activity = false
+        loading.value.matches = false
       }
-    },
-   
-    formatTimeAgo(timestamp) {
-      if (!timestamp) return 'Onbekende tijd'
-     
-      const date = timestamp instanceof Timestamp ? timestamp.toDate() : new Date(timestamp)
-      const now = new Date()
-      const seconds = Math.floor((now - date) / 1000)
-     
-      if (seconds < 60) return 'Zojuist'
-     
-      const minutes = Math.floor(seconds / 60)
-      if (minutes < 60) return `${minutes} minuten geleden`
-     
-      const hours = Math.floor(minutes / 60)
-      if (hours < 24) return `${hours} uur geleden`
-     
-      const days = Math.floor(hours / 24)
-      if (days < 7) return `${days} dagen geleden`
-     
-      return date.toLocaleDateString('nl-NL')
->>>>>>> Stashed changes
+    }
+
+    const loadUpcomingAppointments = async () => {
+      try {
+        loading.value.appointments = true
+        const appointmentsRef = collection(db, 'appointments')
+        const now = new Date()
+        const q = query(
+          appointmentsRef,
+          where('startTime', '>=', now),
+          orderBy('startTime', 'asc'),
+          limit(5)
+        )
+        const snap = await getDocs(q)
+        upcomingAppointments.value = await Promise.all(snap.docs.map(async doc => {
+          const data = doc.data()
+          // Get student and company names
+          const studentDoc = await getDoc(doc(db, 'student', data.studentId))
+          const companyDoc = await getDoc(doc(db, 'bedrijf', data.companyId))
+          return {
+            id: doc.id,
+            title: data.title,
+            startTime: data.startTime.toDate(),
+            studentName: studentDoc.exists() ? `${studentDoc.data().firstName} ${studentDoc.data().lastName}` : 'Onbekende student',
+            companyName: companyDoc.exists() ? companyDoc.data().bedrijfsnaam : 'Onbekend bedrijf',
+            status: data.status
+          }
+        }))
+      } catch (err) {
+        console.error('Error loading upcoming appointments:', err)
+        error.value.appointments = 'Er is een fout opgetreden bij het laden van aankomende afspraken.'
+      } finally {
+        loading.value.appointments = false
+      }
+    }
+
+    const formatDate = (date) => {
+      if (!date) return ''
+      return new Date(date).toLocaleDateString('nl-NL')
+    }
+
+    const formatTime = (date) => {
+      if (!date) return ''
+      return new Date(date).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })
+    }
+
+    const getMatchStatus = (status) => {
+      const statusMap = {
+        pending: 'In afwachting',
+        accepted: 'Geaccepteerd',
+        rejected: 'Afgewezen',
+        completed: 'Voltooid'
+      }
+      return statusMap[status] || status
+    }
+
+    const getAppointmentStatus = (status) => {
+      const statusMap = {
+        scheduled: 'Gepland',
+        confirmed: 'Bevestigd',
+        completed: 'Voltooid',
+        cancelled: 'Geannuleerd'
+      }
+      return statusMap[status] || status
+    }
+
+    onMounted(async () => {
+      await Promise.all([
+        loadStats(),
+        loadRecentStudents(),
+        loadRecentMatches(),
+        loadUpcomingAppointments(),
+        loadRecentActivity()
+      ])
+    })
+
+    onBeforeUnmount(() => {
+      unsubscribeStudents && unsubscribeStudents()
+      unsubscribeCompanies && unsubscribeCompanies()
+      unsubscribeMatches && unsubscribeMatches()
+      unsubscribeAppointments && unsubscribeAppointments()
+    })
+
+    return {
+      stats,
+      recentStudents,
+      recentMatches,
+      upcomingAppointments,
+      recentActivity,
+      loading,
+      error,
+      formatDate,
+      formatTime,
+      getMatchStatus,
+      getAppointmentStatus
     }
   }
 }
@@ -613,6 +684,106 @@ export default {
   .stat-number {
     font-size: 1.75rem;
   }
+}
+
+.match-list,
+.appointment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.match-item,
+.appointment-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.match-parties {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.match-arrow {
+  color: #666;
+}
+
+.match-date,
+.appointment-date {
+  font-size: 0.875rem;
+  color: #666;
+  margin-top: 4px;
+}
+
+.appointment-time {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  min-width: 80px;
+}
+
+.appointment-time .time {
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.appointment-time .date {
+  font-size: 0.75rem;
+  color: #666;
+}
+
+.appointment-info {
+  flex: 1;
+  margin: 0 16px;
+}
+
+.appointment-title {
+  margin: 0 0 4px 0;
+  font-size: 1rem;
+}
+
+.appointment-participants {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #666;
+}
+
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.status-badge.pending {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.status-badge.accepted,
+.status-badge.confirmed {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status-badge.rejected,
+.status-badge.cancelled {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.status-badge.completed {
+  background: #cce5ff;
+  color: #004085;
 }
 </style>
 
