@@ -125,8 +125,12 @@
 </template>
 
 <script>
+<<<<<<< Updated upstream
 import { db } from '../../../firebase/config'
 import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore'
+=======
+// import { getAllStudents } from '../../../data/studentData'
+>>>>>>> Stashed changes
 
 export default {
   name: 'StudentList',
@@ -135,6 +139,7 @@ export default {
       searchQuery: '',
       filterStudyYear: '',
       filterOpportunity: '',
+<<<<<<< Updated upstream
       students: []
     }
   },
@@ -156,6 +161,9 @@ export default {
         await deleteDoc(doc(db, 'student', id))
         this.students = this.students.filter(s => s.id !== id)
       }
+=======
+      students: [] // Leeg, straks vullen met Firebase
+>>>>>>> Stashed changes
     }
   },
   computed: {

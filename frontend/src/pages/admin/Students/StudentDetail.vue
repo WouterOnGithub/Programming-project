@@ -105,30 +105,39 @@
 </template>
 
 <script>
-import { db } from '../../../firebase/config'
-import { getDoc, doc } from 'firebase/firestore'
+import { ref, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { getStudentById } from '../../../data/studentData'
 
 export default {
   name: 'StudentDetail',
-  props: {
-    id: {
-      type: String,
-      required: true
-    }
-  },
-  data() {
-    return {
-      student: null
-    }
-  },
-  async mounted() {
-    await this.loadStudent()
-  },
-  methods: {
-    async loadStudent() {
-      const docSnap = await getDoc(doc(db, 'student', this.id))
-      if (docSnap.exists()) {
-        this.student = docSnap.data()
+  setup() {
+    const route = useRoute()
+    const router = useRouter()
+    const student = ref(null)
+    const error = ref(null)
+
+    const loadStudent = () => {
+      try {
+        const studentId = parseInt(route.params.id)
+        console.log('Loading student with ID:', studentId)
+        
+        if (isNaN(studentId)) {
+          throw new Error('Invalid student ID')
+        }
+
+        const foundStudent = getStudentById(studentId)
+        console.log('Found student:', foundStudent)
+        
+        if (!foundStudent) {
+          throw new Error('Student not found')
+        }
+
+        student.value = foundStudent
+      } catch (err) {
+        console.error('Error loading student:', err)
+        error.value = err.message
+        router.push('/admin/students')
       }
     },
     formatDate(dateString) {

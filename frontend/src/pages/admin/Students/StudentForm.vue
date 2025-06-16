@@ -345,11 +345,16 @@ export default {
     }
   },
   methods: {
+<<<<<<< Updated upstream
     async loadStudent() {
       const docSnap = await getDoc(doc(db, 'student', this.id))
       if (docSnap.exists()) {
         Object.assign(this.form, docSnap.data())
       }
+=======
+    loadStudent() {
+      // Hier straks Firebase ophalen
+>>>>>>> Stashed changes
     },
     
     handlePhotoUpload(event) {
