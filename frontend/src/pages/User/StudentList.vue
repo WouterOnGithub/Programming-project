@@ -1,39 +1,45 @@
 <template>
         <header>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
         <div class="home">
             <nav class="navbar">
                 <img src="/Images/ehb-logo.png" alt="Erasmus logo" class="logo" />
                 <div class="menu">
-                  <button class="btn">❤️</button>
-                  <button class="btn">🏠</button>
-                  <button class="btn">👤</button>
-                  <button class="btn">💬</button>
+                  <button class="btn"><i class="fa-solid fa-heart"></i></button>
+                  <button class="btn"><i class="fa-solid fa-house"></i></button>
+                  <button class="btn"><i class="fa-solid fa-user"></i></button>
+                  <button class="btn"><i class="fa-solid fa-comment"></i></button>
                 </div>
             </nav>
         </div>
     </header>
     <main class="main-content">
       <div class="search-bar">
-        <strong>Zoek op:</strong>
-        <a @click="showFilter = !showFilter" class="skill-link">Vaardigheden</a>
-
+        <div class="filter-title">
+          <strong>Zoek op:</strong>
+          <a @click="showFilter = !showFilter" class="skill-link">Vaardigheden</a>
+        </div>
         <div v-if="showFilter" class="filter-panel">
-          <label v-for="skill in allskills" :key="skill">
-            <input type="checkbox" :value="skill" v-model="selectedSkills"/>
-            {{ skill }}
-          </label>
-          <label>
-            <input type="checkbox" value="andere" v-model="selectedSkills" @change="toggleCustomInput"/>
-            <p>andere</p>
-          </label>
-          <input v-if="showCustomInput"
-          type="text"
-          v-model="customSkill"
-          class="custom-skill-input"
-          placeholder="Voeg een vaardigheid toe"
+          <div class="skills-grid">
+            <label v-for="skill in allskills" :key="skill">
+              <input type="checkbox" :value="skill" v-model="selectedSkills"/>
+              {{ skill }}
+            </label>
+          </div>
+          <div class="andere-row">
+            <label>
+              <input type="checkbox" value="andere" v-model="selectedSkills" @change="toggleCustomInput"/>
+              andere
+            </label>
+            <input v-if="showCustomInput"
+              type="text"
+              v-model="customSkill"
+              class="custom-skill-input"
+              placeholder="Voeg een vaardigheid toe"
+            />
+          </div>
         </div>
       </div>
-
       <div class="student-row" 
       v-for="student in filteredStudents" 
       :key="student.id">
@@ -62,18 +68,18 @@ export default {
         { id: 1, 
           name: 'Naam Voornaam', 
           photo: '/Images/ehb-logo.png',
-          skills: ['html']},
+          skills: ['frontend']},
         { id: 2, 
           name: 'Naam Voornaam', 
           photo: '/Images/ehb-logo.png',
-          skills: ['css']},
+          skills: ['netwerk']},
         { id: 3,
           name: 'Naam Voornaam',
           photo: '/Images/ehb-logo.png',
           skills: ['python']},
       ],
       showFilter: false,
-      allskills: ['html','css','javascript'],
+      allskills: ['frontend','backend','fullstack','netwerk','database','AI','cybersecurity','game','design'],
       selectedSkills: [],
       showCustomInput: false,
       customSkill: ''

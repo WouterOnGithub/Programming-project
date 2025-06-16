@@ -1,13 +1,14 @@
 <template>
     <header>
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
         <div class="home">
             <nav class="navbar">
                 <img src="/Images/ehb-logo.png" alt="Erasmus logo" class="logo" />
                 <div class="menu">
-                  <button class="btn">❤️</button>
-                  <button class="btn">🏠</button>
-                  <button class="btn">👤</button>
-                  <button class="btn">💬</button>
+                  <button class="btn"><i class="fa-solid fa-heart"></i></button>
+                  <button class="btn"><i class="fa-solid fa-house"></i></button>
+                  <button class="btn"><i class="fa-solid fa-user"></i></button>
+                  <button class="btn"><i class="fa-solid fa-comment"></i></button>
                 </div>
             </nav>
         </div>
@@ -22,20 +23,29 @@
       >
         <div class="company-info">
           <div class="circle">
-            <img :src="company.photo" alt="company"/>
+            <img :src="company.photo" alt="Company"/>
           </div>
           <div class="company-text">
             <strong>{{ company.name }}</strong>
+            <p>Company</p>
           </div>
         </div>
-        <i class="fas fa-heart"></i>
+        <button class="favorite-btn" @click="confirmRemove(company)">
+          <i class="fas fa-heart"></i>
+        </button>
       </div>
 
       <div class="button-wrapper">
         <button class="search-btn" @click="loadMore">Verder kijken</button>
       </div>
     </main>
-
+    <div v-if="showConfirm" class="modal-overlay">
+      <div class="modal-content">
+        <p>Wil je {{ companyToRemove?.name }} echt uit je favorieten verwijderen?</p>
+        <button @click="removeFavorite" class="modal-btn confirm">Ja</button>
+        <button @click="showConfirm = false" class="modal-btn cancel">Nee</button>
+      </div>
+    </div>
 </template>
 
 <script>
@@ -57,7 +67,9 @@ export default {
       ],
       visibleCompanies: [],
       currentindex: 0,
-      displayCount: 5
+      displayCount: 5,
+      showConfirm: false,
+      companyToRemove: null
     };
   },
 
@@ -73,10 +85,21 @@ methods: {
     } else {
       this.currentindex = end;
     }
+  },
+  confirmRemove(company) {
+    this.companyToRemove = company;
+    this.showConfirm = true;
+  },
+  removeFavorite() {
+    if (this.companyToRemove) {
+      this.visibleCompanies = this.visibleCompanies.filter(c => c.id !== this.companyToRemove.id);
+      this.allCompanies = this.allCompanies.filter(c => c.id !== this.companyToRemove.id);
+      this.showConfirm = false;
+    }
   }
 },
   mounted() {
-    fetch('http://localhost:5000/api/company/favorites')
+    fetch('http://localhost:5000/api/student/favorites')
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data) && data.length && data[0].name && data[0].photo){
@@ -85,7 +108,7 @@ methods: {
         this.loadMore();
       })
       .catch(err => {
-        console.error('Fout bij het laden van studenten:', err);
+        console.error('Fout bij het laden van bedrijven:', err);
         this.loadMore();
       });
   }

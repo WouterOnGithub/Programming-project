@@ -1,13 +1,14 @@
 <template>
     <header>
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
         <div class="home">
             <nav class="navbar">
                 <img src="/Images/ehb-logo.png" alt="Erasmus logo" class="logo" />
                 <div class="menu">
-                  <button class="btn">❤️</button>
-                  <button class="btn">🏠</button>
-                  <button class="btn">👤</button>
-                  <button class="btn">💬</button>
+                  <button class="btn"><i class="fa-solid fa-heart"></i></button>
+                  <button class="btn"><i class="fa-solid fa-house"></i></button>
+                  <button class="btn"><i class="fa-solid fa-user"></i></button>
+                  <button class="btn"><i class="fa-solid fa-comment"></i></button>
                 </div>
             </nav>
         </div>
@@ -29,14 +30,22 @@
             <p>Student</p>
           </div>
         </div>
-        <i class="fas fa-heart"></i>
+        <button class="favorite-btn" @click="confirmRemove(student)">
+          <i class="fas fa-heart"></i>
+        </button>
       </div>
 
       <div class="button-wrapper">
         <button class="search-btn" @click="loadMore">Verder kijken</button>
       </div>
     </main>
-
+    <div v-if="showConfirm" class="modal-overlay">
+      <div class="modal-content">
+        <p>Wil je {{ studentToRemove?.name }} echt uit je favorieten verwijderen?</p>
+        <button @click="removeFavorite" class="modal-btn confirm">Ja</button>
+        <button @click="showConfirm = false" class="modal-btn cancel">Nee</button>
+      </div>
+    </div>
 </template>
 
 <script>
@@ -58,7 +67,9 @@ export default {
       ],
       visibleStudents: [],
       currentindex: 0,
-      displayCount: 5
+      displayCount: 5,
+      showConfirm: false,
+      studentToRemove: null
     };
   },
 
@@ -73,6 +84,17 @@ methods: {
       this.currentindex = 0;
     } else {
       this.currentindex = end;
+    }
+  },
+  confirmRemove(student) {
+    this.studentToRemove = student;
+    this.showConfirm = true;
+  },
+  removeFavorite() {
+    if (this.studentToRemove) {
+      this.visibleStudents = this.visibleStudents.filter(s => s.id !== this.studentToRemove.id);
+      this.allStudents = this.allStudents.filter(s => s.id !== this.studentToRemove.id);
+      this.showConfirm = false;
     }
   }
 },
