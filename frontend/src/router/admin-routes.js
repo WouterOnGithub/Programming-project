@@ -1,31 +1,30 @@
 import { auth, db } from '../firebase/config';
 import { doc, getDoc } from 'firebase/firestore';
-
+import { useRouter } from 'vue-router';
+ 
 const adminRoutes = [
   {
     path: '/admin',
     component: () => import('../pages/admin/components/AdminLayout.vue'),
     meta: { requiresAdmin: true },
     beforeEnter: async (to, from, next) => {
-      // TEMP: Allow access to admin routes without login for demo purposes
-      next();
-      // const user = auth.currentUser;
-      // if (!user) {
-      //   next('/login');
-      //   return;
-      // }
-
-      // try {
-      //   const userDoc = await getDoc(doc(db, 'users', user.uid));
-      //   if (userDoc.exists() && userDoc.data().role === 'admin') {
-      //     next();
-      //   } else {
-      //     next('/');
-      //   }
-      // } catch (error) {
-      //   console.error('Error checking admin status:', error);
-      //   next('/');
-      // }
+      const user = auth.currentUser;
+      if (!user) {
+        next('/login');
+        return;
+      }
+ 
+      try {
+        const userDoc = await getDoc(doc(db, 'admin', user.uid));
+        if (userDoc.exists()) {
+          next();
+        } else {
+          next('/');
+        }
+      } catch (error) {
+        console.error('Error checking admin status:', error);
+        next('/');
+      }
     },
     children: [
       {
@@ -65,12 +64,6 @@ const adminRoutes = [
         component: () => import('../pages/admin/Companies/CompanyList.vue')
       },
       {
-        path: 'companies/:id',
-        name: 'AdminCompanyDetail',
-        component: () => import('../pages/admin/Companies/CompanyDetail.vue'),
-        props: true
-      },
-      {
         path: 'companies/new',
         name: 'AdminCompanyNew',
         component: () => import('../pages/admin/Companies/CompanyForm.vue')
@@ -82,6 +75,12 @@ const adminRoutes = [
         props: true
       },
       {
+        path: 'companies/:id',
+        name: 'AdminCompanyDetail',
+        component: () => import('../pages/admin/Companies/CompanyDetail.vue'),
+        props: true
+      },
+      {
         path: 'grondplan',
         name: 'AdminGrondplan',
         component: () => import('../pages/admin/Grondplan/GrondplanList.vue')
@@ -89,5 +88,5 @@ const adminRoutes = [
     ]
   }
 ]
-
+ 
 export default adminRoutes

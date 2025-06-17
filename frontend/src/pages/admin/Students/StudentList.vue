@@ -19,7 +19,7 @@
       <div class="search-box">
         <input 
           type="text" 
-          v-model="searchQuery" 
+          v-model="searchQuery"
           placeholder="Zoek studenten..."
           class="search-input"
         >
@@ -54,23 +54,26 @@
             <th>Studiejaar</th>
             <th>Domein</th>
             <th>Gezochte Opportuniteit</th>
+            <th>Beschikbaar vanaf</th>
             <th>Acties</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="student in filteredStudents" :key="student.id" class="student-row">
             <td class="student-info">
-              <div class="student-avatar">
-                <img v-if="student.photo" :src="student.photo" :alt="student.name">
-                <span v-else>{{ student.firstName.charAt(0) }}{{ student.lastName.charAt(0) }}</span>
+              <div class="student-photo">
+                <img 
+                  v-if="student.photoUrl" 
+                  :src="student.photoUrl" 
+                  :alt="`${student.firstName} ${student.lastName}`"
+                >
+                <div v-else class="no-photo">
+                  <span class="photo-icon">👤</span>
+                </div>
               </div>
               <div class="student-details">
-                <router-link :to="`/admin/students/${student.id}`" class="student-name">
-                  {{ student.firstName }} {{ student.lastName }}
-                </router-link>
+                <h4 class="student-name">{{ student.firstName }} {{ student.lastName }}</h4>
                 <p class="student-email">{{ student.email }}</p>
-                <p class="student-phone">{{ student.phone }}</p>
-                <p class="student-location">{{ student.location }}</p>
               </div>
             </td>
             <td>{{ student.age }}</td>
@@ -83,6 +86,7 @@
                 {{ student.opportunity }}
               </span>
             </td>
+            <td>{{ formatDate(student.availableFrom) }}</td>
             <td class="actions">
               <router-link 
                 :to="`/admin/students/${student.id}`" 
@@ -121,7 +125,8 @@
 </template>
 
 <script>
-import { getAllStudents } from '../../../data/studentData'
+import { db } from '../../../firebase/config'
+import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore'
 
 export default {
   name: 'StudentList',
@@ -130,43 +135,48 @@ export default {
       searchQuery: '',
       filterStudyYear: '',
       filterOpportunity: '',
-      students: getAllStudents()
+      students: []
+    }
+  },
+  async mounted() {
+    await this.loadStudents()
+  },
+  methods: {
+    async loadStudents() {
+      const querySnapshot = await getDocs(collection(db, 'student'))
+      this.students = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    },
+    formatDate(dateString) {
+      if (!dateString) return ''
+      const date = new Date(dateString)
+      return date.toLocaleDateString('nl-NL')
+    },
+    async deleteStudent(id) {
+      if (confirm('Weet je zeker dat je deze student wilt verwijderen?')) {
+        await deleteDoc(doc(db, 'student', id))
+        this.students = this.students.filter(s => s.id !== id)
+      }
     }
   },
   computed: {
     filteredStudents() {
       let filtered = this.students;
-      
       if (this.searchQuery) {
         const query = this.searchQuery.toLowerCase();
         filtered = filtered.filter(student => 
-          student.firstName.toLowerCase().includes(query) ||
-          student.lastName.toLowerCase().includes(query) ||
-          student.email.toLowerCase().includes(query) ||
-          student.domain.toLowerCase().includes(query)
+          (student.firstName && student.firstName.toLowerCase().includes(query)) ||
+          (student.lastName && student.lastName.toLowerCase().includes(query)) ||
+          (student.email && student.email.toLowerCase().includes(query)) ||
+          (student.domain && student.domain.toLowerCase().includes(query))
         );
       }
-      
       if (this.filterStudyYear) {
         filtered = filtered.filter(student => student.studyYear === this.filterStudyYear);
       }
-      
       if (this.filterOpportunity) {
         filtered = filtered.filter(student => student.opportunity === this.filterOpportunity);
       }
-      
       return filtered;
-    }
-  },
-  methods: {
-    formatDate(dateString) {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('nl-NL');
-    },
-    deleteStudent(studentId) {
-      if (confirm('Weet je zeker dat je deze student wilt verwijderen?')) {
-        this.students = this.students.filter(student => student.id !== studentId);
-      }
     }
   }
 }
@@ -196,11 +206,6 @@ export default {
   color: #666;
   margin: 0;
   font-size: 1.1rem;
-}
-
-.header-actions {
-  display: flex;
-  gap: 12px;
 }
 
 .btn {
@@ -321,7 +326,7 @@ export default {
   gap: 12px;
 }
 
-.student-avatar {
+.student-photo {
   width: 48px;
   height: 48px;
   border-radius: 50%;
@@ -335,37 +340,19 @@ export default {
   flex-shrink: 0;
 }
 
-.student-avatar img {
+.student-photo img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
 .student-name {
-  font-size: 1rem;
   font-weight: 600;
   color: #1a1a1a;
-  text-decoration: none;
-  transition: color 0.2s;
-}
-
-.student-name:hover {
-  color: #2563eb;
+  margin: 0 0 4px 0;
 }
 
 .student-email {
-  color: #666;
-  margin: 0;
-  font-size: 0.875rem;
-}
-
-.student-phone {
-  color: #666;
-  margin: 0;
-  font-size: 0.875rem;
-}
-
-.student-location {
   color: #666;
   margin: 0;
   font-size: 0.875rem;
@@ -464,138 +451,32 @@ export default {
   margin: 0;
 }
 
-/* Responsive Design */
+/* Responsive */
 @media (max-width: 768px) {
   .page-header {
     flex-direction: column;
     align-items: stretch;
-    gap: 16px;
   }
-
+  
   .filters-section {
     flex-direction: column;
-    gap: 12px;
-    padding: 16px;
+    align-items: stretch;
   }
-
+  
   .search-box {
-    width: 100%;
+    min-width: auto;
   }
-
+  
   .filter-controls {
-    width: 100%;
     flex-direction: column;
-    gap: 8px;
   }
-
-  .filter-select {
-    width: 100%;
-  }
-
+  
   .table-container {
     overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
   }
-
+  
   .students-table {
     min-width: 800px;
-  }
-
-  .student-info {
-    min-width: 250px;
-  }
-
-  .actions {
-    min-width: 120px;
-  }
-
-  .study-year-badge,
-  .opportunity-badge {
-    white-space: nowrap;
-  }
-}
-
-@media (max-width: 480px) {
-  .page-header {
-    margin-bottom: 20px;
-  }
-
-  .header-content h1 {
-    font-size: 1.5rem;
-  }
-
-  .header-content p {
-    font-size: 0.9rem;
-  }
-
-  .filters-section {
-    padding: 12px;
-  }
-
-  .search-input {
-    padding: 10px 16px 10px 36px;
-    font-size: 0.9rem;
-  }
-
-  .filter-select {
-    padding: 10px 12px;
-    font-size: 0.9rem;
-  }
-
-  .students-table th,
-  .students-table td {
-    padding: 12px;
-    font-size: 0.9rem;
-  }
-
-  .student-avatar {
-    width: 36px;
-    height: 36px;
-    font-size: 0.9rem;
-  }
-
-  .student-name {
-    font-size: 0.9rem;
-  }
-
-  .student-email {
-    font-size: 0.8rem;
-  }
-
-  .student-phone {
-    font-size: 0.8rem;
-  }
-
-  .student-location {
-    font-size: 0.8rem;
-  }
-
-  .study-year-badge,
-  .opportunity-badge {
-    font-size: 0.8rem;
-    padding: 3px 6px;
-  }
-
-  .action-btn {
-    width: 32px;
-    height: 32px;
-    font-size: 0.9rem;
-  }
-
-  .empty-state {
-    padding: 32px 16px;
-  }
-
-  .empty-icon {
-    font-size: 2.5rem;
-  }
-
-  .empty-state h3 {
-    font-size: 1.2rem;
-  }
-
-  .empty-state p {
-    font-size: 0.9rem;
   }
 }
 </style>

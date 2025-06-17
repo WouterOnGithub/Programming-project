@@ -28,17 +28,21 @@
       
       <div class="filter-controls">
         <select v-model="filterIndustry" class="filter-select">
-          <option value="">Alle industrieën</option>
+          <option value="">Alle branches</option>
           <option value="IT & Software">IT & Software</option>
           <option value="Marketing & Communicatie">Marketing & Communicatie</option>
-          <option value="Design & Creatief">Design & Creatief</option>
+          <option value="Finance & Banking">Finance & Banking</option>
+          <option value="Healthcare">Healthcare</option>
+          <option value="Education">Education</option>
         </select>
         
         <select v-model="filterSize" class="filter-select">
           <option value="">Alle groottes</option>
-          <option value="10-20">10-20 werknemers</option>
-          <option value="20-50">20-50 werknemers</option>
-          <option value="50-100">50-100 werknemers</option>
+          <option value="1-10">1-10 medewerkers</option>
+          <option value="11-50">11-50 medewerkers</option>
+          <option value="51-200">51-200 medewerkers</option>
+          <option value="201-500">201-500 medewerkers</option>
+          <option value="500+">500+ medewerkers</option>
         </select>
       </div>
     </div>
@@ -49,9 +53,10 @@
         <thead>
           <tr>
             <th>Bedrijf</th>
-            <th>Industrie</th>
-            <th>Grootte</th>
             <th>Locatie</th>
+            <th>Branche</th>
+            <th>Grootte</th>
+            <th>Op zoek naar</th>
             <th>Acties</th>
           </tr>
         </thead>
@@ -59,27 +64,36 @@
           <tr v-for="company in filteredCompanies" :key="company.id" class="company-row">
             <td class="company-info">
               <div class="company-logo">
-                <img v-if="company.logo" :src="company.logo" :alt="company.name">
-                <span v-else>{{ company.name.charAt(0) }}</span>
+                <img 
+                  v-if="company.logo" 
+                  :src="company.logo" 
+                  :alt="company.bedrijfsnaam"
+                >
+                <div v-else class="no-logo">
+                  <span class="logo-icon">{{ (company.bedrijfsnaam || '?').charAt(0) }}</span>
+                </div>
               </div>
               <div class="company-details">
                 <router-link :to="`/admin/companies/${company.id}`" class="company-name">
-                  {{ company.name }}
+                  {{ company.bedrijfsnaam || 'Onbekend' }}
                 </router-link>
-                <p class="company-email">{{ company.email }}</p>
+                <p class="company-email">{{ company.email || 'Onbekend' }}</p>
               </div>
             </td>
-            <td>{{ company.industry }}</td>
-            <td>{{ company.size }}</td>
-            <td>{{ company.location }}</td>
+            <td>{{ company.gesitueerdIn || '-' }}</td>
+            <td>
+              <span class="industry-badge">{{ company.industry || '-' }}</span>
+            </td>
+            <td>{{ company.size || '-' }}</td>
+            <td class="looking-for">{{ company.lookingFor || '-' }}</td>
             <td class="actions">
-              <router-link 
-                :to="`/admin/companies/${company.id}`" 
+              <button 
+                @click="viewCompany(company.id)" 
                 class="action-btn view"
                 title="Bekijken"
               >
                 👁️
-              </router-link>
+              </button>
               <router-link 
                 :to="`/admin/companies/${company.id}/edit`" 
                 class="action-btn edit"
@@ -110,7 +124,8 @@
 </template>
 
 <script>
-import { getAllCompanies } from '../../../data/companyData'
+import { db } from '../../../firebase/config'
+import { collection, onSnapshot, deleteDoc, doc } from 'firebase/firestore'
 
 export default {
   name: 'CompanyList',
@@ -119,44 +134,66 @@ export default {
       searchQuery: '',
       filterIndustry: '',
       filterSize: '',
-      companies: getAllCompanies()
+      companies: [],
+      unsubscribe: null
+    }
+  },
+  mounted() {
+    this.loadCompanies()
+  },
+  beforeUnmount() {
+    if (this.unsubscribe) {
+      this.unsubscribe()
     }
   },
   computed: {
     filteredCompanies() {
       let filtered = this.companies;
-      
       if (this.searchQuery) {
         const query = this.searchQuery.toLowerCase();
         filtered = filtered.filter(company => 
-          company.name.toLowerCase().includes(query) ||
-          company.email.toLowerCase().includes(query) ||
-          company.industry.toLowerCase().includes(query)
+          (company.bedrijfsnaam && company.bedrijfsnaam.toLowerCase().includes(query)) ||
+          (company.email && company.email.toLowerCase().includes(query)) ||
+          (company.gesitueerdIn && company.gesitueerdIn.toLowerCase().includes(query))
         );
       }
-      
       if (this.filterIndustry) {
         filtered = filtered.filter(company => company.industry === this.filterIndustry);
       }
-      
       if (this.filterSize) {
         filtered = filtered.filter(company => company.size === this.filterSize);
       }
-      
       return filtered;
     }
   },
   methods: {
-    deleteCompany(companyId) {
+    loadCompanies() {
+      const companiesRef = collection(db, 'bedrijf')
+      this.unsubscribe = onSnapshot(companiesRef, (snapshot) => {
+        this.companies = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }))
+      })
+    },
+    async deleteCompany(id) {
       if (confirm('Weet je zeker dat je dit bedrijf wilt verwijderen?')) {
-        this.companies = this.companies.filter(company => company.id !== companyId);
+        try {
+          await deleteDoc(doc(db, 'bedrijf', id))
+        } catch (error) {
+          alert('Fout bij verwijderen: ' + error.message)
+        }
       }
+    },
+    viewCompany(companyId) {
+      this.$router.push(`/admin/companies/${companyId}`);
     }
   }
 }
 </script>
 
 <style scoped>
+/* Hergebruik dezelfde styling als StudentList.vue */
 .company-list {
   padding: 0;
 }
@@ -190,50 +227,59 @@ export default {
   border-radius: 8px;
   text-decoration: none;
   font-weight: 600;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
 }
 
 .btn-primary {
-  background-color: #2563eb;
+  background: #007bff;
   color: white;
 }
 
 .btn-primary:hover {
-  background-color: #1d4ed8;
-}
-
-.btn-icon {
-  font-size: 1.2rem;
+  background: #0056b3;
+  transform: translateY(-1px);
 }
 
 .filters-section {
-  display: flex;
-  gap: 16px;
+  background: white;
+  padding: 24px;
+  border-radius: 12px;
   margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  display: flex;
+  gap: 20px;
+  align-items: center;
   flex-wrap: wrap;
 }
 
 .search-box {
   position: relative;
   flex: 1;
-  min-width: 200px;
+  min-width: 300px;
 }
 
 .search-input {
   width: 100%;
-  padding: 12px 16px;
-  padding-left: 40px;
-  border: 1px solid #e5e7eb;
+  padding: 12px 16px 12px 44px;
+  border: 1px solid #e0e0e0;
   border-radius: 8px;
   font-size: 1rem;
+  transition: border-color 0.2s ease;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #007bff;
 }
 
 .search-icon {
   position: absolute;
-  left: 12px;
+  left: 16px;
   top: 50%;
   transform: translateY(-50%);
-  color: #6b7280;
+  color: #666;
 }
 
 .filter-controls {
@@ -243,17 +289,18 @@ export default {
 
 .filter-select {
   padding: 12px 16px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e0e0e0;
   border-radius: 8px;
-  font-size: 1rem;
+  background: white;
+  font-size: 0.95rem;
   min-width: 160px;
 }
 
 .table-container {
   background: white;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
   overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 .companies-table {
@@ -262,17 +309,17 @@ export default {
 }
 
 .companies-table th {
-  background-color: #f9fafb;
+  background: #f8f9fa;
   padding: 16px;
   text-align: left;
   font-weight: 600;
-  color: #374151;
-  border-bottom: 1px solid #e5e7eb;
+  color: #495057;
+  border-bottom: 1px solid #e0e0e0;
 }
 
-.companies-table td {
-  padding: 16px;
-  border-bottom: 1px solid #e5e7eb;
+.company-row {
+  border-bottom: 1px solid #f0f0f0;
+  transition: background-color 0.2s ease;
 }
 
 .companies-table tr {
@@ -288,7 +335,12 @@ export default {
 }
 
 .company-row:hover {
-  background-color: #f9fafb;
+  background-color: #f8f9fa;
+}
+
+.companies-table td {
+  padding: 16px;
+  vertical-align: middle;
 }
 
 .company-info {
@@ -298,45 +350,51 @@ export default {
 }
 
 .company-logo {
-  width: 40px;
-  height: 40px;
+  width: 48px;
+  height: 48px;
   border-radius: 8px;
-  background-color: #e5e7eb;
+  background: #007bff;
+  color: white;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 600;
-  color: #4b5563;
+  overflow: hidden;
+  flex-shrink: 0;
 }
 
 .company-logo img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 8px;
-}
-
-.company-details {
-  display: flex;
-  flex-direction: column;
 }
 
 .company-name {
-  font-size: 1rem;
   font-weight: 600;
   color: #1a1a1a;
-  text-decoration: none;
-  transition: color 0.2s;
-}
-
-.company-name:hover {
-  color: #2563eb;
+  margin: 0 0 4px 0;
 }
 
 .company-email {
+  color: #666;
   margin: 0;
   font-size: 0.875rem;
-  color: #6b7280;
+}
+
+.industry-badge {
+  background: #e3f2fd;
+  color: #1976d2;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.looking-for {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .actions {
@@ -380,148 +438,53 @@ export default {
 
 .empty-state {
   text-align: center;
-  padding: 48px;
+  padding: 60px 20px;
   background: white;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 .empty-icon {
-  font-size: 3rem;
+  font-size: 4rem;
   margin-bottom: 16px;
 }
 
 .empty-state h3 {
-  margin: 0 0 8px 0;
   color: #1a1a1a;
+  margin: 0 0 8px 0;
 }
 
 .empty-state p {
+  color: #666;
   margin: 0;
-  color: #6b7280;
 }
 
-/* Responsive Design */
+/* Responsive */
 @media (max-width: 768px) {
   .page-header {
     flex-direction: column;
     align-items: stretch;
-    gap: 16px;
   }
-
-  .header-actions {
-    width: 100%;
-  }
-
-  .header-actions .btn {
-    width: 100%;
-    justify-content: center;
-  }
-
+  
   .filters-section {
     flex-direction: column;
-    gap: 12px;
-    padding: 16px;
+    align-items: stretch;
   }
-
+  
   .search-box {
-    width: 100%;
+    min-width: auto;
   }
-
+  
   .filter-controls {
-    width: 100%;
     flex-direction: column;
-    gap: 8px;
   }
-
-  .filter-select {
-    width: 100%;
-  }
-
+  
   .table-container {
     overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
   }
-
+  
   .companies-table {
     min-width: 800px;
-  }
-
-  .company-info {
-    min-width: 250px;
-  }
-
-  .actions {
-    min-width: 120px;
-  }
-}
-
-@media (max-width: 480px) {
-  .page-header {
-    margin-bottom: 20px;
-  }
-
-  .header-content h1 {
-    font-size: 1.5rem;
-  }
-
-  .header-content p {
-    font-size: 0.9rem;
-  }
-
-  .filters-section {
-    padding: 12px;
-  }
-
-  .search-input {
-    padding: 10px 16px 10px 36px;
-    font-size: 0.9rem;
-  }
-
-  .filter-select {
-    padding: 10px 12px;
-    font-size: 0.9rem;
-  }
-
-  .companies-table th,
-  .companies-table td {
-    padding: 12px;
-    font-size: 0.9rem;
-  }
-
-  .company-logo {
-    width: 32px;
-    height: 32px;
-    font-size: 0.9rem;
-  }
-
-  .company-name {
-    font-size: 0.9rem;
-  }
-
-  .company-email {
-    font-size: 0.8rem;
-  }
-
-  .action-btn {
-    padding: 6px;
-    font-size: 0.9rem;
-  }
-
-  .empty-state {
-    padding: 32px 16px;
-  }
-
-  .empty-icon {
-    font-size: 2.5rem;
-  }
-
-  .empty-state h3 {
-    font-size: 1.2rem;
-  }
-
-  .empty-state p {
-    font-size: 0.9rem;
   }
 }
 </style>

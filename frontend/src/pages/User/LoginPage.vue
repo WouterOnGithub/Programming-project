@@ -62,8 +62,9 @@ const handleLogin = async () => {
     
     // Check if user is admin
     if (isAdmin()) {
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      if (userDoc.exists() && userDoc.data().role === 'admin') {
+      const userDoc = await getDoc(doc(db, 'admin', user.uid));
+      console.log('Admin doc exists:', userDoc.exists(), 'UID:', user.uid);
+      if (userDoc.exists()) {
         router.push('/admin/dashboard');
         return;
       } else {
@@ -74,11 +75,15 @@ const handleLogin = async () => {
     }
 
     let welcomeName = ''
-    if (isStudent()) welcomeName = name.value
-    else if (isBedrijf()) welcomeName = companyName.value
-    
-    alert(`Welkom ${welcomeName}!`);
-    router.push('/dashboard');
+    if (isStudent()) {
+      welcomeName = name.value;
+      alert(`Welkom ${welcomeName}!`);
+      router.push('/dashboard');
+    } else if (isBedrijf()) {
+      welcomeName = companyName.value;
+      alert(`Welkom ${welcomeName}!`);
+      router.push('/BedrijfDashboard');
+    }
   } catch (e) {
     error.value = e.message;
   }

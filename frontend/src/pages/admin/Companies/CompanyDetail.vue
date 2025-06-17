@@ -22,17 +22,17 @@
       <div class="profile-section">
         <div class="profile-header">
           <div class="company-logo">
-            <img v-if="company.logo" :src="company.logo" :alt="company.name">
-            <span v-else>{{ company.name.charAt(0) }}</span>
+            <img v-if="company.logo" :src="company.logo" :alt="company.bedrijfsnaam">
+            <span v-else>{{ (company.bedrijfsnaam || '?').charAt(0) }}</span>
           </div>
           <div class="company-info">
-            <h2>{{ company.name }}</h2>
-            <p class="company-title">{{ company.industry }} - {{ company.size }} werknemers</p>
+            <h2>{{ company.bedrijfsnaam || 'Onbekend' }}</h2>
+            <p class="company-title">{{ company.industry || '-' }} - {{ company.companySize || '-' }} werknemers</p>
             <div class="contact-info">
-              <p><span class="icon">🌐</span> <a :href="company.website" target="_blank">{{ company.website }}</a></p>
-              <p><span class="icon">📧</span> {{ company.email }}</p>
-              <p><span class="icon">📱</span> {{ company.phone }}</p>
-              <p><span class="icon">📍</span> {{ company.location }}</p>
+              <p v-if="company.website"><span class="icon">🌐</span> <a :href="company.website" target="_blank">{{ company.website }}</a></p>
+              <p v-if="company.contactEmail"><span class="icon">📧</span> {{ company.contactEmail }}</p>
+              <p v-if="company.phoneNumber"><span class="icon">📱</span> {{ company.phoneNumber }}</p>
+              <p v-if="company.gesitueerdIn"><span class="icon">📍</span> {{ company.gesitueerdIn }}</p>
             </div>
           </div>
         </div>
@@ -41,66 +41,39 @@
       <!-- Description -->
       <div class="profile-section">
         <h3>Over het bedrijf</h3>
-        <p class="description">{{ company.description }}</p>
+        <p class="description">{{ company.aboutUs || 'Geen beschrijving beschikbaar' }}</p>
       </div>
 
-      <!-- Opportunities -->
+      <!-- What they're looking for -->
       <div class="profile-section">
-        <h3>Vacatures</h3>
-        <div class="opportunities-list">
-          <div v-for="opportunity in company.opportunities" :key="opportunity.title" class="opportunity-card">
-            <div class="opportunity-header">
-              <h4>{{ opportunity.title }}</h4>
-              <span class="opportunity-type">{{ opportunity.type }}</span>
-            </div>
-            <p class="opportunity-description">{{ opportunity.description }}</p>
-            <div class="opportunity-details">
-              <p><strong>Startdatum:</strong> {{ formatDate(opportunity.startDate) }}</p>
-              <p v-if="opportunity.duration"><strong>Duur:</strong> {{ opportunity.duration }}</p>
-              <p><strong>Vergoeding:</strong> {{ opportunity.compensation }}</p>
-            </div>
-            <div class="requirements-list">
-              <h5>Vereisten:</h5>
-              <ul>
-                <li v-for="req in opportunity.requirements" :key="req">{{ req }}</li>
-              </ul>
-            </div>
+        <h3>Wat ze zoeken</h3>
+        <p class="description">{{ company.lookingFor || 'Geen informatie beschikbaar' }}</p>
+        
+        <div v-if="company.jobTypes && company.jobTypes.length" class="job-types">
+          <h4>Type posities:</h4>
+          <div class="tags-list">
+            <span v-for="type in company.jobTypes" :key="type" class="tag">
+              {{ type }}
+            </span>
           </div>
         </div>
-      </div>
 
-      <!-- Benefits -->
-      <div class="profile-section">
-        <h3>Voordelen</h3>
-        <div class="benefits-list">
-          <span v-for="benefit in company.benefits" :key="benefit" class="benefit-tag">
-            {{ benefit }}
-          </span>
-        </div>
-      </div>
-
-      <!-- Contact Person -->
-      <div class="profile-section">
-        <h3>Contactpersoon</h3>
-        <div class="contact-person">
-          <h4>{{ company.contactPerson.name }}</h4>
-          <p class="position">{{ company.contactPerson.position }}</p>
-          <div class="contact-details">
-            <p><span class="icon">📧</span> {{ company.contactPerson.email }}</p>
-            <p><span class="icon">📱</span> {{ company.contactPerson.phone }}</p>
+        <div v-if="company.requiredSkills && company.requiredSkills.length" class="skills">
+          <h4>Gewenste vaardigheden:</h4>
+          <div class="tags-list">
+            <span v-for="skill in company.requiredSkills" :key="skill" class="tag">
+              {{ skill }}
+            </span>
           </div>
         </div>
       </div>
 
       <!-- Social Media -->
-      <div class="profile-section">
+      <div class="profile-section" v-if="company.linkedin">
         <h3>Sociale Media</h3>
         <div class="social-links">
-          <a v-if="company.socialMedia.linkedin" :href="company.socialMedia.linkedin" target="_blank" class="social-link linkedin">
+          <a v-if="company.linkedin" :href="company.linkedin" target="_blank" class="social-link linkedin">
             <span class="icon">🔗</span> LinkedIn
-          </a>
-          <a v-if="company.socialMedia.behance" :href="company.socialMedia.behance" target="_blank" class="social-link behance">
-            <span class="icon">🎨</span> Behance
           </a>
         </div>
       </div>
@@ -114,7 +87,8 @@
 <script>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getCompanyById } from '../../../data/companyData'
+import { db } from '../../../firebase/config'
+import { getDoc, doc } from 'firebase/firestore'
 
 export default {
   name: 'CompanyDetail',
@@ -124,25 +98,16 @@ export default {
     const company = ref(null)
     const error = ref(null)
 
-    const loadCompany = () => {
+    const loadCompany = async () => {
       try {
-        const companyId = parseInt(route.params.id)
-        console.log('Loading company with ID:', companyId)
-        
-        if (isNaN(companyId)) {
-          throw new Error('Invalid company ID')
+        const companyId = route.params.id
+        const docSnap = await getDoc(doc(db, 'bedrijf', companyId))
+        if (docSnap.exists()) {
+          company.value = { id: docSnap.id, ...docSnap.data() }
+        } else {
+          throw new Error('Bedrijf niet gevonden')
         }
-
-        const foundCompany = getCompanyById(companyId)
-        console.log('Found company:', foundCompany)
-        
-        if (!foundCompany) {
-          throw new Error('Company not found')
-        }
-
-        company.value = foundCompany
       } catch (err) {
-        console.error('Error loading company:', err)
         error.value = err.message
         setTimeout(() => {
           router.push('/admin/companies')

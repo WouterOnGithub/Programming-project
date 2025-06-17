@@ -49,7 +49,7 @@
       </header>
       <!-- Swiping Content -->
       <div class="swiping-content">
-        <div class="job-card-container">
+        <div v-if="currentJob" class="job-card-container">
           <div class="job-card" :class="{ 'animate-reject': animateReject, 'animate-accept': animateAccept }">
             <div class="left-section">
               <div class="company-logo">{{ currentJob.company }}</div>
@@ -101,13 +101,22 @@
             </div>
           </div>
         </div>
+        <div v-else-if="loading">
+          <p>Bedrijven laden...</p>
+        </div>
+        <div v-else>
+          <p>Geen bedrijven meer om te swipen!</p>
+        </div>
       </div>
     </main>
   </div>
 </template>
 
 <script>
-import { ref, reactive, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import { db, auth } from '../../firebase/config';
+import { collection, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: 'fas fa-chart-pie' },
@@ -124,21 +133,38 @@ export default {
     const animateReject = ref(false);
     const animateAccept = ref(false);
 
-    const jobs = ref([
-      {
-        id: 1,
-        company: 'Deloitte',
-        title: 'Junior IT Consultant',
-        location: 'Rotterdam',
-        type: 'Stage',
-        description:
-          'Random-IT is een jong bedrijf met een brede kennis binnen de IT. Wij verzorgen voor onze klanten een breed scala aan diensten, en fungeren als vraagbaak voor alles wat met IT te maken heeft.',
-        duration: 'Elk gesprek duurt 10 min',
-        schedule: 'Op campus van 10 tot 16 uur',
-        skills: ['IT', 'Consulting', 'Communicatie'],
-        linkedinUrl: 'https://linkedin.com/company/deloitte',
+    const jobs = ref([]);
+    const loading = ref(true);
+    const error = ref(null);
+
+    const loadCompanies = async () => {
+      try {
+        loading.value = true;
+        const companiesSnap = await getDocs(collection(db, 'bedrijf'));
+        jobs.value = companiesSnap.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            company: data.bedrijfsnaam || 'Onbekend',
+            title: data.opZoekNaar || 'Stageplaats',
+            location: data.gesitueerdIn || '-',
+            type: data.gesprekDuur || 'Stage',
+            description: data.overOns || 'Geen beschrijving beschikbaar',
+            duration: data.gesprekDuur ? `${data.gesprekDuur} min` : '10 min',
+            schedule: data.starttijd && data.eindtijd ? `${data.starttijd} - ${data.eindtijd}` : '-',
+            skills: data.skills || [],
+            linkedinUrl: data.linkedin || '#',
+            logo: data.foto || null
+          };
+        });
+      } catch (err) {
+        error.value = 'Fout bij laden van bedrijven';
+      } finally {
+        loading.value = false;
       }
-    ]);
+    };
+
+    onMounted(loadCompanies);
 
     const currentJob = computed(() => jobs.value[0]);
 
@@ -155,8 +181,29 @@ export default {
       }, 300);
     };
 
-    const acceptJob = () => {
+    const acceptJob = async () => {
       animateAccept.value = true;
+      // Like opslaan in Firestore
+      try {
+        let studentId = null;
+        if (auth.currentUser) {
+          studentId = auth.currentUser.uid;
+        } else {
+          // fallback: probeer user te detecteren
+          await new Promise(resolve => onAuthStateChanged(auth, user => { studentId = user?.uid; resolve(); }));
+        }
+        if (studentId && currentJob.value) {
+          await addDoc(collection(db, 'matches'), {
+            studentId,
+            companyId: currentJob.value.id,
+            companyName: currentJob.value.company,
+            createdAt: serverTimestamp(),
+            status: 'pending'
+          });
+        }
+      } catch (err) {
+        console.error('Fout bij opslaan van like/match:', err);
+      }
       setTimeout(() => {
         nextJob();
       }, 300);
@@ -170,6 +217,8 @@ export default {
       acceptJob,
       navigation,
       userData,
+      loading,
+      error
     };
   },
 };
