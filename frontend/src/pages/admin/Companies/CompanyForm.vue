@@ -321,17 +321,17 @@ export default {
     const errors = ref({})
 
     const form = ref({
-      bedrijfsnaam: '',
-      gesitueerdIn: '',
-      linkedin: '',
-      lookingFor: '',
-      jobTypes: [],
-      requiredSkills: [],
-      aboutUs: '',
-      contactEmail: '',
-      website: '',
-      phoneNumber: '',
-      industry: '',
+        bedrijfsnaam: '',
+        gesitueerdIn: '',
+        linkedin: '',
+        lookingFor: '',
+        jobTypes: [],
+        requiredSkills: [],
+        aboutUs: '',
+        contactEmail: '',
+        website: '',
+        phoneNumber: '',
+        industry: '',
       size: '',
       logo: '',
       logoPreview: ''

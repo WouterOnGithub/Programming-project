@@ -186,8 +186,7 @@ export default {
       }
     },
     viewCompany(companyId) {
-      // Tijdelijk alert omdat CompanyDetail nog niet bestaat
-      alert(`Bekijk bedrijf ${companyId} - CompanyDetail.vue nog niet geïmplementeerd`);
+      this.$router.push(`/admin/companies/${companyId}`);
     }
   }
 }
