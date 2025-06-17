@@ -1,6 +1,6 @@
 <script setup>
 import { reactive, ref } from 'vue';
-import { auth, db } from '../../firebase/config';
+import { auth, db, GoogleAuthProvider, signInWithPopup } from '../../firebase/config';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { collection, doc, setDoc, query, where, getDocs } from 'firebase/firestore';
 import { useRouter } from 'vue-router';
@@ -98,6 +98,42 @@ const handleRegister = async () => {
   }
 };
 
+const handleGoogleRegister = async () => {
+  error.value = '';
+  const provider = new GoogleAuthProvider();
+  try {
+    const result = await signInWithPopup(auth, provider);
+    const user = result.user;
+
+    // Check of profiel al bestaat in Firestore
+    let exists = false;
+    let route = '/dashboard';
+
+    if (isStudent()) {
+      // Controleer in 'student' collectie
+      const q = query(collection(db, 'student'), where('authUid', '==', user.uid));
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        exists = true;
+      }
+      route = exists ? '/dashboard' : '/Stinvoer';
+    } else if (isBedrijf()) {
+      // Controleer in 'bedrijf' collectie
+      const q = query(collection(db, 'bedrijf'), where('authUid', '==', user.uid));
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        exists = true;
+      }
+      route = exists ? '/BedrijfDashboard' : '/InvoerenBd';
+    }
+
+    alert(`Welkom ${user.displayName || user.email}!`);
+    router.push(route);
+  } catch (e) {
+    error.value = e.message;
+  }
+}
+
 const goToLogin = () => {
   router.push('/login');
 };
@@ -186,6 +222,10 @@ const goToLogin = () => {
 
         <button type="submit" class="register-btn">
           {{ isStudent() ? 'Registreer als Student' : 'Registreer als Bedrijf' }}
+        </button>
+        <button type="button" class="google-login-btn" @click="handleGoogleRegister">
+          <img src="/Images/google-logo.png" alt="Google logo" class="google-icon" />
+          <span>Inloggen met Google</span>
         </button>
       </form>
 
