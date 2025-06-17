@@ -78,10 +78,35 @@
     <section class="companies">
       <div class="container">
         <h3>Deelnemende bedrijven:</h3>
-        <div class="carousel-container">
+        <div class="carousel-search-bar">
+          <input
+            v-model="companySearch"
+            type="text"
+            placeholder="Zoek bedrijf..."
+            class="carousel-search-input"
+          />
+          <span class="carousel-search-icon">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+          </span>
+        </div>
+        <button class="toggle-companies-btn" @click="showAllCompanies = !showAllCompanies">
+          {{ showAllCompanies ? 'Verberg bedrijven' : 'Toon alle bedrijven' }}
+        </button>
+        <div v-if="showAllCompanies" class="all-companies-grid">
+          <div class="company-card" v-for="company in filteredCompanies" :key="company.id">
+            <div class="company-logo">
+              <img :src="company.logo" :alt="company.name" class="company-logo-img" />
+            </div>
+            <span class="company-name">{{ company.name }}</span>
+          </div>
+        </div>
+        <div v-else class="carousel-container">
           <div class="carousel-wrapper">
             <div class="companies-carousel" ref="carousel">
-              <div class="company-card" v-for="company in companies" :key="company.id">
+              <div class="company-card" v-for="company in filteredCompanies" :key="company.id">
                 <div class="company-logo">
                   <img :src="company.logo" :alt="company.name" class="company-logo-img" />
                 </div>
@@ -126,6 +151,8 @@ export default {
       isMenuOpen: false,
       currentSlide: 0,
       slidesToShow: 3,
+      companySearch: '',
+      showAllCompanies: false,
       companies: [
         { id: 1, name: 'Accenture', logo: '/Images/accenture-logo.png' },
         { id: 2, name: 'Cegeka', logo: '/Images/cegeka-logo.jpg' },
@@ -137,7 +164,13 @@ export default {
   },
   computed: {
     maxSlide() {
-      return Math.max(0, this.companies.length - this.slidesToShow)
+      return Math.max(0, this.filteredCompanies.length - this.slidesToShow)
+    },
+    filteredCompanies() {
+      if (!this.companySearch) return this.companies
+      return this.companies.filter(company =>
+        company.name.toLowerCase().includes(this.companySearch.toLowerCase())
+      )
     }
   },
   methods: {
