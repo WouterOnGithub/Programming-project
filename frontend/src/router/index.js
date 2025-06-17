@@ -21,6 +21,7 @@ import BedrijfProfielWeergave from '../pages/User/Bedrijf/BedrijfProfielWeergave
 import BedrijfProfielGesprekken from '../pages/User/Bedrijf/BedrijfProfielGesprekken.vue'
 import StProfielWeergave from '../pages/User/Student/StProfielWeergave.vue'
 import BedrijfProfielFavorieten from '../pages/User/Bedrijf/BedrijfProfielFavorieten.vue'
+import StProfielFavorieten from '../pages/User/Student/StProfielFavorieten.vue'
 import StProfielWijzigen from '../pages/User/Student/StProfielWijzigen.vue'
 import BedrijfProfielInvoeren from '../pages/User/Bedrijf/BedrijfInvoeren.vue'
 import BedrijfDashboard from '../pages/User/Bedrijf/BedrijfDashboard.vue'
@@ -39,6 +40,7 @@ const userRoutes = [
   { path: '/GesprekkenBd', name: 'GesprekkenBd', component: BedrijfProfielGesprekken },
   { path: '/WeergaveSt', name: 'WeergaveSt', component: StProfielWeergave },
   { path: '/Favorietenbd', name: 'Favorietenbd', component: BedrijfProfielFavorieten },
+  { path: '/Favorietenst', name: 'Favorietenst', component: StProfielFavorieten },
   { path: '/WijzigenSt', name: 'WijzigenSt', component: StProfielWijzigen },
   { path: '/InvoerenBd', name: 'InvoerenBd', component: BedrijfProfielInvoeren },
   { path: '/BedrijfDashboard', name: 'BedrijfDashboard', component: BedrijfDashboard },
