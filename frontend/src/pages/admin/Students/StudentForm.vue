@@ -345,23 +345,22 @@ export default {
     }
   },
   methods: {
-<<<<<<< Updated upstream
     async loadStudent() {
-      const docSnap = await getDoc(doc(db, 'student', this.id))
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        Object.assign(this.form, data);
-        if (!this.form.opportunityType && data.opportunity) {
-          this.form.opportunityType = data.opportunity;
+      try {
+        const docSnap = await getDoc(doc(db, 'student', this.id));
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          Object.assign(this.form, data);
+          if (!this.form.opportunityType && data.opportunity) {
+            this.form.opportunityType = data.opportunity;
+          }
+        } else {
+          alert('Student niet gevonden!');
+          this.$router.push('/admin/students');
         }
-      } else {
-        alert('Student niet gevonden!');
-        this.$router.push('/admin/students');
+      } catch (error) {
+        alert('Fout bij het ophalen van student: ' + error.message);
       }
-=======
-    loadStudent() {
-      // Hier straks Firebase ophalen
->>>>>>> Stashed changes
     },
    
     handlePhotoUpload(event) {
@@ -879,3 +878,4 @@ export default {
   }
 }
 </style>
+ 
