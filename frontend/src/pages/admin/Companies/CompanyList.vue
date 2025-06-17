@@ -275,6 +275,18 @@ export default {
   border-bottom: 1px solid #e5e7eb;
 }
 
+.companies-table tr {
+  height: 56px;
+}
+
+.companies-table td.actions,
+.companies-table td.actions-cell {
+  vertical-align: middle;
+  padding-top: 0;
+  padding-bottom: 0;
+  height: 56px;
+}
+
 .company-row:hover {
   background-color: #f9fafb;
 }
@@ -333,28 +345,37 @@ export default {
 }
 
 .action-btn {
-  padding: 8px;
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
   border: none;
-  background: none;
+  background: #f8f9fa;
+  color: #495057;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  border-radius: 4px;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  text-decoration: none;
 }
 
 .action-btn:hover {
-  background-color: #f3f4f6;
+  transform: translateY(-1px);
 }
 
 .action-btn.view:hover {
-  color: #2563eb;
+  background: #e3f2fd;
+  color: #1976d2;
 }
 
 .action-btn.edit:hover {
-  color: #059669;
+  background: #fff3e0;
+  color: #f57c00;
 }
 
 .action-btn.delete:hover {
-  color: #dc2626;
+  background: #ffebee;
+  color: #d32f2f;
 }
 
 .empty-state {

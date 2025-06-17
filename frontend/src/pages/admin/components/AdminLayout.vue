@@ -37,6 +37,7 @@
 
 <script>
 import AdminNavigation from './AdminNavigation.vue'
+import { getAuth, signOut } from 'firebase/auth'
 import { useRouter } from 'vue-router'
 
 export default {
@@ -51,9 +52,15 @@ export default {
   },
   setup() {
     const router = useRouter()
+    const auth = getAuth()
 
-    const handleLogout = () => {
-      router.push('/login')
+    const handleLogout = async () => {
+      try {
+        await signOut(auth)
+        router.push('/login')
+      } catch (error) {
+        console.error('Error logging out:', error)
+      }
     }
 
     return {

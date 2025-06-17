@@ -78,12 +78,35 @@
     <section class="companies">
       <div class="container">
         <h3>Deelnemende bedrijven:</h3>
-        <div class="companies-grid">
-          <div class="company-card" v-for="company in companies" :key="company.id">
-            <div class="company-logo">
-              <img :src="company.logo" :alt="company.name" class="company-logo-img" />
+        <div class="carousel-container">
+          <div class="carousel-wrapper">
+            <div class="companies-carousel" ref="carousel">
+              <div class="company-card" v-for="company in companies" :key="company.id">
+                <div class="company-logo">
+                  <img :src="company.logo" :alt="company.name" class="company-logo-img" />
+                </div>
+                <span class="company-name">{{ company.name }}</span>
+              </div>
             </div>
-            <span class="company-name">{{ company.name }}</span>
+          </div>
+          <button class="carousel-btn carousel-btn-prev" @click="prevSlide" :disabled="currentSlide === 0">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="15,18 9,12 15,6"></polyline>
+            </svg>
+          </button>
+          <button class="carousel-btn carousel-btn-next" @click="nextSlide" :disabled="currentSlide >= maxSlide">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9,18 15,12 9,6"></polyline>
+            </svg>
+          </button>
+          <div class="carousel-dots">
+            <button 
+              v-for="(dot, index) in Math.ceil(companies.length / slidesToShow)" 
+              :key="index"
+              class="carousel-dot" 
+              :class="{ active: currentSlide >= index * slidesToShow && currentSlide < (index + 1) * slidesToShow }"
+              @click="goToSlide(index * slidesToShow)"
+            ></button>
           </div>
         </div>
       </div>
@@ -101,6 +124,8 @@ export default {
   data() {
     return {
       isMenuOpen: false,
+      currentSlide: 0,
+      slidesToShow: 3,
       companies: [
         { id: 1, name: 'Accenture', logo: '/Images/accenture-logo.png' },
         { id: 2, name: 'Cegeka', logo: '/Images/cegeka-logo.jpg' },
@@ -108,6 +133,11 @@ export default {
         { id: 4, name: 'Cronos', logo: '/Images/cronos-logo.png' },
         { id: 5, name: 'Telenet', logo: '/Images/telenet-logo.png' }
       ]
+    }
+  },
+  computed: {
+    maxSlide() {
+      return Math.max(0, this.companies.length - this.slidesToShow)
     }
   },
   methods: {
@@ -120,6 +150,45 @@ export default {
     setActiveSection(section) {
       this.activeSection = section
       this.isMenuOpen = false
+    },
+    nextSlide() {
+      if (this.currentSlide < this.maxSlide) {
+        this.currentSlide++
+        this.updateCarousel()
+      }
+    },
+    prevSlide() {
+      if (this.currentSlide > 0) {
+        this.currentSlide--
+        this.updateCarousel()
+      }
+    },
+    goToSlide(index) {
+      this.currentSlide = index
+      this.updateCarousel()
+    },
+    updateCarousel() {
+      const carousel = this.$refs.carousel
+      if (carousel) {
+        const cardWidth = carousel.querySelector('.company-card').offsetWidth
+        const gap = 32 // 2rem gap
+        const translateX = -(this.currentSlide * (cardWidth + gap))
+        carousel.style.transform = `translateX(${translateX}px)`
+      }
+    },
+    handleResize() {
+      const width = window.innerWidth
+      if (width < 768) {
+        this.slidesToShow = 1
+      } else if (width < 1024) {
+        this.slidesToShow = 2
+      } else {
+        this.slidesToShow = 3
+      }
+      this.currentSlide = Math.min(this.currentSlide, this.maxSlide)
+      this.$nextTick(() => {
+        this.updateCarousel()
+      })
     }
   },
   mounted() {
@@ -132,6 +201,46 @@ export default {
         }
       })
     })
+    
+    // Initialize carousel
+    this.handleResize()
+    window.addEventListener('resize', this.handleResize)
+    
+    // Touch support for mobile
+    let startX = 0
+    let isDragging = false
+    
+    const carousel = this.$refs.carousel
+    if (carousel) {
+      carousel.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].clientX
+        isDragging = true
+      })
+      
+      carousel.addEventListener('touchmove', (e) => {
+        if (!isDragging) return
+        e.preventDefault()
+      })
+      
+      carousel.addEventListener('touchend', (e) => {
+        if (!isDragging) return
+        isDragging = false
+        
+        const endX = e.changedTouches[0].clientX
+        const diff = startX - endX
+        
+        if (Math.abs(diff) > 50) {
+          if (diff > 0) {
+            this.nextSlide()
+          } else {
+            this.prevSlide()
+          }
+        }
+      })
+    }
+  },
+  beforeUnmount() {
+    window.removeEventListener('resize', this.handleResize)
   }
 }
 </script>
