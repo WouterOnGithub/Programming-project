@@ -7,6 +7,11 @@ import LoginPage from '../pages/User/LoginPage.vue'
 import RegisterPage from '../pages/User/RegisterPage.vue'
 import Dashboard from '../pages/User/Dashboard.vue'
 import StudentDetail from '../pages/admin/Students/StudentDetail.vue'
+
+import StProfielWijzigen from '../pages/User/Student/StProfielWijzigen.vue'
+// Adminroutes van jou
+import adminRoutes from './admin-routes.js'
+
 import BedrijfProfielInvoeren from '../pages/User/Bedrijf/BedrijfInvoeren.vue'
 import BedrijfDashboard from '../pages/User/Bedrijf/BedrijfDashboard.vue'
 // Adminroutes van jou
@@ -16,6 +21,7 @@ import Swipe from '../pages/User/Swipe.vue'
 import Appointments from '../pages/User/Appointments.vue'
 
 
+
 const userRoutes = [
   { path: '/', name: 'Home', component: HomePage },
   { path: '/Stinvoer', name: 'Student', component: Stprofielinvoer },
@@ -23,11 +29,15 @@ const userRoutes = [
   { path: '/register', name: 'Register', component: RegisterPage },
   { path: '/dashboard', name: 'Dashboard', component: Dashboard },
   { path: '/student/:id', name: 'StudentDetail', component: StudentDetail },
+
+  { path: '/WijzigenSt', name: 'WijzigenSt', component: StProfielWijzigen }
+
   { path: '/InvoerenBd', name: 'InvoerenBd', component: BedrijfProfielInvoeren },
   { path: '/BedrijfDashboard', name: 'BedrijfDashboard', component: BedrijfDashboard },
   // Toevoegen:
   { path: '/swipe', name: 'Swipe', component: Swipe },
   { path: '/appointments', name: 'Appointments', component: Appointments }
+
 ]
  
 // Combineer alles in één routerconfig
