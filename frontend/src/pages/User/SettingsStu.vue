@@ -54,7 +54,7 @@
       </header>
 
       <section class="dashboard-2col">
-        <!-- Wachtwoord wijzigen -->
+        <!-- Kaart: Wachtwoord wijzigen -->
         <div class="dashboard-card">
           <div class="dashboard-card-header">
             <h3>Wachtwoord wijzigen</h3>
@@ -72,12 +72,13 @@
             placeholder="Nieuw wachtwoord"
             class="setting-input"
           />
+          <p v-if="passwordError" class="text-error">{{ passwordError }}</p>
           <button class="dashboard-action-btn bg-primary text-white" @click="changePassword">
             <i class="fas fa-save"></i> Wijzig wachtwoord
           </button>
         </div>
 
-        <!-- Account verwijderen -->
+        <!-- Kaart: Account verwijderen -->
         <div class="dashboard-card">
           <div class="dashboard-card-header">
             <h3>Account</h3>
@@ -88,7 +89,7 @@
           </button>
         </div>
 
-        <!-- Uitloggen -->
+        <!-- Kaart: Uitloggen -->
         <div class="dashboard-card">
           <div class="dashboard-card-header">
             <h3>Uitloggen</h3>
@@ -112,7 +113,7 @@ import {
   signOut,
   deleteUser,
   EmailAuthProvider,
-  reauthenticateWithCredential,
+  reauthenticateWithCredential
 } from 'firebase/auth';
 
 export default {
@@ -122,6 +123,7 @@ export default {
       currentPassword: '',
       newPassword: '',
       message: '',
+      passwordError: '',
       userData: {},
       navigation: [
         { name: 'Dashboard', href: '/dashboard', icon: 'fas fa-chart-pie' },
@@ -134,12 +136,23 @@ export default {
   },
   methods: {
     async changePassword() {
+      this.passwordError = '';
       try {
         const auth = getAuth();
         const user = auth.currentUser;
 
         if (!user || !user.email) {
-          this.message = 'Je bent niet correct ingelogd of e-mailadres ontbreekt.';
+          this.passwordError = 'Er is iets misgegaan met je account. Probeer opnieuw in te loggen.';
+          return;
+        }
+
+        if (user.providerData[0]?.providerId === 'google.com') {
+          this.passwordError = 'Je kan je wachtwoord niet wijzigen als je met Google bent ingelogd.';
+          return;
+        }
+
+        if (!this.currentPassword || !this.newPassword) {
+          this.passwordError = 'Vul zowel je huidige als nieuwe wachtwoord in.';
           return;
         }
 
@@ -148,14 +161,18 @@ export default {
         await reauthenticateWithCredential(user, credential);
         await updatePassword(user, this.newPassword);
 
-        this.message = 'Wachtwoord succesvol gewijzigd.';
         this.currentPassword = '';
         this.newPassword = '';
+        alert('Je wachtwoord is gewijzigd.');
       } catch (error) {
         if (error.code === 'auth/invalid-credential') {
-          this.message = 'Huidig wachtwoord is incorrect.';
+          this.passwordError = 'Het huidige wachtwoord klopt niet.';
+        } else if (error.code === 'auth/too-many-requests') {
+          this.passwordError = 'Te veel pogingen. Wacht even en probeer opnieuw.';
+        } else if (error.code === 'auth/weak-password') {
+          this.passwordError = 'Je nieuwe wachtwoord is te zwak.';
         } else {
-          this.message = 'Fout bij wijzigen wachtwoord: ' + error.message;
+          this.passwordError = 'Er is een fout opgetreden. Probeer het opnieuw.';
         }
       }
     },
@@ -167,7 +184,7 @@ export default {
         await deleteUser(user);
         this.$router.push('/login');
       } catch (error) {
-        this.message = 'Fout bij verwijderen account: ' + error.message;
+        this.message = 'Fout bij verwijderen account. Probeer opnieuw.';
       }
     },
     async logout() {
@@ -179,6 +196,7 @@ export default {
   }
 };
 </script>
+
 
 <style scoped>
 .dashboard-container {
@@ -604,6 +622,50 @@ export default {
 }
 .popup-button:hover {
   background: #a80000; 
+}
+
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+.popup-box {
+  background: white;
+  padding: 2rem;
+  border-radius: 0.5rem;
+  text-align: center;
+  max-width: 300px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+.popup-box p {
+  margin-bottom: 1rem;
+  font-size: 1rem;
+  font-weight: 500;
+}
+.popup-ok-button {
+  background-color: #c20000;
+  color: white;
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: 0.4rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+.popup-ok-button:hover {
+  background-color: #a40000;
+}
+
+.text-error {
+  color: #dc2626; 
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
 }
 
 </style> 
