@@ -13,7 +13,6 @@ import Dashboard from '../pages/user/Dashboard.vue'
 import Swipe from '../pages/user/Swipe.vue'
 import Appointments from '../pages/user/Appointments.vue'
 import Profile from '../pages/user/Profile.vue'
-import Settings from '../pages/user/Settings.vue'
 import StProfielInvoerenNew from '../pages/User/Student/StProfielInvoerenNew.vue'
 import StudentDetail from '../pages/admin/Students/StudentDetail.vue'
 import BedrijfProfielWijzigen from '../pages/User/Bedrijf/BedrijfProfielWijzigen.vue'
@@ -25,7 +24,8 @@ import StProfielFavorieten from '../pages/User/Student/StProfielFavorieten.vue'
 import StProfielWijzigen from '../pages/User/Student/StProfielWijzigen.vue'
 import BedrijfProfielInvoeren from '../pages/User/Bedrijf/BedrijfInvoeren.vue'
 import BedrijfDashboard from '../pages/User/Bedrijf/BedrijfDashboard.vue'
-
+import SettingsStu from '../pages/User/SettingsStu.vue'
+import SettingsBe from '../pages/User/Bedrijf/SettingsBe.vue'
 
 
 const userRoutes = [
@@ -47,7 +47,8 @@ const userRoutes = [
   { path: '/swipe', name: 'Swipe', component: Swipe },
   { path: '/appointments', name: 'Appointments', component: Appointments },
   { path: '/profile', name: 'Profile', component: Profile },
-  { path: '/settings', name: 'Settings', component: Settings },
+  { path: '/SettingsStu', name: 'SettingsStu', component: SettingsStu },
+  { path: '/SettingsBe', name: 'SettingsBe', component: SettingsBe },
   { path: '/InvoerenSt', name: 'InvoerenSt', component: StProfielInvoerenNew },
 ]
 

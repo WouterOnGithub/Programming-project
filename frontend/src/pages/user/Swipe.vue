@@ -123,7 +123,7 @@ const navigation = [
   { name: 'Job Swiping', href: '/swipe', icon: 'fas fa-heart' },
   { name: 'Afspraken', href: '/appointments', icon: 'fas fa-calendar' },
   { name: 'Profiel', href: '/profile', icon: 'fas fa-user' },
-  { name: 'Instellingen', href: '/settings', icon: 'fas fa-cog' },
+  { name: 'Instellingen', href: '/SettingsStu', icon: 'fas fa-cog' },
 ];
 const userData = ref({ name: 'imad' }); // Dummy data, vervang door echte user info indien nodig
 
