@@ -1,6 +1,23 @@
 import { createRouter, createWebHistory } from 'vue-router'
  
 // Gebruikersroutes van je team
+
+import HomePage from '../pages/user/HomePage.vue'
+import Stprofielinvoer from '../pages/user/Stprofielinvoer.vue'
+// import ContactPage from '../pages/user/ContactPage.vue'
+// import SocialMedia from '../pages/user/SocialMedia.vue'
+import LoginPage from '../pages/user/LoginPage.vue'
+import RegisterPage from '../pages/user/RegisterPage.vue'
+import Dashboard from '../pages/user/Dashboard.vue'
+import Swipe from '../pages/user/Swipe.vue'
+import Appointments from '../pages/user/Appointments.vue'
+import Profile from '../pages/user/Profile.vue'
+import Settings from '../pages/user/Settings.vue'
+import StProfielInvoerenNew from '../pages/User/Student/StProfielInvoerenNew.vue'
+// Adminroutes van jou
+import adminRoutes from './admin-routes.js'
+StProfielInvoerenNew
+
 import HomePage from '../pages/User/HomePage.vue'
 import Stprofielinvoer from '../pages/User/Stprofielinvoer.vue'
 import LoginPage from '../pages/User/LoginPage.vue'
@@ -29,6 +46,7 @@ import Appointments from '../pages/User/Appointments.vue'
 
 
 
+
 const userRoutes = [
   { path: '/', name: 'Home', component: HomePage },
   { path: '/Stinvoer', name: 'Student', component: Stprofielinvoer },
@@ -46,7 +64,15 @@ const userRoutes = [
   { path: '/BedrijfDashboard', name: 'BedrijfDashboard', component: BedrijfDashboard },
   // Toevoegen:
   { path: '/swipe', name: 'Swipe', component: Swipe },
+
+  { path: '/appointments', name: 'Appointments', component: Appointments },
+  { path: '/profile', name: 'Profile', component: Profile },
+  { path: '/settings', name: 'Settings', component: Settings },
+  { path: '/InvoerenSt', name: 'InvoerenSt', component: StProfielInvoerenNew }
+]
+
   { path: '/appointments', name: 'Appointments', component: Appointments }
+
 
 
 ]
