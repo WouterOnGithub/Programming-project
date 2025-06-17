@@ -74,6 +74,12 @@ const adminRoutes = [
         props: true
       },
       {
+        path: 'companies/:id',
+        name: 'AdminCompanyDetail',
+        component: () => import('../pages/admin/Companies/CompanyDetail.vue'),
+        props: true
+      },
+      {
         path: 'grondplan',
         name: 'AdminGrondplan',
         component: () => import('../pages/admin/Grondplan/GrondplanList.vue')

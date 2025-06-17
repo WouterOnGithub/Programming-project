@@ -345,6 +345,7 @@ export default {
     }
   },
   methods: {
+<<<<<<< Updated upstream
     async loadStudent() {
       const docSnap = await getDoc(doc(db, 'student', this.id))
       if (docSnap.exists()) {
@@ -357,6 +358,10 @@ export default {
         alert('Student niet gevonden!');
         this.$router.push('/admin/students');
       }
+=======
+    loadStudent() {
+      // Hier straks Firebase ophalen
+>>>>>>> Stashed changes
     },
    
     handlePhotoUpload(event) {
