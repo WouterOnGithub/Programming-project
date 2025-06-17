@@ -7,17 +7,18 @@ import LoginPage from '../pages/User/LoginPage.vue'
 import RegisterPage from '../pages/User/RegisterPage.vue'
 import Dashboard from '../pages/User/Dashboard.vue'
 import StudentDetail from '../pages/admin/Students/StudentDetail.vue'
- 
+import BedrijfProfielGesprekken from '../pages/User/Bedrijf/BedrijfProfielGesprekken.vue'
 // Adminroutes van jou
 import adminRoutes from './admin-routes.js'
- 
+
 const userRoutes = [
   { path: '/', name: 'Home', component: HomePage },
   { path: '/Stinvoer', name: 'Student', component: Stprofielinvoer },
   { path: '/login', name: 'Login', component: LoginPage },
   { path: '/register', name: 'Register', component: RegisterPage },
   { path: '/dashboard', name: 'Dashboard', component: Dashboard },
-  { path: '/student/:id', name: 'StudentDetail', component: StudentDetail }
+  { path: '/student/:id', name: 'StudentDetail', component: StudentDetail },
+  { path: '/GesprekkenBd', name: 'GesprekkenBd', component: BedrijfProfielGesprekken }
 ]
  
 // Combineer alles in één routerconfig
