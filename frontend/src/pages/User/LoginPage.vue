@@ -1,24 +1,21 @@
 <script setup>
-import { reactive, ref } from 'vue';
-import { auth, db } from '../../firebase/config';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
-import { useRouter } from 'vue-router';
+import { ref } from 'vue'
+import { auth } from '../../firebase/config'
+import { signInWithEmailAndPassword } from 'firebase/auth'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from '../../firebase/config'
+import { useRouter } from 'vue-router'
 import '../../css/login.css'
 import Navbar from '../../components/Navbar.vue'
 
-
-// Simpele form state
+// Form state
 const selectedRole = ref('student')
 const email = ref('')
 const password = ref('')
-const name = ref('')
-const companyName = ref('')
-
-// Simpele validatie
 const error = ref('')
+const successMessage = ref('')
 
-const router = useRouter();
+const router = useRouter()
 
 const isStudent = () => selectedRole.value === 'student'
 const isBedrijf = () => selectedRole.value === 'bedrijf'
@@ -32,71 +29,70 @@ const selectRole = (role) => {
 const clearForm = () => {
   email.value = ''
   password.value = ''
-  name.value = ''
-  companyName.value = ''
   error.value = ''
+}
+
+const showSuccessToast = (message) => {
+  successMessage.value = message
+  setTimeout(() => {
+    successMessage.value = ''
+  }, 3000)
 }
 
 const handleLogin = async () => {
   error.value = ''
 
-  // Basis validatie
   if (!email.value || !password.value) {
     error.value = 'Vul alle velden in'
     return
   }
 
-  if (isStudent() && !name.value) {
-    error.value = 'Vul uw naam in'
-    return
-  }
-
-  if (isBedrijf() && !companyName.value) {
-    error.value = 'Vul uw bedrijfsnaam in'
-    return
-  }
-
   try {
-    const userCredential = await signInWithEmailAndPassword(auth, email.value, password.value);
-    const user = userCredential.user;
-    
-    // Check if user is admin
+    const userCredential = await signInWithEmailAndPassword(auth, email.value, password.value)
+    const user = userCredential.user
+
     if (isAdmin()) {
-      const userDoc = await getDoc(doc(db, 'admin', user.uid));
-      console.log('Admin doc exists:', userDoc.exists(), 'UID:', user.uid);
+      const userDoc = await getDoc(doc(db, 'admin', user.uid))
       if (userDoc.exists()) {
-        router.push('/admin/dashboard');
-        return;
+        showSuccessToast('U bent succesvol ingelogd als admin!')
+        setTimeout(() => {
+          router.push('/admin/dashboard')
+        }, 1000)
       } else {
-        error.value = 'Geen admin rechten';
-        await auth.signOut();
-        return;
+        error.value = 'Geen admin rechten'
+        await auth.signOut()
       }
+      return
     }
 
-    let welcomeName = ''
     if (isStudent()) {
-      welcomeName = name.value;
-      alert(`Welkom ${welcomeName}!`);
-      router.push('/dashboard');
+      showSuccessToast('U bent succesvol ingelogd als student!')
+      setTimeout(() => {
+        router.push('/dashboard')
+      }, 1000)
     } else if (isBedrijf()) {
-      welcomeName = companyName.value;
-      alert(`Welkom ${welcomeName}!`);
-      router.push('/BedrijfDashboard');
+      showSuccessToast('U bent succesvol ingelogd als bedrijf!')
+      setTimeout(() => {
+        router.push('/BedrijfDashboard')
+      }, 1000)
     }
   } catch (e) {
-    error.value = e.message;
+    error.value = e.message
   }
 }
 
 const goToRegister = () => {
-  window.location.href = '/register';
+  window.location.href = '/register'
 }
 </script>
 
-
 <template>
-<Navbar />
+  <Navbar />
+
+  <!-- Custom toast rechtsboven -->
+  <div v-if="successMessage" class="floating-toast">
+    {{ successMessage }}
+  </div>
 
   <div class="login-page">
     <div class="login-card">
@@ -130,19 +126,6 @@ const goToRegister = () => {
           {{ error }}
         </div>
 
-        <!-- Student velden -->
-        <div v-if="isStudent()">
-          <label>Naam:</label>
-          <input v-model="name" type="text" placeholder="Uw volledige naam" />
-        </div>
-
-        <!-- Bedrijf velden -->
-        <div v-if="isBedrijf()">
-          <label>Bedrijfsnaam:</label>
-          <input v-model="companyName" type="text" placeholder="Uw bedrijfsnaam" />
-        </div>
-
-        <!-- Algemene velden -->
         <div>
           <label>Email:</label>
           <input v-model="email" type="email" placeholder="uw@email.com" />
@@ -161,8 +144,11 @@ const goToRegister = () => {
       <!-- Footer -->
       <div class="footer">
         <p>Nog geen account?</p>
-        <router-link to="/register"> <button @click="goToRegister" class="register-btn"> Account aanmaken </button> </router-link>
+        <router-link to="/register">
+          <button @click="goToRegister" class="register-btn">Account aanmaken</button>
+        </router-link>
       </div>
     </div>
   </div>
 </template>
+
