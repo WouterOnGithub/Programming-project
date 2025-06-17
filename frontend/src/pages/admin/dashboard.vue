@@ -590,24 +590,17 @@ export default {
   transition: all 0.2s ease;
 }
 
-.action-button.primary {
-  background: #007bff;
-  color: white;
-}
-
-.action-button.primary:hover {
-  background: #0056b3;
-  transform: translateY(-1px);
-}
-
+.action-button.primary,
 .action-button.secondary {
   background: #f8f9fa;
   color: #495057;
   border: 1px solid #e9ecef;
 }
 
+.action-button.primary:hover,
 .action-button.secondary:hover {
-  background: #e9ecef;
+  background: #007bff;
+  color: white;
   transform: translateY(-1px);
 }
 
