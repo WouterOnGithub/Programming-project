@@ -12,10 +12,10 @@ import Swipe from '../pages/user/Swipe.vue'
 import Appointments from '../pages/user/Appointments.vue'
 import Profile from '../pages/user/Profile.vue'
 import Settings from '../pages/user/Settings.vue'
-
+import StProfielInvoerenNew from '../pages/User/Student/StProfielInvoerenNew.vue'
 // Adminroutes van jou
 import adminRoutes from './admin-routes.js'
-
+StProfielInvoerenNew
 const userRoutes = [
   { path: '/', name: 'Home', component: HomePage },
   { path: '/Stinvoer', name: 'Student', component: Stprofielinvoer },
@@ -27,7 +27,8 @@ const userRoutes = [
   { path: '/swipe', name: 'Swipe', component: Swipe },
   { path: '/appointments', name: 'Appointments', component: Appointments },
   { path: '/profile', name: 'Profile', component: Profile },
-  { path: '/settings', name: 'Settings', component: Settings }
+  { path: '/settings', name: 'Settings', component: Settings },
+  { path: '/InvoerenSt', name: 'InvoerenSt', component: StProfielInvoerenNew }
 ]
 
 // Combineer alles in één routerconfig
