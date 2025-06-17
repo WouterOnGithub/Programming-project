@@ -103,7 +103,7 @@ export default {
         const companyId = route.params.id
         const docSnap = await getDoc(doc(db, 'bedrijf', companyId))
         if (docSnap.exists()) {
-          company.value = docSnap.data()
+          company.value = { id: docSnap.id, ...docSnap.data() }
         } else {
           throw new Error('Bedrijf niet gevonden')
         }

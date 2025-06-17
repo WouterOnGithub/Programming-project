@@ -1,5 +1,6 @@
 import { auth, db } from '../firebase/config';
 import { doc, getDoc } from 'firebase/firestore';
+import { useRouter } from 'vue-router';
  
 const adminRoutes = [
   {
