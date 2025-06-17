@@ -74,7 +74,12 @@
                 </div>
               </div>
               <div class="company-details">
-                <router-link :to="`/admin/companies/${company.id}`" class="company-name">
+                <router-link 
+                  :to="`/admin/companies/${company.id}`"
+                  class="company-name"
+                  :class="{ 'active-link': lastClickedCompanyId === company.id }"
+                  @click.native="handleCompanyClick(company.id)"
+                >
                   {{ company.bedrijfsnaam || 'Onbekend' }}
                 </router-link>
                 <p class="company-email">{{ company.email || 'Onbekend' }}</p>
@@ -135,7 +140,8 @@ export default {
       filterIndustry: '',
       filterSize: '',
       companies: [],
-      unsubscribe: null
+      unsubscribe: null,
+      lastClickedCompanyId: localStorage.getItem('lastClickedCompanyId') || null
     }
   },
   mounted() {
@@ -187,6 +193,10 @@ export default {
     },
     viewCompany(companyId) {
       this.$router.push(`/admin/companies/${companyId}`);
+    },
+    handleCompanyClick(id) {
+      this.lastClickedCompanyId = id
+      localStorage.setItem('lastClickedCompanyId', id)
     }
   }
 }
@@ -370,9 +380,23 @@ export default {
 }
 
 .company-name {
+  color: inherit;
+  text-decoration: none;
   font-weight: 600;
-  color: #1a1a1a;
-  margin: 0 0 4px 0;
+  transition: color 0.2s;
+}
+
+.company-name.active-link {
+  color: #7c3aed;
+  font-weight: 700;
+  background: none;
+  border-radius: 0;
+  padding: 0;
+}
+
+.company-name:hover {
+  color: #1976d2;
+  text-decoration: none;
 }
 
 .company-email {

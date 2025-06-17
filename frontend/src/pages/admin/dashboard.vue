@@ -8,37 +8,37 @@
 
     <!-- Stats Cards -->
     <div class="stats-grid">
-      <div class="stat-card">
+      <router-link to="/admin/students" class="stat-card" style="text-decoration: none; color: inherit;">
         <div class="stat-icon students">👥</div>
         <div class="stat-content">
           <h3 class="stat-number">{{ stats.totalStudents }}</h3>
           <p class="stat-label">Totaal Studenten</p>
         </div>
-      </div>
+      </router-link>
 
-      <div class="stat-card">
+      <router-link to="/admin/companies" class="stat-card" style="text-decoration: none; color: inherit;">
         <div class="stat-icon companies">🏢</div>
         <div class="stat-content">
           <h3 class="stat-number">{{ stats.totalCompanies }}</h3>
           <p class="stat-label">Totaal bedrijven</p>
         </div>
-      </div>
+      </router-link>
 
-      <div class="stat-card">
+      <router-link to="/admin/matches" class="stat-card" style="text-decoration: none; color: inherit;">
         <div class="stat-icon matches">💫</div>
         <div class="stat-content">
           <h3 class="stat-number">{{ stats.totalMatches }}</h3>
           <p class="stat-label">Totaal Matches</p>
         </div>
-      </div>
+      </router-link>
 
-      <div class="stat-card">
+      <router-link to="/admin/appointments" class="stat-card" style="text-decoration: none; color: inherit;">
         <div class="stat-icon appointments">📅</div>
         <div class="stat-content">
           <h3 class="stat-number">{{ stats.totalAppointments }}</h3>
           <p class="stat-label">Totaal Afspraken</p>
         </div>
-      </div>
+      </router-link>
     </div>  
 
 
