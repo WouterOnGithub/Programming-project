@@ -445,58 +445,7 @@ export default {
   justify-content: space-between;
   margin-bottom: 1rem;
 }
-.dashboard-appointments .appointment-row {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  background: #f3f4f6;
-  border-radius: 0.5rem;
-  padding: 1rem;
-  margin-bottom: 0.7rem;
-}
-.appointment-icon {
-  width: 3rem;
-  height: 3rem;
-  background: #c20000;
-  color: #fff;
-  border-radius: 0.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.3rem;
-}
-.appointment-info h4 {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #111827;
-  margin-bottom: 0.2rem;
-}
-.appointment-info p {
-  color: #6b7280;
-  font-size: 0.9rem;
-  margin-bottom: 0.2rem;
-}
-.appointment-meta {
-  display: flex;
-  gap: 1.2rem;
-  font-size: 0.85rem;
-  color: #6b7280;
-}
-.appointment-status {
-  padding: 0.3rem 0.8rem;
-  border-radius: 999px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  text-align: center;
-}
-.appointment-status.confirmed {
-  background: #dcfce7;
-  color: #166534;
-}
-.appointment-status.pending {
-  background: #fef9c3;
-  color: #854d0e;
-}
+
 .dashboard-activity .activity-row {
   display: flex;
   align-items: center;
@@ -535,10 +484,14 @@ export default {
   }
 }
 .dashboard-action-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 0.7rem;
-  padding: 1rem;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  height: 3rem;
+  width: 100%;
+  text-align: center;
   border-radius: 0.5rem;
   font-weight: 500;
   font-size: 1rem;
@@ -548,9 +501,18 @@ export default {
   color: #374151;
   transition: background 0.2s, color 0.2s;
 }
+
+.dashboard-action-btn i {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
 .dashboard-action-btn.bg-primary {
   background: #c20000;
   color: #fff;
+  margin-top: 1.5rem;;
 }
 .dashboard-action-btn.bg-accent {
   background: #f3f4f6;
@@ -666,6 +628,24 @@ export default {
   color: #dc2626; 
   font-size: 0.875rem;
   margin-top: 0.5rem;
+}
+
+.setting-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  color: #111827;
+  background-color: #f9fafb;
+  transition: border-color 0.2s;
+}
+
+.setting-input:focus {
+  outline: none;
+  border-color: #c20000;
+  background-color: #fff;
 }
 
 </style> 
