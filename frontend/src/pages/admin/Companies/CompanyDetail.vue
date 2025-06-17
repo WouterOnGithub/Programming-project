@@ -6,6 +6,10 @@
         <p class="page-subtitle">Gedetailleerde informatie over het bedrijf</p>
       </div>
       <div class="header-actions">
+        <router-link to="/admin/companies" class="btn btn-secondary">
+          <span class="btn-icon">←</span>
+          Terug naar lijst
+        </router-link>
         <router-link v-if="company" :to="'/admin/companies/' + company.id + '/edit'" class="btn btn-primary">
           <span class="btn-icon">✏️</span>
           Bewerken
@@ -162,6 +166,11 @@ export default {
   font-size: 1.1rem;
 }
 
+.header-actions {
+  display: flex;
+  gap: 20px;
+}
+
 .btn {
   display: inline-flex;
   align-items: center;
@@ -183,12 +192,13 @@ export default {
 }
 
 .btn-secondary {
-  background-color: #f3f4f6;
-  color: #374151;
+  background-color: #6c757d;
+  color: #fff;
+  border: none;
 }
 
 .btn-secondary:hover {
-  background-color: #e5e7eb;
+  background-color: #495057;
 }
 
 .btn-icon {

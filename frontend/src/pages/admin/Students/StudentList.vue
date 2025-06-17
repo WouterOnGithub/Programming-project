@@ -72,7 +72,15 @@
                 </div>
               </div>
               <div class="student-details">
-                <h4 class="student-name">{{ student.firstName }} {{ student.lastName }}</h4>
+                <h4 class="student-name">
+                  <router-link
+                    :to="`/admin/students/${student.id}`"
+                    :class="{ 'active-link': lastClickedStudentId === student.id }"
+                    @click.native="handleStudentClick(student.id)"
+                  >
+                    {{ student.firstName }} {{ student.lastName }}
+                  </router-link>
+                </h4>
                 <p class="student-email">{{ student.email }}</p>
               </div>
             </td>
@@ -82,7 +90,7 @@
             </td>
             <td>{{ student.domain }}</td>
             <td>
-              <span :class="['opportunity-badge', student.opportunity.toLowerCase().replace(' ', '-')]">
+              <span :class="['opportunity-badge', student.opportunity ? student.opportunity.toLowerCase().replace(' ', '-') : '']">
                 {{ student.opportunity }}
               </span>
             </td>
@@ -135,7 +143,8 @@ export default {
       searchQuery: '',
       filterStudyYear: '',
       filterOpportunity: '',
-      students: []
+      students: [],
+      lastClickedStudentId: localStorage.getItem('lastClickedStudentId') || null
     }
   },
   async mounted() {
@@ -156,6 +165,10 @@ export default {
         await deleteDoc(doc(db, 'student', id))
         this.students = this.students.filter(s => s.id !== id)
       }
+    },
+    handleStudentClick(id) {
+      this.lastClickedStudentId = id
+      localStorage.setItem('lastClickedStudentId', id)
     }
   },
   computed: {
@@ -350,6 +363,26 @@ export default {
   font-weight: 600;
   color: #1a1a1a;
   margin: 0 0 4px 0;
+}
+
+.student-name a {
+  color: inherit;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s;
+}
+
+.student-name a.active-link {
+  color: #7c3aed;
+  font-weight: 700;
+  background: none;
+  border-radius: 0;
+  padding: 0;
+}
+
+.student-name a:hover {
+  color: #1976d2;
+  text-decoration: none;
 }
 
 .student-email {
