@@ -130,7 +130,7 @@ export default {
         { name: 'Job Swiping', href: '/swipe', icon: 'fas fa-heart' },
         { name: 'Afspraken', href: '/appointments', icon: 'fas fa-calendar' },
         { name: 'Profiel', href: '/profile', icon: 'fas fa-user' },
-        { name: 'Instellingen', href: '/instellingen-student', icon: 'fas fa-cog' }
+        { name: 'Instellingen', href: '/SettingsStu', icon: 'fas fa-cog' }
       ]
     };
   },
@@ -177,24 +177,37 @@ export default {
       }
     },
     async deleteAccount() {
-      if (!confirm('Weet je zeker dat je je account wilt verwijderen?')) return;
-      try {
-        const auth = getAuth();
-        const user = auth.currentUser;
-        await deleteUser(user);
-        this.$router.push('/login');
-      } catch (error) {
-        this.message = 'Fout bij verwijderen account. Probeer opnieuw.';
-      }
-    },
-    async logout() {
-      if (!confirm('Weet je zeker dat je wilt uitloggen?')) return;
-      const auth = getAuth();
-      await signOut(auth);
-      this.$router.push('/login');
+  if (!confirm('Weet je zeker dat je je account wilt verwijderen?')) return;
+
+  const auth = getAuth();
+  const user = auth.currentUser;
+
+  if (!user) {
+    this.message = 'Je bent niet ingelogd. Log opnieuw in en probeer het opnieuw.';
+    return;
+  }
+
+  if (user.providerData[0]?.providerId === 'google.com') {
+    this.message = 'Je kan je account niet verwijderen als je bent ingelogd via Google.';
+    return;
+  }
+
+  try {
+    await deleteUser(user);
+    await auth.signOut(); 
+    this.$router.push('/login'); 
+  } catch (error) {
+    console.error('Fout bij verwijderen account:', error);
+    if (error.code === 'auth/requires-recent-login') {
+      this.message = 'Log opnieuw in om je account te kunnen verwijderen.';
+    } else {
+      this.message = 'Fout bij verwijderen account. Probeer opnieuw.';
     }
   }
-};
+}
+  }
+}
+;
 </script>
 
 
