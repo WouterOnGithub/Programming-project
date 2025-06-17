@@ -12,7 +12,12 @@
         </div>
       </div>
       <nav class="sidebar-menu">
-        <router-link v-for="item in navigation" :key="item.name" :to="item.href" :class="['sidebar-link', $route.path === item.href ? 'active' : '']">
+        <router-link
+          v-for="item in navigation"
+          :key="item.name"
+          :to="item.href"
+          :class="['sidebar-link', $route.path === item.href ? 'active' : '']"
+        >
           <i :class="item.icon"></i>
           {{ item.name }}
         </router-link>
@@ -49,20 +54,30 @@
       </header>
 
       <section class="dashboard-2col">
-        <!-- Kaart: Wachtwoord wijzigen -->
+        <!-- Wachtwoord wijzigen -->
         <div class="dashboard-card">
           <div class="dashboard-card-header">
             <h3>Wachtwoord wijzigen</h3>
             <i class="fas fa-key"></i>
           </div>
-          <input type="password" v-model="currentPassword" placeholder="Huidig wachtwoord" class="setting-input" />
-          <input type="password" v-model="newPassword" placeholder="Nieuw wachtwoord" class="setting-input" />
+          <input
+            type="password"
+            v-model="currentPassword"
+            placeholder="Huidig wachtwoord"
+            class="setting-input"
+          />
+          <input
+            type="password"
+            v-model="newPassword"
+            placeholder="Nieuw wachtwoord"
+            class="setting-input"
+          />
           <button class="dashboard-action-btn bg-primary text-white" @click="changePassword">
             <i class="fas fa-save"></i> Wijzig wachtwoord
           </button>
         </div>
 
-        <!-- Kaart: Account verwijderen -->
+        <!-- Account verwijderen -->
         <div class="dashboard-card">
           <div class="dashboard-card-header">
             <h3>Account</h3>
@@ -73,7 +88,7 @@
           </button>
         </div>
 
-        <!-- Kaart: Uitloggen -->
+        <!-- Uitloggen -->
         <div class="dashboard-card">
           <div class="dashboard-card-header">
             <h3>Uitloggen</h3>
@@ -91,15 +106,22 @@
 </template>
 
 <script>
-import { getAuth, updatePassword, signOut, deleteUser, EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
+import {
+  getAuth,
+  updatePassword,
+  signOut,
+  deleteUser,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+} from 'firebase/auth';
 
 export default {
-  name: "InstellingenStu",
+  name: 'InstellingenStu',
   data() {
     return {
-      currentPassword: "",
-      newPassword: "",
-      message: "",
+      currentPassword: '',
+      newPassword: '',
+      message: '',
       userData: {},
       navigation: [
         { name: 'Dashboard', href: '/dashboard', icon: 'fas fa-chart-pie' },
@@ -112,51 +134,51 @@ export default {
   },
   methods: {
     async changePassword() {
-  try {
-    const auth = getAuth();
-    const user = auth.currentUser;
+      try {
+        const auth = getAuth();
+        const user = auth.currentUser;
 
-    if (!user || !user.email) {
-      this.message = "Je bent niet correct ingelogd of e-mailadres ontbreekt.";
-      return;
-    }
+        if (!user || !user.email) {
+          this.message = 'Je bent niet correct ingelogd of e-mailadres ontbreekt.';
+          return;
+        }
 
-    const credential = EmailAuthProvider.credential(user.email, this.currentPassword);
+        const credential = EmailAuthProvider.credential(user.email, this.currentPassword);
 
-    await reauthenticateWithCredential(user, credential);
-    await updatePassword(user, this.newPassword);
+        await reauthenticateWithCredential(user, credential);
+        await updatePassword(user, this.newPassword);
 
-    this.message = "Wachtwoord succesvol gewijzigd.";
-    this.currentPassword = "";
-    this.newPassword = "";
-  } catch (error) {
-    if (error.code === "auth/invalid-credential") {
-      this.message = "Huidig wachtwoord is incorrect.";
-    } else {
-      this.message = "Fout bij wijzigen wachtwoord: " + error.message;
-    }
-  }
-},
+        this.message = 'Wachtwoord succesvol gewijzigd.';
+        this.currentPassword = '';
+        this.newPassword = '';
+      } catch (error) {
+        if (error.code === 'auth/invalid-credential') {
+          this.message = 'Huidig wachtwoord is incorrect.';
+        } else {
+          this.message = 'Fout bij wijzigen wachtwoord: ' + error.message;
+        }
+      }
+    },
     async deleteAccount() {
-      if (!confirm("Weet je zeker dat je je account wilt verwijderen?")) return;
+      if (!confirm('Weet je zeker dat je je account wilt verwijderen?')) return;
       try {
         const auth = getAuth();
         const user = auth.currentUser;
         await deleteUser(user);
-        this.$router.push("/login");
+        this.$router.push('/login');
       } catch (error) {
-        this.message = "Fout bij verwijderen account: " + error.message;
+        this.message = 'Fout bij verwijderen account: ' + error.message;
       }
     },
     async logout() {
+      if (!confirm('Weet je zeker dat je wilt uitloggen?')) return;
       const auth = getAuth();
       await signOut(auth);
-      this.$router.push("/login");
+      this.$router.push('/login');
     }
   }
 };
 </script>
-
 
 <style scoped>
 .dashboard-container {
@@ -549,4 +571,39 @@ export default {
   font-size: 0.85rem;
   padding: 1rem;
 }
+
+.popup-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+.popup-content {
+  background: #fff;
+  padding: 2rem;
+  border-radius: 1rem;
+  max-width: 90%;
+  width: 320px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+  text-align: center;
+}
+.popup-button {
+  margin-top: 1rem;
+  background: #c20000; 
+  color: #fff;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+.popup-button:hover {
+  background: #a80000; 
+}
+
 </style> 
