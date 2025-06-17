@@ -24,6 +24,7 @@ import StProfielWijzigen from '../pages/User/Student/StProfielWijzigen.vue'
 import BedrijfProfielInvoeren from '../pages/User/Bedrijf/BedrijfInvoeren.vue'
 import BedrijfDashboard from '../pages/User/Bedrijf/BedrijfDashboard.vue'
 import SettingsStu from '../pages/User/SettingsStu.vue'
+import SettingsBe from '../pages/User/Bedrijf/SettingsBe.vue'
 
 
 const userRoutes = [
@@ -45,6 +46,7 @@ const userRoutes = [
   { path: '/appointments', name: 'Appointments', component: Appointments },
   { path: '/profile', name: 'Profile', component: Profile },
   { path: '/SettingsStu', name: 'SettingsStu', component: SettingsStu },
+  { path: '/SettingsBe', name: 'SettingsBe', component: SettingsBe },
   { path: '/InvoerenSt', name: 'InvoerenSt', component: StProfielInvoerenNew },
 ]
 

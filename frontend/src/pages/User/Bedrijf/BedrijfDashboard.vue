@@ -158,6 +158,7 @@ const navigation = [
   { name: 'Favorieten', href: '/bedrijf/favorieten', icon: 'fas fa-envelope' },
   { name: 'Gesprekken', href: '/bedrijf/gesprekken', icon: 'fas fa-calendar' },
   { name: 'Profiel', href: '/bedrijf/profiel', icon: 'fas fa-user' },
+  { name: 'Instellingen', href: '/SettingsBe', icon: 'fas fa-cog' }
 ]
 
 const userData = ref({ companyName: 'Cronos' })

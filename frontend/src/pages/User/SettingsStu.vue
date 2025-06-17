@@ -176,10 +176,12 @@ export default {
         }
       }
     },
-    async deleteAccount() {
+
+async deleteAccount() {
   if (!confirm('Weet je zeker dat je je account wilt verwijderen?')) return;
 
   const auth = getAuth();
+  const db = getFirestore();
   const user = auth.currentUser;
 
   if (!user) {
@@ -193,9 +195,16 @@ export default {
   }
 
   try {
+    // Verwijder gebruiker uit Firestore
+    await deleteDoc(doc(db, 'student', user.uid));
+    // Verwijder Firebase Auth-account
     await deleteUser(user);
-    await auth.signOut(); 
-    this.$router.push('/login'); 
+
+    // Log automatisch uit (optioneel)
+    await auth.signOut();
+
+    // 🔁 Stuur naar loginpagina
+    this.$router.push('/login');
   } catch (error) {
     console.error('Fout bij verwijderen account:', error);
     if (error.code === 'auth/requires-recent-login') {
@@ -205,6 +214,7 @@ export default {
     }
   }
 }
+
   }
 }
 ;
