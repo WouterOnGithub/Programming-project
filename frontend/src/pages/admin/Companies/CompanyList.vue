@@ -322,6 +322,18 @@ export default {
   transition: background-color 0.2s ease;
 }
 
+.companies-table tr {
+  height: 56px;
+}
+
+.companies-table td.actions,
+.companies-table td.actions-cell {
+  vertical-align: middle;
+  padding-top: 0;
+  padding-bottom: 0;
+  height: 56px;
+}
+
 .company-row:hover {
   background-color: #f8f9fa;
 }

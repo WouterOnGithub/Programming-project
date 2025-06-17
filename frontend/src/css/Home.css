@@ -408,13 +408,24 @@ body, #app {
   margin-bottom: 2rem;
   color: #1a1a1a;
 }
- 
-.companies-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 2rem;
+
+/* Carousel Styles */
+.carousel-container {
+  position: relative;
+  overflow: hidden;
 }
- 
+
+.carousel-wrapper {
+  overflow: hidden;
+  margin: 0 60px;
+}
+
+.companies-carousel {
+  display: flex;
+  gap: 2rem;
+  transition: transform 0.3s ease;
+}
+
 .company-card {
   background: #f8fafc;
   padding: 2.5rem 2rem;
@@ -422,13 +433,15 @@ body, #app {
   text-align: center;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   border: 1px solid #e5e5e5;
+  flex: 0 0 calc(33.333% - 1.333rem);
+  min-width: 250px;
 }
- 
+
 .company-card:hover {
   transform: translateY(-5px);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 }
- 
+
 .company-logo {
   margin-bottom: 1.5rem;
   height: 80px;
@@ -436,7 +449,7 @@ body, #app {
   align-items: center;
   justify-content: center;
 }
- 
+
 .company-logo-img {
   max-width: 120px;
   max-height: 80px;
@@ -444,11 +457,127 @@ body, #app {
   height: auto;
   object-fit: contain;
 }
- 
+
 .company-name {
   font-weight: 600;
   color: #4a4a4a;
   font-size: 1.1rem;
+}
+
+/* Carousel Controls */
+.carousel-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: white;
+  border: 2px solid #e5e5e5;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 2;
+  color: #4a4a4a;
+}
+
+.carousel-btn:hover:not(:disabled) {
+  background: #DC2626;
+  border-color: #DC2626;
+  color: white;
+  transform: translateY(-50%) scale(1.1);
+}
+
+.carousel-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.carousel-btn-prev {
+  left: 0;
+}
+
+.carousel-btn-next {
+  right: 0;
+}
+
+/* Carousel Dots */
+.carousel-dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 2rem;
+}
+
+.carousel-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: none;
+  background: #e5e5e5;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.carousel-dot.active {
+  background: #DC2626;
+}
+
+.carousel-dot:hover {
+  background: #DC2626;
+  transform: scale(1.2);
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .company-card {
+    flex: 0 0 calc(50% - 1rem);
+  }
+  
+  .carousel-wrapper {
+    margin: 0 50px;
+  }
+  
+  .carousel-btn {
+    width: 45px;
+    height: 45px;
+  }
+}
+
+@media (max-width: 768px) {
+  .company-card {
+    flex: 0 0 80%;
+    min-width: 250px;
+  }
+  
+  .carousel-wrapper {
+    margin: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  
+  .carousel-wrapper::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .companies-carousel {
+    gap: 1rem;
+    transform: none !important;
+    padding: 0 1rem;
+  }
+  
+  .carousel-btn {
+    display: none;
+  }
+  
+  .carousel-dots {
+    display: none;
+  }
 }
  
 /* Footer */
@@ -619,4 +748,106 @@ body, #app {
   .companies-grid {
     grid-template-columns: 1fr;
   }
+}
+
+.carousel-search-bar {
+  display: flex;
+  align-items: center;
+  max-width: 350px;
+  margin: 0 auto 2rem auto;
+  position: relative;
+  background: #fff;
+  border-radius: 999px;
+  box-shadow: 0 2px 12px rgba(220,38,38,0.07);
+  padding: 0.5rem 1.25rem;
+}
+
+.carousel-search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 1.1rem;
+  padding: 0.5rem 0.5rem 0.5rem 0;
+  border-radius: 999px;
+  color: #1a1a1a;
+}
+
+.carousel-search-input::placeholder {
+  color: #bbb;
+  font-size: 1rem;
+}
+
+.carousel-search-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #DC2626;
+  margin-left: 0.5rem;
+}
+
+.toggle-companies-btn {
+  display: block;
+  margin: 0.5rem auto 2rem auto;
+  background: #fff;
+  color: #DC2626;
+  border: 2px solid #DC2626;
+  border-radius: 999px;
+  padding: 0.6rem 1.5rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border 0.2s;
+  box-shadow: 0 2px 8px rgba(220,38,38,0.06);
+}
+.toggle-companies-btn:hover {
+  background: #DC2626;
+  color: #fff;
+}
+
+.all-companies-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 2rem 1.2rem;
+  margin: 0 auto 2.5rem auto;
+  padding: 0 2vw;
+  max-width: 900px;
+}
+
+.all-companies-grid .company-card {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(220,38,38,0.06);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.7rem 0.2rem 0.7rem 0.2rem;
+  transition: box-shadow 0.2s;
+  margin-bottom: 0.5rem;
+  min-width: 0;
+}
+.all-companies-grid .company-card:hover {
+  box-shadow: 0 4px 16px rgba(220,38,38,0.13);
+}
+.all-companies-grid .company-logo {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.7rem;
+}
+.all-companies-grid .company-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 12px;
+}
+.all-companies-grid .company-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  text-align: center;
 }
