@@ -83,6 +83,16 @@ const adminRoutes = [
         path: 'grondplan',
         name: 'AdminGrondplan',
         component: () => import('../pages/admin/Grondplan/GrondplanList.vue')
+      },
+      {
+        path: 'matches',
+        name: 'AdminMatches',
+        component: () => import('../pages/admin/Matches/MatchesList.vue')
+      },
+      {
+        path: 'appointments',
+        name: 'AdminAppointments',
+        component: () => import('../pages/admin/Appointments/AppointmentsList.vue')
       }
     ]
   }
