@@ -140,12 +140,13 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
+import { useRoute } from 'vue-router';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: 'fas fa-chart-pie' },
   { name: 'Job Swiping', href: '/swipe', icon: 'fas fa-heart' },
-  { name: 'Afspraken', href: '/afspraken', icon: 'fas fa-calendar' },
+  { name: 'Afspraken', href: '/appointments', icon: 'fas fa-calendar' },
   { name: 'Profiel', href: '/profile', icon: 'fas fa-user' },
   { name: 'Instellingen', href: '/settings', icon: 'fas fa-cog' },
 ];
@@ -220,6 +221,8 @@ const timeSlots = [
   '15:30 - 16:00',
 ];
 
+const route = useRoute();
+
 function setFilter(filter) {
   activeFilter.value = filter;
 }
@@ -285,6 +288,30 @@ function getAvailableTimeSlots(appointmentId) {
     .filter(a => a.id !== appointmentId)
     .map(a => a.time);
   return timeSlots.filter(slot => !takenSlots.includes(slot) || slot === currentApt.time);
+}
+
+function loadAppointments() {
+  console.log('Afspraken opnieuw geladen!');
+}
+
+watch(
+  () => route.fullPath,
+  (to, from) => {
+    if (to === from) {
+      loadAppointments();
+    }
+  }
+);
+
+let welcomeName = ''
+if (isStudent()) {
+  welcomeName = name.value
+  alert(`Welkom ${welcomeName}!`);
+  router.push('/dashboard');
+} else if (isBedrijf()) {
+  welcomeName = companyName.value
+  alert(`Welkom ${welcomeName}!`);
+  router.push('/BedrijfDashboard');
 }
 </script>
 
