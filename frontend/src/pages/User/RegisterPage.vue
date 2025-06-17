@@ -2,17 +2,16 @@
 import { reactive, ref } from 'vue';
 import { auth, db } from '../../firebase/config';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { collection, addDoc, doc, setDoc, query, where, getDocs } from 'firebase/firestore';
+import { collection, doc, setDoc, query, where, getDocs } from 'firebase/firestore';
 import { useRouter } from 'vue-router';
-import axios from 'axios';
 import '../../css/register.css'
 import Navbar from '../../components/Navbar.vue'
 
 const router = useRouter();
 const error = ref('');
 
+// Verwijderd: name
 const studentData = reactive({
-  name: '',
   email: '',
   password: '',
   confirmPassword: ''
@@ -25,17 +24,6 @@ const companyData = reactive({
 });
 
 const selectedType = ref('student');
-
-const sectors = [
-  'IT & Software',
-  'Marketing & Communicatie',
-  'Financiën & Administratie',
-  'Onderwijs & Training',
-  'Gezondheidszorg',
-  'Retail & Verkoop',
-  'Productie & Industrie',
-  'Overig'
-];
 
 const isStudent = () => selectedType.value === 'student';
 const isBedrijf = () => selectedType.value === 'bedrijf';
@@ -61,50 +49,47 @@ const handleRegister = async () => {
         return;
       }
 
-      // Check if email already exists
       const usersRef = collection(db, 'users');
       const q = query(usersRef, where('email', '==', studentData.email));
       const querySnapshot = await getDocs(q);
-      
+
       if (!querySnapshot.empty) {
         error.value = 'Dit e-mailadres is al in gebruik';
         return;
       }
 
-      // Create user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         studentData.email,
         studentData.password
       );
 
-      alert(`Student account aangemaakt voor ${studentData.name}!`);
+      alert(`Student account aangemaakt!`);
       clearForms();
       router.push({ path: '/Stinvoer', query: { fromRegister: '1' } });
+
     } else {
       if (companyData.password !== companyData.confirmPassword) {
         error.value = 'Wachtwoorden komen niet overeen';
         return;
       }
 
-      // Check if email already exists
       const usersRef = collection(db, 'users');
       const q = query(usersRef, where('email', '==', companyData.email));
       const querySnapshot = await getDocs(q);
-      
+
       if (!querySnapshot.empty) {
         error.value = 'Dit e-mailadres is al in gebruik';
         return;
       }
 
-      // Create user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         companyData.email,
         companyData.password
       );
 
-      alert(`Bedrijf account aangemaakt voor ${companyData.email}!`);
+      alert(`Bedrijf account aangemaakt!`);
       clearForms();
       router.push('/InvoerenBd');
     }
@@ -162,10 +147,7 @@ const goToLogin = () => {
         <div v-if="isStudent()" class="form-section">
           <h4>👨‍🎓 Student Registratie</h4>
 
-          <div>
-            <label>Volledige Naam:</label>
-            <input v-model="studentData.name" type="text" placeholder="Voor- en achternaam" />
-          </div>
+          <!-- Naam veld verwijderd -->
 
           <div>
             <label>Email:</label>
@@ -210,7 +192,9 @@ const goToLogin = () => {
       <!-- Footer -->
       <div class="footer">
         <p>Heeft u al een account?</p>
-        <router-link to="/Login"><button @click="goToLogin" class="login-btn">Inloggen</button></router-link>
+        <router-link to="/Login">
+          <button @click="goToLogin" class="login-btn">Inloggen</button>
+        </router-link>
       </div>
     </div>
   </div>
