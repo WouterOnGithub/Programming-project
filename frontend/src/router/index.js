@@ -25,7 +25,11 @@ import RegisterPage from '../pages/User/RegisterPage.vue'
 import Dashboard from '../pages/User/Dashboard.vue'
 import StudentDetail from '../pages/admin/Students/StudentDetail.vue'
 
+import StProfielWeergave from '../pages/User/Student/StProfielWeergave.vue'
+
+
 import BedrijfProfielFavorieten from '../pages/User/Bedrijf/BedrijfProfielFavorieten.vue'
+
  
 // Adminroutes van jou
 import adminRoutes from './admin-routes.js'
@@ -55,6 +59,9 @@ const userRoutes = [
   { path: '/dashboard', name: 'Dashboard', component: Dashboard },
   { path: '/student/:id', name: 'StudentDetail', component: StudentDetail },
 
+  { path: '/WeergaveSt', name: 'WeergaveSt', component: StProfielWeergave }
+
+
   { path: '/Favorietenbd', name: 'Favorietenbd', component: BedrijfProfielFavorieten }
 
 
@@ -72,6 +79,7 @@ const userRoutes = [
 ]
 
   { path: '/appointments', name: 'Appointments', component: Appointments }
+
 
 
 
