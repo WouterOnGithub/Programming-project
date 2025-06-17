@@ -107,7 +107,7 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { getAuth } from 'firebase/auth'
-import { getFirestore, doc, updateDoc } from 'firebase/firestore'
+import { getFirestore, doc, updateDoc, collection, addDoc } from 'firebase/firestore'
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
 
 const router = useRouter()
@@ -199,14 +199,16 @@ async function handleSubmit() {
       cvUrl = await getDownloadURL(cvRef)
     }
 
-    // Update user document in Firestore
-    await updateDoc(doc(db, 'users', user.uid), {
+    // Maak een nieuw student-document aan in Firestore, inclusief email
+    await addDoc(collection(db, 'student'), {
       ...formData,
+      email: user.email,
       profilePicture: profilePictureUrl,
       cv: cvUrl,
+      authUid: user.uid,
+      createdAt: new Date(),
       updatedAt: new Date()
     })
-
     alert('Profiel succesvol opgeslagen!')
     router.push('/dashboard')
   } catch (error) {

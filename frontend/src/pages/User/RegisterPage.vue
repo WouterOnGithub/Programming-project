@@ -19,15 +19,7 @@ const studentData = reactive({
 });
 
 const companyData = reactive({
-  companyName: '',
-  sector: '',
-  address: '',
-  phone: '',
   email: '',
-  btwNumber: '',
-  contactName: '',
-  contactEmail: '',
-  linkedinUrl: '',
   password: '',
   confirmPassword: ''
 });
@@ -86,17 +78,9 @@ const handleRegister = async () => {
         studentData.password
       );
 
-      // Create user document in Firestore
-      await setDoc(doc(db, 'users', userCredential.user.uid), {
-        name: studentData.name,
-        email: studentData.email,
-        type: 'student',
-        createdAt: new Date()
-      });
-
       alert(`Student account aangemaakt voor ${studentData.name}!`);
       clearForms();
-      router.push('/dashboard');
+      router.push({ path: '/Stinvoer', query: { fromRegister: '1' } });
     } else {
       if (companyData.password !== companyData.confirmPassword) {
         error.value = 'Wachtwoorden komen niet overeen';
@@ -120,24 +104,9 @@ const handleRegister = async () => {
         companyData.password
       );
 
-      // Create user document in Firestore
-      await setDoc(doc(db, 'users', userCredential.user.uid), {
-        companyName: companyData.companyName,
-        sector: companyData.sector,
-        address: companyData.address,
-        phone: companyData.phone,
-        email: companyData.email,
-        btwNumber: companyData.btwNumber,
-        contactName: companyData.contactName,
-        contactEmail: companyData.contactEmail,
-        linkedinUrl: companyData.linkedinUrl,
-        type: 'bedrijf',
-        createdAt: new Date()
-      });
-
-      alert(`Bedrijf account aangemaakt voor ${companyData.companyName}!`);
+      alert(`Bedrijf account aangemaakt voor ${companyData.email}!`);
       clearForms();
-      router.push('/dashboard');
+      router.push('/InvoerenBd');
     }
   } catch (e) {
     error.value = e.message;
@@ -218,53 +187,8 @@ const goToLogin = () => {
           <h4>🏢 Bedrijf Registratie</h4>
 
           <div>
-            <label>Bedrijfsnaam:</label>
-            <input v-model="companyData.companyName" type="text" placeholder="Naam van uw bedrijf" />
-          </div>
-
-          <div>
-            <label>Sector:</label>
-            <select v-model="companyData.sector">
-              <option value="">Selecteer een sector</option>
-              <option v-for="sector in sectors" :key="sector" :value="sector">
-                {{ sector }}
-              </option>
-            </select>
-          </div>
-
-          <div>
-            <label>Straat en nummer:</label>
-            <input v-model="companyData.address" type="text" placeholder="Straatnaam 123, 1234 AB Plaats" />
-          </div>
-
-          <div>
-            <label>Telefoonnummer:</label>
-            <input v-model="companyData.phone" type="tel" placeholder="+32 6 12345678" />
-          </div>
-
-          <div>
             <label>E-mailadres:</label>
             <input v-model="companyData.email" type="email" placeholder="info@bedrijf.be" />
-          </div>
-
-          <div>
-            <label>BTW-nummer:</label>
-            <input v-model="companyData.btwNumber" type="text" placeholder="BE123456789B01" />
-          </div>
-
-          <div>
-            <label>Naam contactpersoon vertegenwoordiger beurs:</label>
-            <input v-model="companyData.contactName" type="text" placeholder="Voor- en achternaam contactpersoon" />
-          </div>
-
-          <div>
-            <label>E-mailadres contactpersoon:</label>
-            <input v-model="companyData.contactEmail" type="email" placeholder="contact@bedrijf.be" />
-          </div>
-
-          <div>
-            <label>LinkedIn-URL van het bedrijf (optioneel):</label>
-            <input v-model="companyData.linkedinUrl" type="url" placeholder="https://linkedin.com/bedrijfsnaam" />
           </div>
 
           <div>

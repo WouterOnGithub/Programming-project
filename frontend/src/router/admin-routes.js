@@ -1,6 +1,6 @@
 import { auth, db } from '../firebase/config';
 import { doc, getDoc } from 'firebase/firestore';
-
+ 
 const adminRoutes = [
   {
     path: '/admin',
@@ -12,10 +12,10 @@ const adminRoutes = [
         next('/login');
         return;
       }
-
+ 
       try {
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        if (userDoc.exists() && userDoc.data().role === 'admin') {
+        const userDoc = await getDoc(doc(db, 'admin', user.uid));
+        if (userDoc.exists()) {
           next();
         } else {
           next('/');
@@ -63,12 +63,6 @@ const adminRoutes = [
         component: () => import('../pages/admin/Companies/CompanyList.vue')
       },
       {
-        path: 'companies/:id',
-        name: 'AdminCompanyDetail',
-        component: () => import('../pages/admin/Companies/CompanyDetail.vue'),
-        props: true
-      },
-      {
         path: 'companies/new',
         name: 'AdminCompanyNew',
         component: () => import('../pages/admin/Companies/CompanyForm.vue')
@@ -80,6 +74,12 @@ const adminRoutes = [
         props: true
       },
       {
+        path: 'companies/:id',
+        name: 'AdminCompanyDetail',
+        component: () => import('../pages/admin/Companies/CompanyDetail.vue'),
+        props: true
+      },
+      {
         path: 'grondplan',
         name: 'AdminGrondplan',
         component: () => import('../pages/admin/Grondplan/GrondplanList.vue')
@@ -87,5 +87,5 @@ const adminRoutes = [
     ]
   }
 ]
-
+ 
 export default adminRoutes

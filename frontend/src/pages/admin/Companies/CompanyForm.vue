@@ -59,31 +59,31 @@
           <h3 class="section-title">Bedrijfsinformatie</h3>
           
           <div class="form-group">
-            <label for="companyName" class="form-label">Bedrijfsnaam *</label>
+            <label for="bedrijfsnaam" class="form-label">Bedrijfsnaam *</label>
             <input 
               type="text" 
-              id="companyName"
-              v-model="form.companyName" 
+              id="bedrijfsnaam"
+              v-model="form.bedrijfsnaam" 
               class="form-input"
-              :class="{ 'error': errors.companyName }"
+              :class="{ 'error': errors.bedrijfsnaam }"
               placeholder="Voer bedrijfsnaam in"
               required
             >
-            <span v-if="errors.companyName" class="error-message">{{ errors.companyName }}</span>
+            <span v-if="errors.bedrijfsnaam" class="error-message">{{ errors.bedrijfsnaam }}</span>
           </div>
 
           <div class="form-group">
-            <label for="location" class="form-label">Gesitueerd in *</label>
+            <label for="gesitueerdIn" class="form-label">Gesitueerd in *</label>
             <input 
               type="text" 
-              id="location"
-              v-model="form.location" 
+              id="gesitueerdIn"
+              v-model="form.gesitueerdIn" 
               class="form-input"
-              :class="{ 'error': errors.location }"
+              :class="{ 'error': errors.gesitueerdIn }"
               placeholder="Bijv. Amsterdam, Nederland"
               required
             >
-            <span v-if="errors.location" class="error-message">{{ errors.location }}</span>
+            <span v-if="errors.gesitueerdIn" class="error-message">{{ errors.gesitueerdIn }}</span>
           </div>
 
           <div class="form-group">
@@ -303,19 +303,26 @@
 </template>
 
 <script>
+import { ref, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { db } from '../../../firebase/config'
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore'
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
+
 export default {
   name: 'CompanyForm',
-  props: {
-    id: String
-  },
-  data() {
-    return {
-      isEdit: false,
-      isSubmitting: false,
-      skillInput: '',
-      form: {
-        companyName: '',
-        location: '',
+  setup() {
+    const route = useRoute()
+    const router = useRouter()
+    const isEdit = ref(!!route.params.id)
+    const logoInput = ref(null)
+    const skillInput = ref('')
+    const loading = ref(false)
+    const errors = ref({})
+
+    const form = ref({
+        bedrijfsnaam: '',
+        gesitueerdIn: '',
         linkedin: '',
         lookingFor: '',
         jobTypes: [],
@@ -325,147 +332,145 @@ export default {
         website: '',
         phoneNumber: '',
         industry: '',
-        companySize: '',
-        foundedYear: '',
-        logoPreview: null,
-        logoFile: null
-      },
-      errors: {}
+      size: '',
+      logo: '',
+      logoPreview: ''
+    })
+
+    const validateForm = () => {
+      errors.value = {}
+      let isValid = true
+
+      if (!form.value.bedrijfsnaam) {
+        errors.value.bedrijfsnaam = 'Bedrijfsnaam is verplicht'
+        isValid = false
+      }
+
+      if (!form.value.gesitueerdIn) {
+        errors.value.gesitueerdIn = 'Locatie is verplicht'
+        isValid = false
+      }
+
+      if (!form.value.lookingFor) {
+        errors.value.lookingFor = 'Beschrijf wat je zoekt'
+        isValid = false
+      }
+
+      if (!form.value.aboutUs) {
+        errors.value.aboutUs = 'Over het bedrijf is verplicht'
+        isValid = false
+      }
+
+      if (form.value.contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.value.contactEmail)) {
+        errors.value.contactEmail = 'Ongeldig e-mailadres'
+        isValid = false
+      }
+
+      return isValid
     }
-  },
-  mounted() {
-    this.isEdit = !!this.id;
-    if (this.isEdit) {
-      this.loadCompany();
-    }
-  },
-  methods: {
-    loadCompany() {
-      // Simuleer het laden van bedrijf data
-      const mockCompany = {
-        companyName: 'TechCorp Nederland',
-        location: 'Amsterdam, Nederland',
-        linkedin: 'https://linkedin.com/company/techcorp',
-        lookingFor: 'Wij zoeken enthousiaste stagiairs en junior developers voor ons development team.',
-        jobTypes: ['Stage', 'Voltijdse job'],
-        requiredSkills: ['JavaScript', 'React', 'Node.js'],
-        aboutUs: 'TechCorp is een innovatief softwarebedrijf gespecialiseerd in webapplicaties...',
-        contactEmail: 'hr@techcorp.nl',
-        website: 'https://www.techcorp.nl',
-        phoneNumber: '+31 20 123 4567',
-        industry: 'IT & Software',
-        companySize: '51-200',
-        foundedYear: 2015
-      };
-      
-      Object.assign(this.form, mockCompany);
-    },
-    
-    handleLogoUpload(event) {
-      const file = event.target.files[0];
-      if (file) {
-        if (file.size > 5 * 1024 * 1024) { // 5MB limit
-          alert('Bestand is te groot. Maximum grootte is 5MB.');
-          return;
-        }
-        
-        this.form.logoFile = file;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          this.form.logoPreview = e.target.result;
-        };
-        reader.readAsDataURL(file);
-      }
-    },
-    
-    removeLogo() {
-      this.form.logoPreview = null;
-      this.form.logoFile = null;
-      this.$refs.logoInput.value = '';
-    },
-    
-    addSkill() {
-      const skill = this.skillInput.trim();
-      if (skill && !this.form.requiredSkills.includes(skill)) {
-        this.form.requiredSkills.push(skill);
-        this.skillInput = '';
-      }
-    },
-    
-    removeSkill(index) {
-      this.form.requiredSkills.splice(index, 1);
-    },
-    
-    validateForm() {
-      this.errors = {};
-      
-      if (!this.form.companyName.trim()) {
-        this.errors.companyName = 'Bedrijfsnaam is verplicht';
-      }
-      
-      if (!this.form.location.trim()) {
-        this.errors.location = 'Locatie is verplicht';
-      }
-      
-      if (!this.form.lookingFor.trim()) {
-        this.errors.lookingFor = 'Beschrijving van wat jullie zoeken is verplicht';
-      }
-      
-      if (!this.form.aboutUs.trim()) {
-        this.errors.aboutUs = 'About us beschrijving is verplicht';
-      }
-      
-      if (this.form.linkedin && !this.isValidUrl(this.form.linkedin)) {
-        this.errors.linkedin = 'Voer een geldige LinkedIn URL in';
-      }
-      
-      if (this.form.website && !this.isValidUrl(this.form.website)) {
-        this.errors.website = 'Voer een geldige website URL in';
-      }
-      
-      if (this.form.contactEmail && !this.isValidEmail(this.form.contactEmail)) {
-        this.errors.contactEmail = 'Voer een geldig e-mailadres in';
-      }
-      
-      return Object.keys(this.errors).length === 0;
-    },
-    
-    isValidUrl(string) {
+
+    const handleLogoUpload = async (event) => {
+      const file = event.target.files[0]
+      if (!file) return
+
+      // Preview
+      form.value.logoPreview = URL.createObjectURL(file)
+
+      // Upload to Firebase Storage
       try {
-        new URL(string);
-        return true;
-      } catch (_) {
-        return false;
-      }
-    },
-    
-    isValidEmail(email) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      return emailRegex.test(email);
-    },
-    
-    async submitForm() {
-      if (!this.validateForm()) {
-        return;
-      }
-      
-      this.isSubmitting = true;
-      
-      try {
-        // Simuleer API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // In een echte app zou je hier de data naar de API sturen
-        console.log('Company data:', this.form);
-        
-        // Redirect naar bedrijven lijst
-        this.$router.push('/admin/companies');
+        const storage = getStorage()
+        const logoRef = storageRef(storage, `company-logos/${Date.now()}-${file.name}`)
+        const snapshot = await uploadBytes(logoRef, file)
+        form.value.logo = await getDownloadURL(snapshot.ref)
       } catch (error) {
-        console.error('Error saving company:', error);
-        alert('Er is een fout opgetreden bij het opslaan.');
-      } finally {
-        this.isSubmitting = false;
+        console.error('Error uploading logo:', error)
+        errors.value.logo = 'Fout bij uploaden logo'
       }
+    }
+
+    const removeLogo = () => {
+      form.value.logo = ''
+      form.value.logoPreview = ''
+      if (logoInput.value) {
+        logoInput.value.value = ''
+      }
+    }
+
+    const addSkill = () => {
+      const skill = skillInput.value.trim()
+      if (skill && !form.value.requiredSkills.includes(skill)) {
+        form.value.requiredSkills.push(skill)
+      }
+      skillInput.value = ''
+    }
+
+    const removeSkill = (index) => {
+      form.value.requiredSkills.splice(index, 1)
+    }
+
+    const loadCompany = async () => {
+      if (!isEdit.value) return
+
+      try {
+        const docRef = doc(db, 'bedrijf', route.params.id)
+        const docSnap = await getDoc(docRef)
+
+        if (docSnap.exists()) {
+          const data = docSnap.data()
+          form.value = {
+            ...data,
+            logoPreview: data.logo || ''
+          }
+        } else {
+          router.push('/admin/companies')
+        }
+      } catch (error) {
+        console.error('Error loading company:', error)
+        router.push('/admin/companies')
+      }
+    }
+
+    const submitForm = async () => {
+      if (!validateForm()) return
+
+      loading.value = true
+      try {
+        const companyData = {
+          ...form.value,
+          updatedAt: new Date().toISOString()
+        }
+
+        if (isEdit.value) {
+          await updateDoc(doc(db, 'bedrijf', route.params.id), companyData)
+        } else {
+          companyData.createdAt = new Date().toISOString()
+          const newDocRef = doc(collection(db, 'bedrijf'))
+          await setDoc(newDocRef, companyData)
+        }
+
+        router.push('/admin/companies')
+      } catch (error) {
+        console.error('Error saving company:', error)
+        errors.value.submit = 'Fout bij opslaan bedrijf'
+      } finally {
+        loading.value = false
+      }
+    }
+
+    onMounted(loadCompany)
+
+    return {
+      isEdit,
+      form,
+      errors,
+      loading,
+      logoInput,
+      skillInput,
+      handleLogoUpload,
+      removeLogo,
+      addSkill,
+      removeSkill,
+      submitForm
     }
   }
 }

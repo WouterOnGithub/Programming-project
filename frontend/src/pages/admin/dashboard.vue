@@ -23,30 +23,85 @@
           <p class="stat-label">Totaal bedrijven</p>
         </div>
       </div>
+
+      <div class="stat-card">
+        <div class="stat-icon matches">💫</div>
+        <div class="stat-content">
+          <h3 class="stat-number">{{ stats.totalMatches }}</h3>
+          <p class="stat-label">Totaal Matches</p>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon appointments">📅</div>
+        <div class="stat-content">
+          <h3 class="stat-number">{{ stats.totalAppointments }}</h3>
+          <p class="stat-label">Totaal Afspraken</p>
+        </div>
+      </div>
     </div>  
 
 
     <!-- Dashboard Content Grid -->
     <div class="dashboard-grid">
-      <!-- Recent Students -->
+      <!-- Recent Matches -->
       <div class="dashboard-card">
         <div class="card-header">
-          <h2 class="card-title">Recente Studenten</h2>
-          <router-link to="/admin/students" class="view-all-link">Bekijk alle</router-link>
+          <h2 class="card-title">Recente Matches</h2>
+          <router-link to="/admin/matches" class="view-all-link">Bekijk alle</router-link>
         </div>
         <div class="card-content">
-          <div class="student-list">
+          <div class="match-list">
             <div 
-              v-for="student in recentStudents" 
-              :key="student.id"
-              class="student-item"
+              v-for="match in recentMatches" 
+              :key="match.id"
+              class="match-item"
             >
-              <div class="student-avatar">{{ student.name.charAt(0) }}</div>
-              <div class="student-info">
-                <router-link :to="`/admin/students/${student.id}`" class="student-name">
-                  {{ student.name }}
-                </router-link>
-                <p class="student-email">{{ student.email }}</p>
+              <div class="match-info">
+                <div class="match-parties">
+                  <span class="student-name">{{ match.studentName }}</span>
+                  <span class="match-arrow">↔️</span>
+                  <span class="company-name">{{ match.companyName }}</span>
+                </div>
+                <p class="match-date">{{ formatDate(match.createdAt) }}</p>
+              </div>
+              <div class="match-status">
+                <span :class="['status-badge', match.status]">
+                  {{ getMatchStatus(match.status) }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Upcoming Appointments -->
+      <div class="dashboard-card">
+        <div class="card-header">
+          <h2 class="card-title">Aankomende Afspraken</h2>
+          <router-link to="/admin/appointments" class="view-all-link">Bekijk alle</router-link>
+        </div>
+        <div class="card-content">
+          <div class="appointment-list">
+            <div 
+              v-for="appointment in upcomingAppointments" 
+              :key="appointment.id"
+              class="appointment-item"
+            >
+              <div class="appointment-time">
+                <span class="time">{{ formatTime(appointment.startTime) }}</span>
+                <span class="date">{{ formatDate(appointment.startTime) }}</span>
+              </div>
+              <div class="appointment-info">
+                <h4 class="appointment-title">{{ appointment.title }}</h4>
+                <p class="appointment-participants">
+                  {{ appointment.studentName }} & {{ appointment.companyName }}
+                </p>
+              </div>
+              <div class="appointment-status">
+                <span :class="['status-badge', appointment.status]">
+                  {{ getAppointmentStatus(appointment.status) }}
+                </span>
               </div>
             </div>
           </div>
@@ -64,14 +119,17 @@
               <span class="action-icon">➕</span>
               <span class="action-text">Nieuwe Student</span>
             </router-link>
-            <router-link to="/admin/students/new" class="action-button secondary">
+            <router-link to="/admin/companies/new" class="action-button secondary">
               <span class="action-icon">➕</span>
-              <span class="action-text">Nieuwe Bedrijf</span>
+              <span class="action-text">Nieuw Bedrijf</span>
             </router-link>
-            
-            <router-link to="/admin/reports" class="action-button secondary">
-              <span class="action-icon">📊</span>
-              <span class="action-text">Rapporten Bekijken</span>
+            <router-link to="/admin/matches" class="action-button secondary">
+              <span class="action-icon">💫</span>
+              <span class="action-text">Matches Beheren</span>
+            </router-link>
+            <router-link to="/admin/appointments" class="action-button secondary">
+              <span class="action-icon">📅</span>
+              <span class="action-text">Afspraken Beheren</span>
             </router-link>
           </div>
         </div>
@@ -103,50 +161,204 @@
 </template>
 
 <script>
+import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { db } from '../../firebase/config'
+import { collection, query, where, orderBy, limit, getDocs, onSnapshot, getDoc, doc } from 'firebase/firestore'
+
 export default {
   name: 'Dashboard',
-  data() {
+  setup() {
+    const stats = ref({
+      totalStudents: 0,
+      totalCompanies: 0,
+      totalMatches: 0,
+      totalAppointments: 0
+    })
+    const recentStudents = ref([])
+    const recentMatches = ref([])
+    const upcomingAppointments = ref([])
+    const recentActivity = ref([])
+    const loading = ref({
+      stats: true,
+      students: true,
+      matches: true,
+      appointments: true,
+      activity: true
+    })
+    const error = ref({
+      stats: null,
+      students: null,
+      matches: null,
+      appointments: null,
+      activity: null
+    })
+    let unsubscribeStudents = null
+    let unsubscribeCompanies = null
+    let unsubscribeMatches = null
+    let unsubscribeAppointments = null
+
+    const loadStats = async () => {
+      try {
+        loading.value.stats = true
+        // Students count
+        const studentsRef = collection(db, 'student')
+        unsubscribeStudents && unsubscribeStudents()
+        unsubscribeStudents = onSnapshot(studentsRef, (snapshot) => {
+          stats.value.totalStudents = snapshot.size
+        })
+
+        // Companies count
+        const companiesRef = collection(db, 'bedrijf')
+        unsubscribeCompanies && unsubscribeCompanies()
+        unsubscribeCompanies = onSnapshot(companiesRef, (snapshot) => {
+          stats.value.totalCompanies = snapshot.size
+        })
+
+        // Matches count
+        const matchesRef = collection(db, 'matches')
+        unsubscribeMatches && unsubscribeMatches()
+        unsubscribeMatches = onSnapshot(matchesRef, (snapshot) => {
+          stats.value.totalMatches = snapshot.size
+        })
+
+        // Appointments count
+        const appointmentsRef = collection(db, 'appointments')
+        unsubscribeAppointments && unsubscribeAppointments()
+        unsubscribeAppointments = onSnapshot(appointmentsRef, (snapshot) => {
+          stats.value.totalAppointments = snapshot.size
+        })
+      } catch (err) {
+        console.error('Error loading stats:', err)
+        error.value.stats = 'Er is een fout opgetreden bij het laden van de statistieken.'
+      } finally {
+        loading.value.stats = false
+      }
+    }
+
+    const loadRecentMatches = async () => {
+      try {
+        loading.value.matches = true
+        const matchesRef = collection(db, 'matches')
+        const q = query(
+          matchesRef,
+          orderBy('createdAt', 'desc'),
+          limit(5)
+        )
+        const snap = await getDocs(q)
+        recentMatches.value = await Promise.all(snap.docs.map(async doc => {
+          const data = doc.data()
+          // Get student and company names
+          const studentDoc = await getDoc(doc(db, 'student', data.studentId))
+          const companyDoc = await getDoc(doc(db, 'bedrijf', data.companyId))
+          return {
+            id: doc.id,
+            studentName: studentDoc.exists() ? `${studentDoc.data().firstName} ${studentDoc.data().lastName}` : 'Onbekende student',
+            companyName: companyDoc.exists() ? companyDoc.data().bedrijfsnaam : 'Onbekend bedrijf',
+            status: data.status,
+            createdAt: data.createdAt
+          }
+        }))
+      } catch (err) {
+        console.error('Error loading recent matches:', err)
+        error.value.matches = 'Er is een fout opgetreden bij het laden van recente matches.'
+      } finally {
+        loading.value.matches = false
+      }
+    }
+
+    const loadUpcomingAppointments = async () => {
+      try {
+        loading.value.appointments = true
+        const appointmentsRef = collection(db, 'appointments')
+        const now = new Date()
+        const q = query(
+          appointmentsRef,
+          where('startTime', '>=', now),
+          orderBy('startTime', 'asc'),
+          limit(5)
+        )
+        const snap = await getDocs(q)
+        upcomingAppointments.value = await Promise.all(snap.docs.map(async doc => {
+          const data = doc.data()
+          // Get student and company names
+          const studentDoc = await getDoc(doc(db, 'student', data.studentId))
+          const companyDoc = await getDoc(doc(db, 'bedrijf', data.companyId))
+          return {
+            id: doc.id,
+            title: data.title,
+            startTime: data.startTime.toDate(),
+            studentName: studentDoc.exists() ? `${studentDoc.data().firstName} ${studentDoc.data().lastName}` : 'Onbekende student',
+            companyName: companyDoc.exists() ? companyDoc.data().bedrijfsnaam : 'Onbekend bedrijf',
+            status: data.status
+          }
+        }))
+      } catch (err) {
+        console.error('Error loading upcoming appointments:', err)
+        error.value.appointments = 'Er is een fout opgetreden bij het laden van aankomende afspraken.'
+      } finally {
+        loading.value.appointments = false
+      }
+    }
+
+    const formatDate = (date) => {
+      if (!date) return ''
+      return new Date(date).toLocaleDateString('nl-NL')
+    }
+
+    const formatTime = (date) => {
+      if (!date) return ''
+      return new Date(date).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })
+    }
+
+    const getMatchStatus = (status) => {
+      const statusMap = {
+        pending: 'In afwachting',
+        accepted: 'Geaccepteerd',
+        rejected: 'Afgewezen',
+        completed: 'Voltooid'
+      }
+      return statusMap[status] || status
+    }
+
+    const getAppointmentStatus = (status) => {
+      const statusMap = {
+        scheduled: 'Gepland',
+        confirmed: 'Bevestigd',
+        completed: 'Voltooid',
+        cancelled: 'Geannuleerd'
+      }
+      return statusMap[status] || status
+    }
+
+    onMounted(async () => {
+      await Promise.all([
+        loadStats(),
+        loadRecentStudents(),
+        loadRecentMatches(),
+        loadUpcomingAppointments(),
+        loadRecentActivity()
+      ])
+    })
+
+    onBeforeUnmount(() => {
+      unsubscribeStudents && unsubscribeStudents()
+      unsubscribeCompanies && unsubscribeCompanies()
+      unsubscribeMatches && unsubscribeMatches()
+      unsubscribeAppointments && unsubscribeAppointments()
+    })
+
     return {
-      stats: {
-        totalStudents: 1247,
-        totalCompanies: 50,
-      },
-      recentStudents: [
-        {
-          id: 1,
-          name: 'Emma van der Berg',
-          email: 'emma.vandenberg@email.com'
-        },
-        {
-          id: 2,
-          name: 'Lucas Janssen',
-          email: 'lucas.janssen@email.com'
-        },
-        {
-          id: 3,
-          name: 'Sophie de Vries',
-          email: 'sophie.devries@email.com'
-        },
-        {
-          id: 4,
-          name: 'Daan Bakker',
-          email: 'daan.bakker@email.com'
-        }
-      ],
-      recentActivity: [
-        {
-          id: 1,
-          icon: '👤',
-          text: 'Nieuwe student Emma van der Berg is toegevoegd',
-          time: '12:34'
-        },
-        {
-          id: 3,
-          icon: '✅',
-          text: 'Lucas Janssen wijzigd profiel',
-          time: '11:56'
-        },
-      ]
+      stats,
+      recentStudents,
+      recentMatches,
+      upcomingAppointments,
+      recentActivity,
+      loading,
+      error,
+      formatDate,
+      formatTime,
+      getMatchStatus,
+      getAppointmentStatus
     }
   }
 }
@@ -331,22 +543,34 @@ export default {
 }
 
 .student-name {
-  font-size: 1rem;
   font-weight: 600;
   color: #1a1a1a;
-  text-decoration: none;
-  transition: color 0.2s;
   margin: 0 0 4px 0;
-}
-
-.student-name:hover {
-  color: #2563eb;
+  font-size: 0.95rem;
 }
 
 .student-email {
   color: #666;
   margin: 0;
   font-size: 0.875rem;
+}
+
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-badge.active {
+  background: #e8f5e8;
+  color: #2d7d32;
+}
+
+.status-badge.inactive {
+  background: #fff3e0;
+  color: #f57c00;
 }
 
 /* Quick Actions */
@@ -414,11 +638,12 @@ export default {
   width: 36px;
   height: 36px;
   background: #f8f9fa;
-  border-radius: 8px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
+  flex-shrink: 0;
 }
 
 .activity-content {
@@ -428,6 +653,7 @@ export default {
 .activity-text {
   margin: 0 0 4px 0;
   color: #1a1a1a;
+  font-weight: 500;
 }
 
 .activity-time {
@@ -458,40 +684,106 @@ export default {
   .stat-number {
     font-size: 1.75rem;
   }
-
-  .student-item {
-    padding: 8px;
-  }
-
-  .student-avatar {
-    width: 36px;
-    height: 36px;
-    font-size: 0.9rem;
-  }
-
-  .student-name {
-    font-size: 0.95rem;
-  }
-
-  .student-email {
-    font-size: 0.8rem;
-  }
 }
 
-@media (max-width: 480px) {
-  .student-avatar {
-    width: 32px;
-    height: 32px;
-    font-size: 0.85rem;
-  }
+.match-list,
+.appointment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
 
-  .student-name {
-    font-size: 0.9rem;
-  }
+.match-item,
+.appointment-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
 
-  .student-email {
-    font-size: 0.75rem;
-  }
+.match-parties {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.match-arrow {
+  color: #666;
+}
+
+.match-date,
+.appointment-date {
+  font-size: 0.875rem;
+  color: #666;
+  margin-top: 4px;
+}
+
+.appointment-time {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  min-width: 80px;
+}
+
+.appointment-time .time {
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.appointment-time .date {
+  font-size: 0.75rem;
+  color: #666;
+}
+
+.appointment-info {
+  flex: 1;
+  margin: 0 16px;
+}
+
+.appointment-title {
+  margin: 0 0 4px 0;
+  font-size: 1rem;
+}
+
+.appointment-participants {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #666;
+}
+
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.status-badge.pending {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.status-badge.accepted,
+.status-badge.confirmed {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status-badge.rejected,
+.status-badge.cancelled {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.status-badge.completed {
+  background: #cce5ff;
+  color: #004085;
 }
 </style>
 
