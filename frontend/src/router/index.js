@@ -24,7 +24,7 @@ import BedrijfProfielFavorieten from '../pages/User/Bedrijf/BedrijfProfielFavori
 import StProfielWijzigen from '../pages/User/Student/StProfielWijzigen.vue'
 import BedrijfProfielInvoeren from '../pages/User/Bedrijf/BedrijfInvoeren.vue'
 import BedrijfDashboard from '../pages/User/Bedrijf/BedrijfDashboard.vue'
-
+import SettingsStu from '../pages/User/SettingsStu.vue'
 
 
 const userRoutes = [
@@ -45,7 +45,7 @@ const userRoutes = [
   { path: '/swipe', name: 'Swipe', component: Swipe },
   { path: '/appointments', name: 'Appointments', component: Appointments },
   { path: '/profile', name: 'Profile', component: Profile },
-  { path: '/settings', name: 'Settings', component: Settings },
+  { path: '/settingsStu', name: 'SettingsStu', component: SettingsStu },
   { path: '/InvoerenSt', name: 'InvoerenSt', component: StProfielInvoerenNew },
 ]
 
