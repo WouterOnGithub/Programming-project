@@ -13,7 +13,6 @@ import Dashboard from '../pages/user/Dashboard.vue'
 import Swipe from '../pages/user/Swipe.vue'
 import Appointments from '../pages/user/Appointments.vue'
 import Profile from '../pages/user/Profile.vue'
-import Settings from '../pages/user/Settings.vue'
 import StProfielInvoerenNew from '../pages/User/Student/StProfielInvoerenNew.vue'
 import StudentDetail from '../pages/admin/Students/StudentDetail.vue'
 import BedrijfProfielWijzigen from '../pages/User/Bedrijf/BedrijfProfielWijzigen.vue'
@@ -45,7 +44,7 @@ const userRoutes = [
   { path: '/swipe', name: 'Swipe', component: Swipe },
   { path: '/appointments', name: 'Appointments', component: Appointments },
   { path: '/profile', name: 'Profile', component: Profile },
-  { path: '/settingsStu', name: 'SettingsStu', component: SettingsStu },
+  { path: '/SettingsStu', name: 'SettingsStu', component: SettingsStu },
   { path: '/InvoerenSt', name: 'InvoerenSt', component: StProfielInvoerenNew },
 ]
 

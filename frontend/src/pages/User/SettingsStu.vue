@@ -112,17 +112,31 @@ export default {
   },
   methods: {
     async changePassword() {
-      try {
-        const auth = getAuth();
-        const user = auth.currentUser;
-        const credential = EmailAuthProvider.credential(user.email, this.currentPassword);
-        await reauthenticateWithCredential(user, credential);
-        await updatePassword(user, this.newPassword);
-        this.message = "Wachtwoord succesvol gewijzigd.";
-      } catch (error) {
-        this.message = "Fout bij wijzigen wachtwoord: " + error.message;
-      }
-    },
+  try {
+    const auth = getAuth();
+    const user = auth.currentUser;
+
+    if (!user || !user.email) {
+      this.message = "Je bent niet correct ingelogd of e-mailadres ontbreekt.";
+      return;
+    }
+
+    const credential = EmailAuthProvider.credential(user.email, this.currentPassword);
+
+    await reauthenticateWithCredential(user, credential);
+    await updatePassword(user, this.newPassword);
+
+    this.message = "Wachtwoord succesvol gewijzigd.";
+    this.currentPassword = "";
+    this.newPassword = "";
+  } catch (error) {
+    if (error.code === "auth/invalid-credential") {
+      this.message = "Huidig wachtwoord is incorrect.";
+    } else {
+      this.message = "Fout bij wijzigen wachtwoord: " + error.message;
+    }
+  }
+},
     async deleteAccount() {
       if (!confirm("Weet je zeker dat je je account wilt verwijderen?")) return;
       try {
