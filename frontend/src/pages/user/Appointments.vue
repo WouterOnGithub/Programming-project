@@ -142,6 +142,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { useRouter } from 'vue-router';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: 'fas fa-chart-pie' },
@@ -222,6 +223,7 @@ const timeSlots = [
 ];
 
 const route = useRoute();
+const router = useRouter();
 
 function setFilter(filter) {
   activeFilter.value = filter;
@@ -302,6 +304,8 @@ watch(
     }
   }
 );
+
+const isStudent = () => true;
 
 let welcomeName = ''
 if (isStudent()) {
