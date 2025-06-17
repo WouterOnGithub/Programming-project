@@ -25,6 +25,13 @@ import RegisterPage from '../pages/User/RegisterPage.vue'
 import Dashboard from '../pages/User/Dashboard.vue'
 import StudentDetail from '../pages/admin/Students/StudentDetail.vue'
 
+import BedrijfProfielWeergave from '../pages/User/Bedrijf/BedrijfProfielWeergave.vue'
+ 
+// Adminroutes van jou
+import adminRoutes from './admin-routes.js'
+
+
+
 import BedrijfProfielGesprekken from '../pages/User/Bedrijf/BedrijfProfielGesprekken.vue'
 // Adminroutes van jou
 import adminRoutes from './admin-routes.js'
@@ -57,6 +64,7 @@ import Appointments from '../pages/User/Appointments.vue'
 
 
 
+
 const userRoutes = [
   { path: '/', name: 'Home', component: HomePage },
   { path: '/Stinvoer', name: 'Student', component: Stprofielinvoer },
@@ -64,6 +72,9 @@ const userRoutes = [
   { path: '/register', name: 'Register', component: RegisterPage },
   { path: '/dashboard', name: 'Dashboard', component: Dashboard },
   { path: '/student/:id', name: 'StudentDetail', component: StudentDetail },
+
+  { path: '/WeergaveBd', name: 'WeergaveBd', component: BedrijfProfielWeergave }
+
 
   { path: '/GesprekkenBd', name: 'GesprekkenBd', component: BedrijfProfielGesprekken }
 
@@ -88,6 +99,7 @@ const userRoutes = [
 ]
 
   { path: '/appointments', name: 'Appointments', component: Appointments }
+
 
 
 
