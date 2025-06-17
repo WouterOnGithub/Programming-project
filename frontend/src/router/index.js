@@ -1,12 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router'
- // Adminroutes van jou
 import adminRoutes from './admin-routes.js'
-// Gebruikersroutes van je team
+
 
 import HomePage from '../pages/user/HomePage.vue'
 import Stprofielinvoer from '../pages/user/Stprofielinvoer.vue'
-// import ContactPage from '../pages/user/ContactPage.vue'
-// import SocialMedia from '../pages/user/SocialMedia.vue'
 import LoginPage from '../pages/user/LoginPage.vue'
 import RegisterPage from '../pages/user/RegisterPage.vue'
 import Dashboard from '../pages/user/Dashboard.vue'

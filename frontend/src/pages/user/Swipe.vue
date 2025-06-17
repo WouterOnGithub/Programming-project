@@ -1,52 +1,7 @@
 <template>
-  <div class="dashboard-container">
-    <!-- Sidebar -->
-    <aside class="sidebar-nav">
-      <div class="sidebar-header">
-        <div class="sidebar-logo">
-          <i class="fas fa-graduation-cap"></i>
-        </div>
-        <div>
-          <h1 class="sidebar-title">StudentMatch</h1>
-          <p class="sidebar-subtitle">Student Dashboard</p>
-        </div>
-      </div>
-      <nav class="sidebar-menu">
-        <router-link v-for="item in navigation" :key="item.name" :to="item.href" :class="['sidebar-link', $route.path === item.href ? 'active' : '']">
-          <i :class="item.icon"></i>
-          {{ item.name }}
-        </router-link>
-      </nav>
-      <div class="sidebar-user">
-        <div class="sidebar-user-avatar">
-          <i class="fas fa-user"></i>
-        </div>
-        <div>
-          <p class="sidebar-user-name">{{ userData?.name || 'Gebruiker' }}</p>
-          <p class="sidebar-user-role">Student</p>
-        </div>
-      </div>
-    </aside>
-    <!-- Main Content -->
+  <StudentDashboardLayout>
+    <!-- Alleen de main content van de swipepagina, zonder sidebar/header -->
     <main class="dashboard-main">
-      <!-- Header -->
-      <header class="dashboard-header">
-        <div>
-          <h1>Welkom terug, {{ userData?.name || 'Gebruiker' }}!</h1>
-          <p>Hier is je job swiping overzicht</p>
-        </div>
-        <div class="dashboard-header-actions">
-          <div class="dashboard-search">
-            <i class="fas fa-search"></i>
-            <input type="text" placeholder="Zoeken..." />
-          </div>
-          <button class="dashboard-bell">
-            <i class="fas fa-bell"></i>
-            <span class="dashboard-bell-dot"></span>
-          </button>
-          <div class="dashboard-profile-avatar">{{ userData?.name?.[0] || 'G' }}</div>
-        </div>
-      </header>
       <!-- Swiping Content -->
       <div class="swiping-content">
         <div v-if="currentJob" class="job-card-container">
@@ -109,7 +64,7 @@
         </div>
       </div>
     </main>
-  </div>
+  </StudentDashboardLayout>
 </template>
 
 <script>
@@ -117,6 +72,7 @@ import { ref, computed, onMounted } from 'vue';
 import { db, auth } from '../../firebase/config';
 import { collection, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
+import StudentDashboardLayout from '../../components/StudentDashboardLayout.vue'
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: 'fas fa-chart-pie' },
@@ -129,6 +85,9 @@ const userData = ref({ name: 'imad' }); // Dummy data, vervang door echte user i
 
 export default {
   name: 'JobSwiping',
+  components: {
+    StudentDashboardLayout
+  },
   setup() {
     const animateReject = ref(false);
     const animateAccept = ref(false);

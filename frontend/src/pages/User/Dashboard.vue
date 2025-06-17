@@ -1,52 +1,7 @@
 <template>
-  <div class="dashboard-container">
-    <!-- Sidebar -->
-    <aside class="sidebar-nav">
-      <div class="sidebar-header">
-        <div class="sidebar-logo">
-          <i class="fas fa-graduation-cap"></i>
-        </div>
-        <div>
-          <h1 class="sidebar-title">StudentMatch</h1>
-          <p class="sidebar-subtitle">Student Dashboard</p>
-        </div>
-      </div>
-      <nav class="sidebar-menu">
-        <router-link v-for="item in navigation" :key="item.name" :to="item.href" :class="['sidebar-link', $route.path === item.href ? 'active' : '']">
-          <i :class="item.icon"></i>
-          {{ item.name }}
-        </router-link>
-      </nav>
-      <div class="sidebar-user">
-        <div class="sidebar-user-avatar">
-          <i class="fas fa-user"></i>
-        </div>
-        <div>
-          <p class="sidebar-user-name">{{ userData?.name || 'Gebruiker' }}</p>
-          <p class="sidebar-user-role">Student</p>
-        </div>
-      </div>
-    </aside>
-    <!-- Main Content -->
+  <StudentDashboardLayout>
+    <!-- Alleen de main content van de dashboardpagina, zonder sidebar/header -->
     <main class="dashboard-main">
-      <!-- Header -->
-      <header class="dashboard-header">
-        <div>
-          <h1>Welkom terug, {{ userData?.name || 'Gebruiker' }}!</h1>
-          <p>Hier is je dashboard overzicht</p>
-        </div>
-        <div class="dashboard-header-actions">
-          <div class="dashboard-search">
-            <i class="fas fa-search"></i>
-            <input type="text" placeholder="Zoeken..." />
-          </div>
-          <button class="dashboard-bell">
-            <i class="fas fa-bell"></i>
-            <span class="dashboard-bell-dot"></span>
-          </button>
-          <div class="dashboard-profile-avatar">{{ userData?.name?.[0] || 'G' }}</div>
-        </div>
-      </header>
       <!-- Stats Grid -->
       <section class="dashboard-stats">
         <div v-for="(stat, index) in statsData" :key="index" class="stat-card">
@@ -142,25 +97,26 @@
         <h3>Snelle Acties</h3>
         <div class="dashboard-actions-grid">
           <button class="dashboard-action-btn bg-primary text-white"><i class="fas fa-heart"></i> Start met Swipen</button>
-          <button class="dashboard-action-btn bg-accent"><i class="fas fa-calendar"></i> Plan Afspraak</button>
+          <button class="dashboard-action-btn bg-accent" @click="$router.push('/appointments')"><i class="fas fa-calendar"></i> Plan Afspraak</button>
           <button class="dashboard-action-btn bg-accent"><i class="fas fa-users"></i> Bekijk Matches</button>
         </div>
       </section>
     </main>
-  </div>
+  </StudentDashboardLayout>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue';
 import { getFirestore, collection, query, where, getDocs, orderBy, limit, doc, getDoc } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
+import StudentDashboardLayout from '../../components/StudentDashboardLayout.vue'
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: 'fas fa-chart-pie' },
   { name: 'Job Swiping', href: '/swipe', icon: 'fas fa-heart' },
   { name: 'Afspraken', href: '/appointments', icon: 'fas fa-calendar' },
-  { name: 'Profiel', href: '/profile', icon: 'fas fa-user' },
-  { name: 'Instellingen', href: '/SettingsStu', icon: 'fas fa-cog' },
+  { name: 'Profiel', href: '/WeergaveSt', icon: 'fas fa-user' },
+  { name: 'Instellingen', href: '/settings', icon: 'fas fa-cog' },
 ];
 
 const loading = ref({
@@ -443,77 +399,6 @@ onMounted(() => {
   padding: 0;
   display: flex;
   flex-direction: column;
-}
-.dashboard-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: #fff;
-  border-bottom: 1px solid #e5e7eb;
-  padding: 1.5rem 2rem 1.5rem 2rem;
-}
-.dashboard-header h1 {
-  font-size: 1.3rem;
-  font-weight: 600;
-  color: #c20000;
-}
-.dashboard-header p {
-  color: #6b7280;
-  font-size: 0.95rem;
-}
-.dashboard-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 1.2rem;
-}
-.dashboard-search {
-  position: relative;
-  display: flex;
-  align-items: center;
-  background: #f3f4f6;
-  border-radius: 0.5rem;
-  padding: 0.2rem 0.7rem;
-}
-.dashboard-search i {
-  color: #6b7280;
-  margin-right: 0.5rem;
-}
-.dashboard-search input {
-  border: none;
-  background: transparent;
-  outline: none;
-  font-size: 0.95rem;
-  color: #111827;
-  width: 8rem;
-}
-.dashboard-bell {
-  background: #f3f4f6;
-  border: none;
-  border-radius: 0.5rem;
-  padding: 0.5rem;
-  position: relative;
-  cursor: pointer;
-}
-.dashboard-bell-dot {
-  position: absolute;
-  top: 0.3rem;
-  right: 0.3rem;
-  width: 0.6rem;
-  height: 0.6rem;
-  background: #ef4444;
-  border-radius: 50%;
-}
-.dashboard-profile-avatar {
-  width: 2rem;
-  height: 2rem;
-  background: #c20000;
-  color: #fff;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1rem;
-  font-weight: 600;
 }
 .dashboard-stats {
   display: grid;

@@ -1,398 +1,613 @@
-<template>
-  <div class="profiel-wrapper">
-    <div class="profiel-container">
-
-      <!-- Linkerzijde: Formulier -->
-      <section class="profiel-links">
-        <h2>Profiel Student</h2>
-
-        <label>Voornaam/Achternaam:</label>
-        <input v-model="formData.name" type="text" placeholder="Jouw naam" />
-
-        <label>Leeftijd:</label>
-        <input v-model="formData.age" type="number" placeholder="Leeftijd" />
-
-        <label>LinkedIn (link):</label>
-        <input v-model="formData.linkedin" type="url" placeholder="https://linkedin.com/in/gebruikersnaam" />
-
-        <label>Domein:</label>
-        <select v-model="formData.domain">
-          <option disabled selected>Kies een domein</option>
-          <option>IT</option>
-          <option>Design</option>
-          <option>Marketing</option>
-        </select>
-
-        <label>CV Upload:</label>
-        <input type="file" @change="handleCVUpload" />
-
-        <label>Voorstelling:</label>
-        <textarea v-model="formData.bio" placeholder="Stel jezelf kort voor..." rows="4"></textarea>
-
-        <!-- Skills -->
-        <label>Vaardigheden:</label>
-        <select class="skills-dropdown" @change="addSkill">
-          <option disabled selected>Maak een keuze</option>
-          <option>Teamwork</option>
-          <option>Leiderschap</option>
-          <option>Python</option>
-          <option>Machine Learning</option>
-          <option>Projectmanagement</option>
-          <option>Cloud</option>
-          <option value="custom">Andere...</option>
-        </select>
-
-        <div v-if="showCustomSkill" class="custom-skill-input">
-          <input type="text" v-model="customSkill" placeholder="Typ je eigen skill..." />
-          <button type="button" @click="confirmCustomSkill">Toevoegen</button>
-        </div>
-
-        <div class="selected-skills">
-          <span v-for="(skill, index) in formData.skills" :key="index" class="skill-tag">
-            {{ skill }} <button @click="removeSkill(index)" aria-label="Verwijder skill">&times;</button>
-          </span>
-        </div>
-      </section>
-
-      <!-- Rechterzijde: Extra info + foto upload -->
-      <section class="profiel-rechts">
-        <div class="foto-upload">
-          <label for="foto" class="foto-label">
-            <input id="foto" type="file" @change="handleImageUpload" accept="image/*" hidden />
-            <div class="upload-circle">
-              <span v-if="!imagePreview">Upload<br />foto</span>
-              <img v-else :src="imagePreview" alt="Profile preview" class="preview-image" />
-            </div>
-          </label>
-        </div>
-
-        <label>Studiejaar:</label>
-        <select v-model="formData.studyYear">
-          <option disabled selected>Selecteer studiejaar</option>
-          <option>1e jaar</option>
-          <option>2e jaar</option>
-          <option>3e jaar</option>
-          <option>Afgestudeerd</option>
-        </select>
-
-        <label>Beschikbaar vanaf:</label>
-        <input v-model="formData.availableFrom" type="date" />
-
-        <label>Gezochte opportuniteit:</label>
-        <select v-model="formData.opportunityType">
-          <option disabled selected>Kies een type</option>
-          <option>Stage</option>
-          <option>Studentenjob</option>
-          <option>Fulltime job</option>
-        </select>
-
-        <label>Talenkennis:</label>
-        <input v-model="formData.languages" type="text" placeholder="Bijv. Nederlands, Engels..." />
-
-        <div class="toestemming">
-          <input type="checkbox" v-model="formData.permission" id="toestemming" />
-          <label for="toestemming">
-            Ik geef toestemming dat mijn gegevens gebruikt mogen worden in het kader van deze toepassing.
-          </label>
-        </div>
-
-        <button class="submit-btn" @click="handleSubmit">Bevestig gegevens</button>
-      </section>
-
-    </div>
-  </div>
-</template>
-
 <script setup>
-import { ref, reactive } from 'vue'
-import { useRouter } from 'vue-router'
-import { getAuth } from 'firebase/auth'
-import { getFirestore, doc, updateDoc, collection, addDoc } from 'firebase/firestore'
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { ref } from 'vue'
+import profielfoto from '/Images/profielfoto.jpg'
 
-const router = useRouter()
-const auth = getAuth()
-const db = getFirestore()
-const storage = getStorage()
+const voornaam = ref('')
+const achternaam = ref('')
+const leeftijd = ref('')
+const linkedin = ref('')
+const domein = ref([])
+const beschikbaarVanaf = ref('')
+const opportuniteit = ref('')
+const studiejaar = ref('')
+const talenkennis = ref([])
+const toestemming = ref(false)
+const cv = ref(null)
+const intro = ref('')
+const andereTaal = ref('')
 
-const formData = reactive({
-  name: '',
-  age: '',
-  linkedin: '',
-  domain: '',
-  bio: '',
-  skills: [],
-  studyYear: '',
-  availableFrom: '',
-  opportunityType: '',
-  languages: '',
-  permission: false,
-  cv: null,
-  profilePicture: null
-})
-
-const imagePreview = ref(null)
+const skills = ref([])
 const showCustomSkill = ref(false)
 const customSkill = ref('')
 
-function addSkill(event) {
-  const value = event.target.value
-  if (value === 'custom') {
-    showCustomSkill.value = true
-  } else if (value && !formData.skills.includes(value)) {
-    formData.skills.push(value)
+const showCustomTaal = ref(false)
+const customTaal = ref('')
+
+const showCustomDomein = ref(false)
+const customDomein = ref('')
+
+const selectedDomein = ref('')
+const selectedTaal = ref('')
+const selectedSkill = ref('')
+
+const possibleTalen = [
+  'Nederlands', 'Engels', 'Frans', 'Duits', 'Spaans',
+  'Chinees', 'Arabisch', 'Russisch', 'Italiaans', 'Portugees'
+]
+
+const possibleDomeinen = [
+  'Software Development',
+  'Web Development',
+  'Mobile Development',
+  'Cloud Computing',
+  'DevOps',
+  'Cybersecurity',
+  'Data Science',
+  'Artificial Intelligence',
+  'Machine Learning',
+  'Network Engineering',
+  'System Administration',
+  'Database Management',
+  'UI/UX Design',
+  'Business Intelligence',
+  'IT Project Management',
+  'Quality Assurance',
+  'Embedded Systems',
+  'IoT Development',
+  'Blockchain Development',
+  'Game Development'
+]
+
+function addSkill() {
+  if (selectedSkill.value === 'custom') {
+    showCustomSkill.value = true;
+  } else if (
+    selectedSkill.value &&
+    !skills.value.includes(selectedSkill.value)
+  ) {
+    skills.value.push(selectedSkill.value);
+    showCustomSkill.value = false;
   }
-  event.target.selectedIndex = 0
+  // selectedSkill.value = '';
 }
 
 function confirmCustomSkill() {
-  if (customSkill.value && !formData.skills.includes(customSkill.value)) {
-    formData.skills.push(customSkill.value)
-    customSkill.value = ''
-    showCustomSkill.value = false
+  const trimmed = customSkill.value.trim();
+  if (trimmed && !skills.value.includes(trimmed)) {
+    skills.value.push(trimmed);
   }
+  customSkill.value = '';
+  // showCustomSkill blijft true zolang selectedSkill 'custom' is
 }
 
 function removeSkill(index) {
-  formData.skills.splice(index, 1)
+  skills.value.splice(index, 1)
 }
 
-async function handleImageUpload(event) {
-  const file = event.target.files[0]
+function addTaal() {
+  if (selectedTaal.value === 'custom') {
+    showCustomTaal.value = true;
+  } else if (
+    selectedTaal.value &&
+    !talenkennis.value.includes(selectedTaal.value)
+  ) {
+    talenkennis.value.push(selectedTaal.value);
+    showCustomTaal.value = false;
+  }
+  // selectedTaal.value = '';
+}
+
+function confirmCustomTaal() {
+  const trimmed = customTaal.value.trim();
+  if (trimmed && !talenkennis.value.includes(trimmed)) {
+    talenkennis.value.push(trimmed);
+  }
+  customTaal.value = '';
+  // showCustomTaal blijft true zolang selectedTaal 'custom' is
+}
+
+function removeTaal(index) {
+  talenkennis.value.splice(index, 1)
+}
+
+function addDomein() {
+  if (selectedDomein.value === 'custom') {
+    showCustomDomein.value = true;
+  } else if (
+    selectedDomein.value &&
+    !domein.value.includes(selectedDomein.value)
+  ) {
+    domein.value.push(selectedDomein.value);
+    showCustomDomein.value = false;
+  }
+  // selectedDomein.value = '';
+}
+
+function confirmCustomDomein() {
+  const trimmed = customDomein.value.trim();
+  if (trimmed && !domein.value.includes(trimmed)) {
+    domein.value.push(trimmed);
+  }
+  customDomein.value = '';
+  // showCustomDomein blijft true zolang selectedDomein 'custom' is
+}
+
+function removeDomein(index) {
+  domein.value.splice(index, 1)
+}
+
+const foto = ref(null)
+const fotoPreview = ref(null)
+
+function handleFotoUpload(e) {
+  const file = e.target.files?.[0]
   if (file) {
-    formData.profilePicture = file
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      alert('Bestand is te groot. Maximum grootte is 5MB.')
+      e.target.value = '' // Reset input
+      return
+    }
+    
+    if (!file.type.startsWith('image/')) {
+      alert('Alleen afbeeldingsbestanden zijn toegestaan.')
+      e.target.value = '' // Reset input
+      return
+    }
+
+    foto.value = file
     const reader = new FileReader()
     reader.onload = (e) => {
-      imagePreview.value = e.target.result
+      fotoPreview.value = e.target.result
     }
     reader.readAsDataURL(file)
   }
 }
-
-async function handleCVUpload(event) {
-  const file = event.target.files[0]
-  if (file) {
-    formData.cv = file
-  }
-}
-
-async function handleSubmit() {
-  try {
-    const user = auth.currentUser
-    if (!user) {
-      throw new Error('Geen ingelogde gebruiker gevonden')
-    }
-
-    // Upload profile picture if exists
-    let profilePictureUrl = null
-    if (formData.profilePicture) {
-      const profilePictureRef = storageRef(storage, `profile_pictures/${user.uid}`)
-      await uploadBytes(profilePictureRef, formData.profilePicture)
-      profilePictureUrl = await getDownloadURL(profilePictureRef)
-    }
-
-    // Upload CV if exists
-    let cvUrl = null
-    if (formData.cv) {
-      const cvRef = storageRef(storage, `cvs/${user.uid}`)
-      await uploadBytes(cvRef, formData.cv)
-      cvUrl = await getDownloadURL(cvRef)
-    }
-
-    // Maak een nieuw student-document aan in Firestore, inclusief email
-    await addDoc(collection(db, 'student'), {
-      ...formData,
-      email: user.email,
-      profilePicture: profilePictureUrl,
-      cv: cvUrl,
-      authUid: user.uid,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    })
-    alert('Profiel succesvol opgeslagen!')
-    router.push('/dashboard')
-  } catch (error) {
-    console.error('Error saving profile:', error)
-    alert('Er is een fout opgetreden bij het opslaan van je profiel')
-  }
-}
 </script>
 
+<template>
+  <div class="student-invoer">
+
+    <div class="header-blok">
+      <h2 class="titel">Student-profiel</h2>
+      <p class="uitleg">
+        Vul hieronder jouw persoonlijke gegevens in om je profiel aan te maken. Velden met een * zijn verplicht.
+      </p>
+    </div>
+
+    <form class="formulier-grid" @submit.prevent>
+
+      <div class="form-column">
+        <div class="form-group">
+          <label for="voornaam">Voornaam *</label>
+          <input id="voornaam" v-model="voornaam" type="text" placeholder="Voer je naam in..." required />
+        </div>
+
+        <div class="form-group">
+          <label for="achternaam">Achternaam *</label>
+          <input id="achternaam" v-model="achternaam" type="text" placeholder="Voer je achternaam in..." required />
+        </div>
+
+        <div class="form-group">
+          <label for="leeftijd">Leeftijd *</label>
+          <input id="leeftijd" v-model="leeftijd" type="number" placeholder="Voer je leeftijd in..." required />
+        </div>
+
+        <div class="form-group">
+          <label>Domein *</label>
+          <select class="skills-dropdown" v-model="selectedDomein" @change="addDomein" required>
+            <option disabled value="">Selecteer je domein</option>
+            <option v-for="d in possibleDomeinen" :key="d" :value="d">{{ d }}</option>
+            <option value="custom">Andere domein...</option>
+          </select>
+          <div v-if="selectedDomein === 'custom'" class="custom-skill-input">
+            <input type="text" v-model="customDomein" placeholder="Typ je eigen domein..." />
+            <button type="button" @click="confirmCustomDomein">Toevoegen</button>
+          </div>
+          <div class="skill-chips">
+            <span v-for="(d, index) in domein" :key="index" class="chip">
+              {{ d }}
+              <button @click="removeDomein(index)">&times;</button>
+            </span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="studiejaar">Studiejaar *</label>
+          <select id="studiejaar" v-model="studiejaar" required>
+            <option disabled value="">Kies je studiejaar</option>
+            <option>1e jaar</option>
+            <option>2e jaar</option>
+            <option>3e jaar</option>
+            <option>Afgestudeerd</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Talenkennis *</label>
+          <select class="skills-dropdown" v-model="selectedTaal" @change="addTaal" required>
+            <option disabled value="">Maak een keuze</option>
+            <option v-for="taal in possibleTalen" :key="taal" :value="taal">{{ taal }}</option>
+            <option value="custom">Andere taal...</option>
+          </select>
+          <div v-if="selectedTaal === 'custom'" class="custom-skill-input">
+            <input type="text" v-model="customTaal" placeholder="Typ je eigen taal..." />
+            <button type="button" @click="confirmCustomTaal">Toevoegen</button>
+          </div>
+          <div class="skill-chips">
+            <span v-for="(taal, index) in talenkennis" :key="index" class="chip">
+              {{ taal }}
+              <button @click="removeTaal(index)">&times;</button>
+            </span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="linkedin">LinkedIn</label>
+          <input id="linkedin" v-model="linkedin" type="url" placeholder="https://linkedin.com/in/jouwnaam" />
+        </div>
+
+        <div class="form-group">
+          <label for="cv-upload">CV uploaden *</label>
+          <input id="cv-upload" type="file" @change="e => cv.value = e.target.files[0]" required />
+        </div>
+      </div>
+
+      <div class="form-column">
+        <div class="form-group center-preview">
+          <div class="foto-preview-wrapper">
+            <img
+              v-if="fotoPreview"
+              :src="fotoPreview"
+              class="foto-preview"
+              alt="Profielfoto"
+            />
+            <img
+              v-else
+              :src="profielfoto"
+              class="foto-preview"
+              alt="Standaard profielfoto"
+            />
+          </div>
+          <label for="foto-upload" class="foto-upload-button">Upload foto *</label>
+          <input 
+            id="foto-upload" 
+            name="foto-upload"
+            type="file" 
+            accept="image/*" 
+            @change="handleFotoUpload" 
+            hidden
+          />
+          <p><strong>{{ voornaam || 'Voornaam' }} {{ achternaam || 'Achternaam' }}</strong></p>
+        </div>
+
+        <div class="form-group">
+          <label for="beschikbaarVanaf">Beschikbaar vanaf *</label>
+          <input id="beschikbaarVanaf" v-model="beschikbaarVanaf" type="date" required />
+        </div>
+
+        <div class="form-group">
+          <label for="opportuniteit">Opportuniteit *</label>
+          <select id="opportuniteit" v-model="opportuniteit" required>
+            <option disabled value="">Kies een opportuniteit</option>
+            <option>Stage</option>
+            <option>Student Job</option>
+            <option>Fulltime job</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="introductie">Stel jezelf kort voor *</label>
+          <textarea
+            id="introductie"
+            v-model="intro"
+            placeholder="Vertel in enkele zinnen wie je bent, je interesses en je ambities..."
+            rows="5"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label>Vaardigheden *</label>
+          <select class="skills-dropdown" v-model="selectedSkill" @change="addSkill" required>
+            <option disabled value="">Maak een keuze</option>
+            <option>Teamwork</option>
+            <option>Leiderschap</option>
+            <option>Python</option>
+            <option>Machine Learning</option>
+            <option>Projectmanagement</option>
+            <option>Cloud</option>
+            <option value="custom">Andere...</option>
+          </select>
+          <div v-if="selectedSkill === 'custom'" class="custom-skill-input">
+            <input type="text" v-model="customSkill" placeholder="Typ je eigen skill..." />
+            <button type="button" @click="confirmCustomSkill">Toevoegen</button>
+          </div>
+          <div class="skill-chips">
+            <span v-for="(skill, index) in skills" :key="index" class="chip">
+              {{ skill }}
+              <button @click="removeSkill(index)">&times;</button>
+            </span>
+          </div>
+        </div>
+
+        <div class="toestemming-richting">
+  <input
+    type="checkbox"
+    v-model="toestemming"
+    id="toestemming-checkbox"
+    required
+  />
+  <label for="toestemming-checkbox">
+    Ik geef toestemming dat mijn ingevulde gegevens gebruikt mogen worden in het kader van deze toepassing. *
+  </label>
+</div>
+
+        <div class="submit-section">
+          <button class="submit-knop" type="submit">Bevestig gegevens</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</template>
+
 <style scoped>
-.profiel-wrapper {
-  padding: 3rem 1.5rem;
-  background: linear-gradient(to bottom, #ffffff, #e6f0f5);
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
 
-.profiel-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2rem;
-  background-color: #ffffff;
-  padding: 2rem;
-  border-radius: 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  max-width: 1200px;
-  width: 100%;
-}
+  .student-invoer {
+    padding: 2rem 2rem 4rem;
+    max-width: 1000px;
+    margin: 0 auto;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: #f5f5f7;
+    color: #1d1d1f;
+    line-height: 1.6;
+    font-size: 16px;
+  }
+  
+  .header-blok {
+    background: linear-gradient(135deg, #fff7f7, #fff);
+    padding: 3rem 2rem 2rem;
+    text-align: center;
+    border-radius: 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    margin-bottom: 2rem;
+  }
+  
+  .header-blok .titel {
+    font-size: 2.6rem;
+    font-weight: 700;
+    color: #b80000;
+    margin-bottom: 1rem;
+    letter-spacing: -0.5px;
+  }
+  
+  .header-blok .uitleg {
+    font-size: 1.1rem;
+    color: #555;
+    max-width: 600px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+  
+  form.formulier-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+    background: white;
+    border-radius: 24px;
+    padding: 2.5rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+  }
+  
+  .form-column {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  
+  .form-group {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  label {
+    font-weight: 600;
+    margin-bottom: 0.4rem;
+    color: #1d1d1f;
+  }
+  
+  input[type='text'],
+  input[type='number'],
+  input[type='url'],
+  input[type='date'],
+  select,
+  textarea {
+    font-size: 1rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid #ced4da;
+    border-radius: 12px;
+    background-color: #fff;
+    transition: border-color 0.2s;
+    font-family: inherit;
+  }
+  
+  input:focus,
+  select:focus,
+  textarea:focus {
+    outline: none;
+    border-color: #b80000;
+    box-shadow: 0 0 0 2px rgba(184, 0, 0, 0.2);
+  }
+  
+  textarea {
+    resize: vertical;
+    min-height: 100px;
+    max-height: 180px;
+    line-height: 1.4;
+  }
+  
+  .checkbox-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  
+  .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 500;
+    color: #1c1d1f;
+  }
+  
+  .inline-text {
+    margin-left: 0.5rem;
+    padding: 0.4rem 0.6rem;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    width: 120px;
+  }
+  
+  .foto-preview-wrapper {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    overflow: hidden;
+    margin: 0 auto 1rem;
+    border: 4px solid #fff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+  
+  .foto-preview {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+  }
+  
+  .foto-upload-button {
+    background-color: #b80000;
+    color: white;
+    padding: 0.6rem 1.4rem;
+    border: none;
+    border-radius: 24px;
+    font-weight: 600;
+    cursor: pointer;
+    display: block;
+    margin: 0.5rem auto 1rem;
+    transition: background-color 0.2s;
+  }
+  
+  .foto-upload-button:hover {
+    background-color: #990000;
+  }
+  
+  .skill-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+  }
+  
+  .chip {
+    background-color: #fdeaea;
+    color: #b80000;
+    padding: 0.35rem 0.9rem;
+    border-radius: 20px;
+    font-weight: 500;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .chip button {
+    background: none;
+    border: none;
+    color: #b80000;
+    font-size: 1rem;
+    cursor: pointer;
+    font-weight: 700;
+  }
+  
+  .skills-dropdown {
+    width: 100%;
+    margin-top: 0.3rem;
+  }
+  
+  .custom-skill-input {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+  }
+  
+  .custom-skill-input input {
+    flex: 1;
+  }
+  
+  .custom-skill-input button {
+    background-color: #b80000;
+    color: white;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  
+  .toestemming-richting {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.8rem;
+    font-size: 0.95rem;
+    margin-top: 1.5rem;
+    color: #1d1d1f;
+    line-height: 1.4;
+  }
+  
+  .toestemming-richting input[type="checkbox"] {
+    margin-top: 0.2rem;
+    transform: scale(1.3);
+    cursor: pointer;
+    accent-color: #b80000;
+  }
+  
+  
+  .submit-section {
+    margin-top: 1.5rem;
+  }
+  
+  .submit-knop {
+    width: 100%;
+    padding: 1rem;
+    background-color: #b80000;
+    color: white;
+    font-weight: 600;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  
+  .submit-knop:hover {
+    background-color: #990000;
+  }
+  
+  .footer {
+    text-align: center;
+    font-size: 0.9rem;
+    color: #6c757d;
+    padding: 2rem 1rem 1rem;
+    margin-top: 3rem;
+  }
+  
+  @media (max-width: 900px) {
+    form.formulier-grid {
+      grid-template-columns: 1fr;
+    }
+    .header-blok .titel {
+      font-size: 2rem;
+    }
+  }
+</style> 
 
-.profiel-links,
-.profiel-rechts {
-  flex: 1 1 400px;
-  display: flex;
-  flex-direction: column;
-  gap: 1.2rem;
-}
-
-h2 {
-  margin-bottom: 0.5rem;
-  font-size: 1.8rem;
-  color: #c20000;
-}
-
-label {
-  font-weight: 600;
-  color: #333;
-}
-
-input,
-select,
-textarea {
-  padding: 0.9rem;
-  border-radius: 10px;
-  border: 1px solid #ccc;
-  font-size: 1rem;
-  background-color: #f5f7fa;
-  transition: border-color 0.3s;
-}
-
-input:focus,
-select:focus,
-textarea:focus {
-  border-color: #c20000;
-  outline: none;
-}
-
-textarea {
-  resize: vertical;
-}
-
-.skills-dropdown {
-  padding: 0.9rem;
-  border-radius: 10px;
-  border: 1px solid #d0d0d0;
-  background-color: #f5f7fa;
-  font-size: 1rem;
-  width: 100%;
-}
-
-.custom-skill-input {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-  margin-top: 0.5rem;
-}
-
-.custom-skill-input input {
-  flex: 1;
-  padding: 0.8rem;
-  border-radius: 8px;
-  border: 1px solid #ccc;
-  background-color: #f5f5f5;
-}
-
-.custom-skill-input button {
-  padding: 0.7rem 1rem;
-  border-radius: 8px;
-  background-color: #c20000;
-  color: white;
-  border: none;
-  cursor: pointer;
-}
-
-.selected-skills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 1rem;
-}
-
-.skill-tag {
-  background-color: #c20000;
-  color: white;
-  padding: 0.4rem 0.8rem;
-  border-radius: 20px;
-  font-size: 0.9rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.skill-tag button {
-  background: none;
-  border: none;
-  color: white;
-  font-weight: bold;
-  cursor: pointer;
-  font-size: 1rem;
-}
-
-.foto-upload {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 1rem;
-}
-
-.upload-circle {
-  width: 150px;
-  height: 150px;
-  background-color: #c20000;
-  color: white;
-  border-radius: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  font-weight: 600;
-  font-size: 1rem;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.submit-btn {
-  background-color: #c20000;
-  color: white;
-  padding: 0.9rem;
-  border: none;
-  border-radius: 10px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.3s;
-  margin-top: 1rem;
-}
-
-.submit-btn:hover {
-  background-color: #a00000;
-}
-
-.toestemming {
-  display: flex;
-  gap: 0.7rem;
-  align-items: flex-start;
-  margin-top: 1rem;
-  font-size: 0.95rem;
-  color: #444;
-}
-
-.preview-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 50%;
-}
-</style>

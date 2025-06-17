@@ -1,58 +1,7 @@
 <template>
-  <div class="dashboard-container">
-    <!-- Sidebar -->
-    <aside class="sidebar-nav">
-      <div class="sidebar-header">
-        <div class="sidebar-logo">
-          <i class="fas fa-graduation-cap"></i>
-        </div>
-        <div>
-          <h1 class="sidebar-title">StudentMatch</h1>
-          <p class="sidebar-subtitle">Student Instellingen</p>
-        </div>
-      </div>
-      <nav class="sidebar-menu">
-        <router-link
-          v-for="item in navigation"
-          :key="item.name"
-          :to="item.href"
-          :class="['sidebar-link', $route.path === item.href ? 'active' : '']"
-        >
-          <i :class="item.icon"></i>
-          {{ item.name }}
-        </router-link>
-      </nav>
-      <div class="sidebar-user">
-        <div class="sidebar-user-avatar">
-          <i class="fas fa-user"></i>
-        </div>
-        <div>
-          <p class="sidebar-user-name">{{ userData?.name || 'Gebruiker' }}</p>
-          <p class="sidebar-user-role">Student</p>
-        </div>
-      </div>
-    </aside>
-
-    <!-- Main Content -->
+  <StudentDashboardLayout>
+    <!-- Alleen de main content van de instellingenpagina, zonder sidebar/header -->
     <main class="dashboard-main">
-      <header class="dashboard-header">
-        <div>
-          <h1>Welkom terug, {{ userData?.name || 'Gebruiker' }}!</h1>
-          <p>Hier is je instellingen overzicht</p>
-        </div>
-        <div class="dashboard-header-actions">
-          <div class="dashboard-search">
-            <i class="fas fa-search"></i>
-            <input type="text" placeholder="Zoeken..." />
-          </div>
-          <button class="dashboard-bell">
-            <i class="fas fa-bell"></i>
-            <span class="dashboard-bell-dot"></span>
-          </button>
-          <div class="dashboard-profile-avatar">{{ userData?.name?.[0] || 'G' }}</div>
-        </div>
-      </header>
-
       <section class="dashboard-2col">
         <!-- Kaart: Wachtwoord wijzigen -->
         <div class="dashboard-card">
@@ -77,7 +26,6 @@
             <i class="fas fa-save"></i> Wijzig wachtwoord
           </button>
         </div>
-
         <!-- Kaart: Account verwijderen -->
         <div class="dashboard-card">
           <div class="dashboard-card-header">
@@ -88,7 +36,6 @@
             <i class="fas fa-trash-alt"></i> Verwijder account
           </button>
         </div>
-
         <!-- Kaart: Uitloggen -->
         <div class="dashboard-card">
           <div class="dashboard-card-header">
@@ -99,14 +46,14 @@
             <i class="fas fa-door-open"></i> Log uit
           </button>
         </div>
-
         <div v-if="message" class="dashboard-message">{{ message }}</div>
       </section>
     </main>
-  </div>
+  </StudentDashboardLayout>
 </template>
 
 <script>
+import StudentDashboardLayout from '../../components/StudentDashboardLayout.vue'
 import {
   getAuth,
   updatePassword,
@@ -118,6 +65,7 @@ import {
 
 export default {
   name: 'InstellingenStu',
+  components: { StudentDashboardLayout },
   data() {
     return {
       currentPassword: '',
@@ -125,13 +73,6 @@ export default {
       message: '',
       passwordError: '',
       userData: {},
-      navigation: [
-        { name: 'Dashboard', href: '/dashboard', icon: 'fas fa-chart-pie' },
-        { name: 'Job Swiping', href: '/swipe', icon: 'fas fa-heart' },
-        { name: 'Afspraken', href: '/appointments', icon: 'fas fa-calendar' },
-        { name: 'Profiel', href: '/profile', icon: 'fas fa-user' },
-        { name: 'Instellingen', href: '/SettingsStu', icon: 'fas fa-cog' }
-      ]
     };
   },
   methods: {
@@ -177,49 +118,52 @@ export default {
       }
     },
 
-async deleteAccount() {
-  if (!confirm('Weet je zeker dat je je account wilt verwijderen?')) return;
+    async deleteAccount() {
+      if (!confirm('Weet je zeker dat je je account wilt verwijderen?')) return;
 
-  const auth = getAuth();
-  const db = getFirestore();
-  const user = auth.currentUser;
+      const auth = getAuth();
+      const db = getFirestore();
+      const user = auth.currentUser;
 
-  if (!user) {
-    this.message = 'Je bent niet ingelogd. Log opnieuw in en probeer het opnieuw.';
-    return;
-  }
+      if (!user) {
+        this.message = 'Je bent niet ingelogd. Log opnieuw in en probeer het opnieuw.';
+        return;
+      }
 
-  if (user.providerData[0]?.providerId === 'google.com') {
-    this.message = 'Je kan je account niet verwijderen als je bent ingelogd via Google.';
-    return;
-  }
+      if (user.providerData[0]?.providerId === 'google.com') {
+        this.message = 'Je kan je account niet verwijderen als je bent ingelogd via Google.';
+        return;
+      }
 
-  try {
-    // Verwijder gebruiker uit Firestore
-    await deleteDoc(doc(db, 'student', user.uid));
-    // Verwijder Firebase Auth-account
-    await deleteUser(user);
+      try {
+        // Verwijder gebruiker uit Firestore
+        await deleteDoc(doc(db, 'student', user.uid));
+        // Verwijder Firebase Auth-account
+        await deleteUser(user);
 
-    // Log automatisch uit (optioneel)
-    await auth.signOut();
+        // Log automatisch uit (optioneel)
+        await auth.signOut();
 
-    // 🔁 Stuur naar loginpagina
-    this.$router.push('/login');
-  } catch (error) {
-    console.error('Fout bij verwijderen account:', error);
-    if (error.code === 'auth/requires-recent-login') {
-      this.message = 'Log opnieuw in om je account te kunnen verwijderen.';
-    } else {
-      this.message = 'Fout bij verwijderen account. Probeer opnieuw.';
+        // 🔁 Stuur naar loginpagina
+        this.$router.push('/login');
+      } catch (error) {
+        console.error('Fout bij verwijderen account:', error);
+        if (error.code === 'auth/requires-recent-login') {
+          this.message = 'Log opnieuw in om je account te kunnen verwijderen.';
+        } else {
+          this.message = 'Fout bij verwijderen account. Probeer opnieuw.';
+        }
+      }
+    },
+
+    logout() {
+      const auth = getAuth();
+      signOut(auth);
+      this.$router.push('/login');
     }
   }
 }
-
-  }
-}
-;
 </script>
-
 
 <style scoped>
 .dashboard-container {
@@ -670,5 +614,4 @@ async deleteAccount() {
   border-color: #c20000;
   background-color: #fff;
 }
-
 </style> 
