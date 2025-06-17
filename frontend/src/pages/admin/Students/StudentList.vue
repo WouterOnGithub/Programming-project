@@ -13,19 +13,19 @@
         </router-link>
       </div>
     </div>
- 
+
     <!-- Filters and Search -->
     <div class="filters-section">
       <div class="search-box">
-        <input
-          type="text"
+        <input 
+          type="text" 
           v-model="searchQuery"
           placeholder="Zoek studenten..."
           class="search-input"
         >
         <span class="search-icon">🔍</span>
       </div>
-     
+      
       <div class="filter-controls">
         <select v-model="filterStudyYear" class="filter-select">
           <option value="">Alle studiejaren</option>
@@ -34,7 +34,7 @@
           <option value="3e jaar">3e jaar</option>
           <option value="Afgestudeerd">Afgestudeerd</option>
         </select>
-       
+        
         <select v-model="filterOpportunity" class="filter-select">
           <option value="">Alle opportuniteiten</option>
           <option value="Stage">Stage</option>
@@ -43,7 +43,7 @@
         </select>
       </div>
     </div>
- 
+
     <!-- Students Table -->
     <div class="table-container">
       <table class="students-table">
@@ -62,9 +62,9 @@
           <tr v-for="student in filteredStudents" :key="student.id" class="student-row">
             <td class="student-info">
               <div class="student-photo">
-                <img
-                  v-if="student.photoUrl"
-                  :src="student.photoUrl"
+                <img 
+                  v-if="student.photoUrl" 
+                  :src="student.photoUrl" 
                   :alt="`${student.firstName} ${student.lastName}`"
                 >
                 <div v-else class="no-photo">
@@ -82,28 +82,28 @@
             </td>
             <td>{{ student.domain }}</td>
             <td>
-              <span :class="['opportunity-badge', (student.opportunityType ? student.opportunityType.toLowerCase().replace(' ', '-') : '')]">
-                {{ student.opportunityType || 'Onbekend' }}
+              <span :class="['opportunity-badge', student.opportunity.toLowerCase().replace(' ', '-')]">
+                {{ student.opportunity }}
               </span>
             </td>
             <td>{{ formatDate(student.availableFrom) }}</td>
             <td class="actions">
-              <router-link
-                :to="`/admin/students/${student.id}`"
+              <router-link 
+                :to="`/admin/students/${student.id}`" 
                 class="action-btn view"
                 title="Bekijken"
               >
                 👁️
               </router-link>
-              <router-link
-                :to="`/admin/students/${student.id}/edit`"
+              <router-link 
+                :to="`/admin/students/${student.id}/edit`" 
                 class="action-btn edit"
                 title="Bewerken"
               >
                 ✏️
               </router-link>
-              <button
-                @click="deleteStudent(student.id)"
+              <button 
+                @click="deleteStudent(student.id)" 
                 class="action-btn delete"
                 title="Verwijderen"
               >
@@ -114,7 +114,7 @@
         </tbody>
       </table>
     </div>
- 
+
     <!-- Empty State -->
     <div v-if="filteredStudents.length === 0" class="empty-state">
       <div class="empty-icon">👥</div>
@@ -123,11 +123,11 @@
     </div>
   </div>
 </template>
- 
+
 <script>
 import { db } from '../../../firebase/config'
 import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore'
- 
+
 export default {
   name: 'StudentList',
   data() {
@@ -135,8 +135,7 @@ export default {
       searchQuery: '',
       filterStudyYear: '',
       filterOpportunity: '',
-      students: [],
-      studentCount: 0
+      students: []
     }
   },
   async mounted() {
@@ -146,7 +145,6 @@ export default {
     async loadStudents() {
       const querySnapshot = await getDocs(collection(db, 'student'))
       this.students = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-      this.studentCount = querySnapshot.size
     },
     formatDate(dateString) {
       if (!dateString) return ''
@@ -165,7 +163,7 @@ export default {
       let filtered = this.students;
       if (this.searchQuery) {
         const query = this.searchQuery.toLowerCase();
-        filtered = filtered.filter(student =>
+        filtered = filtered.filter(student => 
           (student.firstName && student.firstName.toLowerCase().includes(query)) ||
           (student.lastName && student.lastName.toLowerCase().includes(query)) ||
           (student.email && student.email.toLowerCase().includes(query)) ||
@@ -183,12 +181,12 @@ export default {
   }
 }
 </script>
- 
+
 <style scoped>
 .student-list {
   padding: 0;
 }
- 
+
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -196,20 +194,20 @@ export default {
   margin-bottom: 32px;
   gap: 20px;
 }
- 
+
 .header-content h1 {
   font-size: 2rem;
   font-weight: 700;
   color: #1a1a1a;
   margin: 0 0 8px 0;
 }
- 
+
 .header-content p {
   color: #666;
   margin: 0;
   font-size: 1.1rem;
 }
- 
+
 .btn {
   display: inline-flex;
   align-items: center;
@@ -222,17 +220,17 @@ export default {
   border: none;
   cursor: pointer;
 }
- 
+
 .btn-primary {
   background: #007bff;
   color: white;
 }
- 
+
 .btn-primary:hover {
   background: #0056b3;
   transform: translateY(-1px);
 }
- 
+
 .filters-section {
   background: white;
   padding: 24px;
@@ -244,13 +242,13 @@ export default {
   align-items: center;
   flex-wrap: wrap;
 }
- 
+
 .search-box {
   position: relative;
   flex: 1;
   min-width: 300px;
 }
- 
+
 .search-input {
   width: 100%;
   padding: 12px 16px 12px 44px;
@@ -259,12 +257,12 @@ export default {
   font-size: 1rem;
   transition: border-color 0.2s ease;
 }
- 
+
 .search-input:focus {
   outline: none;
   border-color: #007bff;
 }
- 
+
 .search-icon {
   position: absolute;
   left: 16px;
@@ -272,12 +270,12 @@ export default {
   transform: translateY(-50%);
   color: #666;
 }
- 
+
 .filter-controls {
   display: flex;
   gap: 12px;
 }
- 
+
 .filter-select {
   padding: 12px 16px;
   border: 1px solid #e0e0e0;
@@ -286,19 +284,19 @@ export default {
   font-size: 0.95rem;
   min-width: 160px;
 }
- 
+
 .table-container {
   background: white;
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
- 
+
 .students-table {
   width: 100%;
   border-collapse: collapse;
 }
- 
+
 .students-table th {
   background: #f8f9fa;
   padding: 16px;
@@ -307,27 +305,27 @@ export default {
   color: #495057;
   border-bottom: 1px solid #e0e0e0;
 }
- 
+
 .student-row {
   border-bottom: 1px solid #f0f0f0;
   transition: background-color 0.2s ease;
 }
- 
+
 .student-row:hover {
   background-color: #f8f9fa;
 }
- 
+
 .students-table td {
   padding: 16px;
   vertical-align: middle;
 }
- 
+
 .student-info {
   display: flex;
   align-items: center;
   gap: 12px;
 }
- 
+
 .student-photo {
   width: 48px;
   height: 48px;
@@ -341,25 +339,25 @@ export default {
   overflow: hidden;
   flex-shrink: 0;
 }
- 
+
 .student-photo img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
- 
+
 .student-name {
   font-weight: 600;
   color: #1a1a1a;
   margin: 0 0 4px 0;
 }
- 
+
 .student-email {
   color: #666;
   margin: 0;
   font-size: 0.875rem;
 }
- 
+
 .study-year-badge {
   background: #e3f2fd;
   color: #1976d2;
@@ -368,34 +366,34 @@ export default {
   font-size: 0.875rem;
   font-weight: 500;
 }
- 
+
 .opportunity-badge {
   padding: 4px 8px;
   border-radius: 6px;
   font-size: 0.875rem;
   font-weight: 500;
 }
- 
+
 .opportunity-badge.stage {
   background: #fff3e0;
   color: #f57c00;
 }
- 
+
 .opportunity-badge.studentenjob {
   background: #e8f5e8;
   color: #2d7d32;
 }
- 
+
 .opportunity-badge.voltijdse-job {
   background: #fce4ec;
   color: #c2185b;
 }
- 
+
 .actions {
   display: flex;
   gap: 8px;
 }
- 
+
 .action-btn {
   width: 36px;
   height: 36px;
@@ -410,26 +408,26 @@ export default {
   transition: all 0.2s ease;
   text-decoration: none;
 }
- 
+
 .action-btn:hover {
   transform: translateY(-1px);
 }
- 
+
 .action-btn.view:hover {
   background: #e3f2fd;
   color: #1976d2;
 }
- 
+
 .action-btn.edit:hover {
   background: #fff3e0;
   color: #f57c00;
 }
- 
+
 .action-btn.delete:hover {
   background: #ffebee;
   color: #d32f2f;
 }
- 
+
 .empty-state {
   text-align: center;
   padding: 60px 20px;
@@ -437,48 +435,49 @@ export default {
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
- 
+
 .empty-icon {
   font-size: 4rem;
   margin-bottom: 16px;
 }
- 
+
 .empty-state h3 {
   color: #1a1a1a;
   margin: 0 0 8px 0;
 }
- 
+
 .empty-state p {
   color: #666;
   margin: 0;
 }
- 
+
 /* Responsive */
 @media (max-width: 768px) {
   .page-header {
     flex-direction: column;
     align-items: stretch;
   }
- 
+  
   .filters-section {
     flex-direction: column;
     align-items: stretch;
   }
- 
+  
   .search-box {
     min-width: auto;
   }
- 
+  
   .filter-controls {
     flex-direction: column;
   }
- 
+  
   .table-container {
     overflow-x: auto;
   }
- 
+  
   .students-table {
     min-width: 800px;
   }
 }
 </style>
+
