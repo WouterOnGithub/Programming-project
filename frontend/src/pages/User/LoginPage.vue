@@ -7,6 +7,7 @@ import { db } from '../../firebase/config'
 import { useRouter } from 'vue-router'
 import '../../css/login.css'
 import Navbar from '../../components/Navbar.vue'
+import { collection, getDocs, query, where } from 'firebase/firestore';
 
 // Form state
 const selectedRole = ref('student')
@@ -76,8 +77,47 @@ const handleLogin = async () => {
         router.push('/BedrijfDashboard')
       }, 1000)
     }
+
+    alert(`Welkom ${user.displayName || user.email}!`);
+    router.push(route);
   } catch (e) {
     error.value = e.message
+  }
+}
+
+const handleGoogleLogin = async () => {
+  error.value = '';
+  const provider = new GoogleAuthProvider();
+  try {
+    const result = await signInWithPopup(auth, provider);
+    const user = result.user;
+
+    // Check of profiel al bestaat in Firestore
+    let exists = false;
+    let route = '/dashboard';
+
+    if (isStudent()) {
+      // Controleer in 'student' collectie
+      const q = query(collection(db, 'student'), where('authUid', '==', user.uid));
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        exists = true;
+      }
+      route = exists ? '/dashboard' : '/Stinvoer';
+    } else if (isBedrijf()) {
+      // Controleer in 'bedrijf' collectie
+      const q = query(collection(db, 'bedrijf'), where('authUid', '==', user.uid));
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        exists = true;
+      }
+      route = exists ? '/BedrijfDashboard' : '/InvoerenBd';
+    }
+
+    alert(`Welkom ${user.displayName || user.email}!`);
+    router.push(route);
+  } catch (e) {
+    error.value = e.message;
   }
 }
 
@@ -138,6 +178,10 @@ const goToRegister = () => {
 
         <button type="submit" class="login-btn">
           Inloggen als {{ isStudent() ? 'Student' : isBedrijf() ? 'Bedrijf' : 'Administrator' }}
+        </button>
+        <button type="button" class="google-login-btn" @click="handleGoogleLogin">
+          <img src="/Images/google-logo.png" alt="Google logo" class="google-icon" />
+          <span>Inloggen met Google</span>
         </button>
       </form>
 

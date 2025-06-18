@@ -1,3 +1,9 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+
+body, .register-page {
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+}
+
 .register-page {
   min-height: 100vh;
   display: flex;
@@ -20,12 +26,14 @@
   color: #333;
   margin-bottom: 10px;
   font-size: 2rem;
+  font-weight: 600;
 }
 
 .register-card p {
   text-align: center;
   color: #666;
   margin-bottom: 30px;
+  font-size: 1.1rem;
 }
 
 .type-selection h3 {
@@ -107,6 +115,7 @@
   margin-bottom: 5px;
   font-weight: 600;
   color: #333;
+  font-size: 1rem;
 }
 
 .form-section input,
@@ -182,4 +191,33 @@
 
 .login-btn:hover {
   background: #a50000;
+}
+
+/* Google login button styling */
+.google-login-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 0;
+  border: 1px solid #dadce0;
+  border-radius: 24px;
+  background: #fff;
+  color: #3c4043;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: box-shadow 0.2s;
+  margin-top: 16px;
+}
+
+.google-login-btn:hover {
+  box-shadow: 0 1px 4px rgba(60,64,67,.15);
+  background: #f7f8fa;
+}
+
+.google-login-btn img {
+  height: 24px;
+  width: 24px;
 }

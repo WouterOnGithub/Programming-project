@@ -266,6 +266,7 @@ function verwijderSkill(index) {
 const navigation = [
   { name: 'Dashboard', href: '/student/dashboard', icon: 'fas fa-chart-pie' },
   { name: 'Favorieten', href: '/student/favorieten', icon: 'fas fa-heart' },
+  { name: 'Matches', href: '/stmatch' },
   { name: 'Gesprekken', href: '/student/gesprekken', icon: 'fas fa-comments' },
   { name: 'Profiel', href: '/student/profiel', icon: 'fas fa-user' }
 ]
