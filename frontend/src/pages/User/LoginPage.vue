@@ -1,24 +1,22 @@
 <script setup>
-import { reactive, ref } from 'vue';
-import { auth, db } from '../../firebase/config';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
-import { useRouter } from 'vue-router';
+import { ref } from 'vue'
+import { auth } from '../../firebase/config'
+import { signInWithEmailAndPassword } from 'firebase/auth'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from '../../firebase/config'
+import { useRouter } from 'vue-router'
 import '../../css/login.css'
 import Navbar from '../../components/Navbar.vue'
+import { collection, getDocs, query, where } from 'firebase/firestore';
 
-
-// Simpele form state
+// Form state
 const selectedRole = ref('student')
 const email = ref('')
 const password = ref('')
-const name = ref('')
-const companyName = ref('')
-
-// Simpele validatie
 const error = ref('')
+const successMessage = ref('')
 
-const router = useRouter();
+const router = useRouter()
 
 const isStudent = () => selectedRole.value === 'student'
 const isBedrijf = () => selectedRole.value === 'bedrijf'
@@ -32,71 +30,109 @@ const selectRole = (role) => {
 const clearForm = () => {
   email.value = ''
   password.value = ''
-  name.value = ''
-  companyName.value = ''
   error.value = ''
+}
+
+const showSuccessToast = (message) => {
+  successMessage.value = message
+  setTimeout(() => {
+    successMessage.value = ''
+  }, 3000)
 }
 
 const handleLogin = async () => {
   error.value = ''
 
-  // Basis validatie
   if (!email.value || !password.value) {
     error.value = 'Vul alle velden in'
     return
   }
 
-  if (isStudent() && !name.value) {
-    error.value = 'Vul uw naam in'
-    return
-  }
-
-  if (isBedrijf() && !companyName.value) {
-    error.value = 'Vul uw bedrijfsnaam in'
-    return
-  }
-
   try {
-    const userCredential = await signInWithEmailAndPassword(auth, email.value, password.value);
-    const user = userCredential.user;
-    
-    // Check if user is admin
+    const userCredential = await signInWithEmailAndPassword(auth, email.value, password.value)
+    const user = userCredential.user
+
     if (isAdmin()) {
-      const userDoc = await getDoc(doc(db, 'admin', user.uid));
-      console.log('Admin doc exists:', userDoc.exists(), 'UID:', user.uid);
+      const userDoc = await getDoc(doc(db, 'admin', user.uid))
       if (userDoc.exists()) {
-        router.push('/admin/dashboard');
-        return;
+        showSuccessToast('U bent succesvol ingelogd als admin!')
+        setTimeout(() => {
+          router.push('/admin/dashboard')
+        }, 1000)
       } else {
-        error.value = 'Geen admin rechten';
-        await auth.signOut();
-        return;
+        error.value = 'Geen admin rechten'
+        await auth.signOut()
       }
+      return
     }
 
-    let welcomeName = ''
     if (isStudent()) {
-      welcomeName = name.value;
-      alert(`Welkom ${welcomeName}!`);
-      router.push('/dashboard');
+      showSuccessToast('U bent succesvol ingelogd als student!')
+      setTimeout(() => {
+        router.push('/dashboard')
+      }, 1000)
     } else if (isBedrijf()) {
-      welcomeName = companyName.value;
-      alert(`Welkom ${welcomeName}!`);
-      router.push('/BedrijfDashboard');
+      showSuccessToast('U bent succesvol ingelogd als bedrijf!')
+      setTimeout(() => {
+        router.push('/BedrijfDashboard')
+      }, 1000)
     }
+
+    alert(`Welkom ${user.displayName || user.email}!`);
+    router.push(route);
+  } catch (e) {
+    error.value = e.message
+  }
+}
+
+const handleGoogleLogin = async () => {
+  error.value = '';
+  const provider = new GoogleAuthProvider();
+  try {
+    const result = await signInWithPopup(auth, provider);
+    const user = result.user;
+
+    // Check of profiel al bestaat in Firestore
+    let exists = false;
+    let route = '/dashboard';
+
+    if (isStudent()) {
+      // Controleer in 'student' collectie
+      const q = query(collection(db, 'student'), where('authUid', '==', user.uid));
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        exists = true;
+      }
+      route = exists ? '/dashboard' : '/Stinvoer';
+    } else if (isBedrijf()) {
+      // Controleer in 'bedrijf' collectie
+      const q = query(collection(db, 'bedrijf'), where('authUid', '==', user.uid));
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        exists = true;
+      }
+      route = exists ? '/BedrijfDashboard' : '/InvoerenBd';
+    }
+
+    alert(`Welkom ${user.displayName || user.email}!`);
+    router.push(route);
   } catch (e) {
     error.value = e.message;
   }
 }
 
 const goToRegister = () => {
-  window.location.href = '/register';
+  window.location.href = '/register'
 }
 </script>
 
-
 <template>
-<Navbar />
+  <Navbar />
+
+  <!-- Custom toast rechtsboven -->
+  <div v-if="successMessage" class="floating-toast">
+    {{ successMessage }}
+  </div>
 
   <div class="login-page">
     <div class="login-card">
@@ -130,19 +166,6 @@ const goToRegister = () => {
           {{ error }}
         </div>
 
-        <!-- Student velden -->
-        <div v-if="isStudent()">
-          <label>Naam:</label>
-          <input v-model="name" type="text" placeholder="Uw volledige naam" />
-        </div>
-
-        <!-- Bedrijf velden -->
-        <div v-if="isBedrijf()">
-          <label>Bedrijfsnaam:</label>
-          <input v-model="companyName" type="text" placeholder="Uw bedrijfsnaam" />
-        </div>
-
-        <!-- Algemene velden -->
         <div>
           <label>Email:</label>
           <input v-model="email" type="email" placeholder="uw@email.com" />
@@ -156,13 +179,20 @@ const goToRegister = () => {
         <button type="submit" class="login-btn">
           Inloggen als {{ isStudent() ? 'Student' : isBedrijf() ? 'Bedrijf' : 'Administrator' }}
         </button>
+        <button type="button" class="google-login-btn" @click="handleGoogleLogin">
+          <img src="/Images/google-logo.png" alt="Google logo" class="google-icon" />
+          <span>Inloggen met Google</span>
+        </button>
       </form>
 
       <!-- Footer -->
       <div class="footer">
         <p>Nog geen account?</p>
-        <router-link to="/register"> <button @click="goToRegister" class="register-btn"> Account aanmaken </button> </router-link>
+        <router-link to="/register">
+          <button @click="goToRegister" class="register-btn">Account aanmaken</button>
+        </router-link>
       </div>
     </div>
   </div>
 </template>
+

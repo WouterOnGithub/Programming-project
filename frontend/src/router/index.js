@@ -1,18 +1,15 @@
 import { createRouter, createWebHistory } from 'vue-router'
- // Adminroutes van jou
 import adminRoutes from './admin-routes.js'
-// Gebruikersroutes van je team
 
-import HomePage from '../pages/user/HomePage.vue'
-import Stprofielinvoer from '../pages/user/Stprofielinvoer.vue'
-// import ContactPage from '../pages/user/ContactPage.vue'
-// import SocialMedia from '../pages/user/SocialMedia.vue'
-import LoginPage from '../pages/user/LoginPage.vue'
-import RegisterPage from '../pages/user/RegisterPage.vue'
-import Dashboard from '../pages/user/Dashboard.vue'
-import Swipe from '../pages/user/Swipe.vue'
-import Appointments from '../pages/user/Appointments.vue'
-import Profile from '../pages/user/Profile.vue'
+
+import HomePage from '../pages/User/HomePage.vue'
+import Stprofielinvoer from '../pages/User/Stprofielinvoer.vue'
+import LoginPage from '../pages/User/LoginPage.vue'
+import RegisterPage from '../pages/User/RegisterPage.vue'
+import Dashboard from '../pages/User/Dashboard.vue'
+import Swipe from '../pages/User/Swipe.vue'
+import Appointments from '../pages/User/Appointments.vue'
+import Profile from '../pages/User/Profile.vue'
 import StProfielInvoerenNew from '../pages/User/Student/StProfielInvoerenNew.vue'
 import StudentDetail from '../pages/admin/Students/StudentDetail.vue'
 import BedrijfProfielWijzigen from '../pages/User/Bedrijf/BedrijfProfielWijzigen.vue'
@@ -57,6 +54,7 @@ const userRoutes = [
   { path: '/InvoerenSt', name: 'InvoerenSt', component: StProfielInvoerenNew },
   { path: '/stmatch', name: 'Stmatch', component: StMatch},
   { path: '/bedrijfmatch', name: 'Bedrijfmatch', component: BedrijfMatch},
+  { path: '/test', name: 'TestPage', component: () => import('../pages/User/TestPage.vue') },
 ]
 
   

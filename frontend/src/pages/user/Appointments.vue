@@ -1,49 +1,6 @@
 <template>
-  <div class="dashboard-container">
-    <aside class="sidebar-nav">
-      <div class="sidebar-header">
-        <div class="sidebar-logo">
-          <i class="fas fa-graduation-cap"></i>
-        </div>
-        <div>
-          <h1 class="sidebar-title">StudentMatch</h1>
-          <p class="sidebar-subtitle">Student Dashboard</p>
-        </div>
-      </div>
-      <nav class="sidebar-menu">
-        <router-link v-for="item in navigation" :key="item.name" :to="item.href" :class="['sidebar-link', $route.path === item.href ? 'active' : '']">
-          <i :class="item.icon"></i>
-          {{ item.name }}
-        </router-link>
-      </nav>
-      <div class="sidebar-user">
-        <div class="sidebar-user-avatar">
-          <i class="fas fa-user"></i>
-        </div>
-        <div>
-          <p class="sidebar-user-name">{{ userData?.name || 'Gebruiker' }}</p>
-          <p class="sidebar-user-role">Student</p>
-        </div>
-      </div>
-    </aside>
+  <StudentDashboardLayout>
     <main class="dashboard-main">
-      <header class="dashboard-header">
-        <div>
-          <h1>Welkom terug, {{ userData?.name || 'Gebruiker' }}!</h1>
-          <p>Hier is je afspraken overzicht</p>
-        </div>
-        <div class="dashboard-header-actions">
-          <div class="dashboard-search">
-            <i class="fas fa-search"></i>
-            <input type="text" placeholder="Zoeken..." />
-          </div>
-          <button class="dashboard-bell">
-            <i class="fas fa-bell"></i>
-            <span class="dashboard-bell-dot"></span>
-          </button>
-          <div class="dashboard-profile-avatar">{{ userData?.name?.[0] || 'G' }}</div>
-        </div>
-      </header>
       <section class="content-section">
         <div class="section-header">
           <h2 class="section-title">Komende Afspraken</h2>
@@ -136,19 +93,20 @@
         </div>
       </div>
     </main>
-  </div>
+  </StudentDashboardLayout>
 </template>
 
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useRouter } from 'vue-router';
+import StudentDashboardLayout from '../../components/StudentDashboardLayout.vue'
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: 'fas fa-chart-pie' },
   { name: 'Job Swiping', href: '/swipe', icon: 'fas fa-heart' },
   { name: 'Afspraken', href: '/appointments', icon: 'fas fa-calendar' },
-  { name: 'Profiel', href: '/profile', icon: 'fas fa-user' },
+  { name: 'Profiel', href: '/WeergaveSt', icon: 'fas fa-user' },
   { name: 'Instellingen', href: '/settings', icon: 'fas fa-cog' },
 ];
 const userData = ref({ name: 'imad' }); // Dummy data, vervang door echte user info indien nodig
@@ -174,7 +132,7 @@ const appointments = ref([
     time: '10:30 - 11:00',
     location: 'Aula 2',
     duration: '30 minuten',
-    status: 'today'
+    status: 'upcoming'
   },
   {
     id: 3,
@@ -232,7 +190,6 @@ function setFilter(filter) {
 function getStatusText(status) {
   return {
     upcoming: 'Komend',
-    today: 'Komend',
     completed: 'Afgerond'
   }[status] || status;
 }
@@ -306,17 +263,6 @@ watch(
 );
 
 const isStudent = () => true;
-
-let welcomeName = ''
-if (isStudent()) {
-  welcomeName = name.value
-  alert(`Welkom ${welcomeName}!`);
-  router.push('/dashboard');
-} else if (isBedrijf()) {
-  welcomeName = companyName.value
-  alert(`Welkom ${welcomeName}!`);
-  router.push('/BedrijfDashboard');
-}
 </script>
 
 <style scoped>
@@ -591,10 +537,6 @@ if (isStudent()) {
 .status-badge.upcoming {
   background: #d1fae5;
   color: #065f46;
-}
-.status-badge.today {
-  background: #fef3c7;
-  color: #92400e;
 }
 .status-badge.completed {
   background: #dbeafe;

@@ -1,3 +1,5 @@
+const TEST_MODE = true; // Zet op true om adminroutes altijd door te laten voor testen
+
 import { auth, db } from '../firebase/config';
 import { doc, getDoc } from 'firebase/firestore';
 import { useRouter } from 'vue-router';
@@ -8,6 +10,10 @@ const adminRoutes = [
     component: () => import('../pages/admin/components/AdminLayout.vue'),
     meta: { requiresAdmin: true },
     beforeEnter: async (to, from, next) => {
+      if (TEST_MODE) {
+        next();
+        return;
+      }
       const user = auth.currentUser;
       if (!user) {
         next('/login');
@@ -84,6 +90,16 @@ const adminRoutes = [
         path: 'grondplan',
         name: 'AdminGrondplan',
         component: () => import('../pages/admin/Grondplan/GrondplanList.vue')
+      },
+      {
+        path: 'matches',
+        name: 'AdminMatches',
+        component: () => import('../pages/admin/Matches/MatchesList.vue')
+      },
+      {
+        path: 'appointments',
+        name: 'AdminAppointments',
+        component: () => import('../pages/admin/Appointments/AppointmentsList.vue')
       }
     ]
   }
