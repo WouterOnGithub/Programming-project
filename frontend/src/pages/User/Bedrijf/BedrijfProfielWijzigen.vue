@@ -2,6 +2,9 @@
   <BedrijfDashboardLayout>
     <main class="main-content">
       <section class="banner">
+        <router-link to="/WeergaveBd" class="go-back-knop">
+          <span class="go-back-arrow">&#8592;</span> Terug
+        </router-link>
         <div class="image-wrapper">
           <img :src="profielfotoURL" alt="Profielfoto bedrijf" class="banner-img" />
           <label for="foto-upload" class="upload-icon" title="Wijzig profielfoto">
@@ -275,6 +278,7 @@ function bevestigGegevens() {
   border-radius: 20px;
   margin-bottom: 2rem;
   gap: 2rem;
+  position: relative;
 }
 
 .banner-img {
@@ -422,6 +426,34 @@ textarea {
   font-weight: 600;
   font-size: 0.95rem;
   margin-top: -1rem;
+}
+
+.go-back-knop {
+  position: absolute;
+  right: 2rem;
+  top: 2rem;
+  background: #fff;
+  color: #b80000;
+  border: 2px solid #b80000;
+  border-radius: 2rem;
+  padding: 0.4rem 1.2rem 0.4rem 1.2rem;
+  font-weight: 600;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: background 0.2s, color 0.2s;
+  z-index: 3;
+}
+
+.go-back-knop:hover {
+  background: #b80000;
+  color: #fff;
+}
+
+.go-back-arrow {
+  font-size: 1.2rem;
+  margin-right: 0.3rem;
 }
 
 @media (max-width: 900px) {

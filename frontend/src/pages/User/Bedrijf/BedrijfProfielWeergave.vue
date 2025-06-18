@@ -21,6 +21,7 @@
             <h1>{{ bedrijf.naam }}</h1>
             <p>{{ bedrijf.locatie }}</p>
           </div>
+          <router-link to="/WijzigBd" class="wijzig-knop">Wijzig</router-link>
         </div>
         <div class="section-card">
           <h2>Over ons</h2>
@@ -269,6 +270,7 @@ const bedrijf = ref({
   border-radius: 24px;
   padding: 2rem 3rem;
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+  position: relative;
 }
 
 .hero-photo img {
@@ -348,6 +350,27 @@ const bedrijf = ref({
 .info-list a {
   color: #c20000;
   text-decoration: underline;
+}
+
+.wijzig-knop {
+  position: absolute;
+  right: 2.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #fff;
+  color: #c20000;
+  border: 2px solid #c20000;
+  border-radius: 2rem;
+  padding: 0.5rem 1.5rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.2s, color 0.2s;
+  z-index: 2;
+}
+
+.wijzig-knop:hover {
+  background: #c20000;
+  color: #fff;
 }
 </style>
   
