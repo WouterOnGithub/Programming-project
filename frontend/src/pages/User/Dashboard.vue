@@ -96,9 +96,13 @@
       <section class="dashboard-card dashboard-actions">
         <h3>Snelle Acties</h3>
         <div class="dashboard-actions-grid">
-          <button class="dashboard-action-btn bg-primary text-white"><i class="fas fa-heart"></i> Start met Swipen</button>
+          <router-link to="/swipe" class="dashboard-action-btn bg-primary text-white" style="text-decoration: none;">
+            <i class="fas fa-heart"></i> Start met Swipen
+          </router-link>
           <button class="dashboard-action-btn bg-accent" @click="$router.push('/appointments')"><i class="fas fa-calendar"></i> Plan Afspraak</button>
-          <button class="dashboard-action-btn bg-accent"><i class="fas fa-users"></i> Bekijk Matches</button>
+          <router-link to="/stmatch" class="dashboard-action-btn bg-accent" style="text-decoration: none;">
+            <i class="fas fa-users"></i> Bekijk Matches
+          </router-link>
         </div>
       </section>
     </main>
