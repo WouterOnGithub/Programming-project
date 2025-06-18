@@ -378,88 +378,118 @@ const planAfspraak = (id) => {
 }
 
 .studentenlijst {
-  background: white;
-  border-radius: 1rem;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-}
-
-.lijst-hoofding {
-  padding: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
+  background: #fff;
+  border-radius: 1.25rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  padding: 2rem 1.5rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 1.5rem;
 }
 
 .student-kaart {
-  padding: 1.5rem;
+  background: #f8f9fa;
+  border-radius: 1rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  padding: 1.5rem 1.2rem;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-top: 1px solid #f3f4f6;
+  flex-direction: column;
+  align-items: flex-start;
+  border: 1.5px solid #f3f4f6;
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+.student-kaart:hover {
+  box-shadow: 0 4px 16px rgba(220,38,38,0.10);
+  border-color: #ffeaea;
 }
 
 .student-info {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 1.2rem;
+  margin-bottom: 1rem;
 }
-
 .avatar {
-  background-color: #dc2626;
+  background: #c20000;
   color: white;
-  width: 3rem;
-  height: 3rem;
-  border-radius: 9999px;
+  width: 3.2rem;
+  height: 3.2rem;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: bold;
-  font-size: 1.125rem;
+  font-size: 1.2rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
-
-.richting {
-  color: #dc2626;
+.student-info h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #c20000;
+}
+.student-info .richting {
+  color: #b91c1c;
   font-weight: 500;
+  font-size: 0.98rem;
 }
-
 .acties {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.7rem;
+  margin-top: 0.3rem;
 }
-
 .knop-grijs {
-  background-color: #f3f4f6;
-  color: #374151;
+  background: #f3f4f6;
+  color: #222;
   border: none;
-  padding: 0.5rem 0.75rem;
-  border-radius: 0.5rem;
+  padding: 0.55rem 1.2rem;
+  border-radius: 1rem;
   display: flex;
   align-items: center;
-  gap: 0.25rem;
-  cursor: pointer;
+  gap: 0.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: background 0.15s, color 0.15s;
+  box-shadow: none;
 }
-
+.knop-grijs svg {
+  color: #222;
+}
 .knop-grijs:hover {
-  background-color: #e5e7eb;
+  background: #e5e7eb;
 }
 
 .knop-rood {
-  background-color: #dc2626;
-  color: white;
+  background: #dc2626;
+  color: #fff;
   border: none;
-  padding: 0.5rem 0.75rem;
-  border-radius: 0.5rem;
+  padding: 0.55rem 1.2rem;
+  border-radius: 1rem;
   display: flex;
   align-items: center;
-  gap: 0.25rem;
-  cursor: pointer;
+  gap: 0.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: background 0.15s, color 0.15s;
+  box-shadow: none;
+}
+.knop-rood svg {
+  color: #fff;
+}
+.knop-rood:hover {
+  background: #b91c1c;
 }
 
-.knop-rood:hover {
-  background-color: #b91c1c;
+.lijst-hoofding {
+  grid-column: 1/-1;
+  padding-bottom: 1.2rem;
+  border-bottom: 1.5px solid #f3f4f6;
+  margin-bottom: 1.2rem;
 }
 
 .geen-resultaten {
+  grid-column: 1/-1;
   text-align: center;
-  padding: 4rem 2rem;
+  padding: 3rem 1.5rem;
 }
 
 .emoji {
