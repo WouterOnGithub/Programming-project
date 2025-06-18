@@ -1,39 +1,5 @@
 <template>
-  <div class="dashboard-container">
-    <!-- Sidebar -->
-    <aside class="sidebar-nav">
-      <div class="sidebar-header same-height">
-        <div class="sidebar-logo">
-          <User class="icoon" />
-        </div>
-        <div>
-          <h1 class="sidebar-title">BedrijfMatch</h1>
-          <p class="sidebar-subtitle">Bedrijvendashboard</p>
-        </div>
-      </div>
-      <nav class="sidebar-menu">
-        <a
-          v-for="item in navigation"
-          :key="item.name"
-          :href="item.href"
-          class="sidebar-link"
-          :data-actief="item.name === 'Matches'"
-        >
-          {{ item.name }}
-        </a>
-      </nav>
-      <div class="sidebar-user">
-        <div class="sidebar-user-avatar">
-          <Building class="icoon" />
-        </div>
-        <div>
-          <p class="sidebar-user-name">{{ bedrijfData?.bedrijfName || 'Bedrijf' }}</p>
-          <p class="sidebar-user-role">Bedrijf</p>
-        </div>
-      </div>
-    </aside>
-
-    <!-- Main Content -->
+  <BedrijfDashboardLayout>
     <main class="dashboard-main">
       <header class="dashboard-header same-height">
         <div class="header-info">
@@ -117,12 +83,13 @@
         </div>
       </section>
     </main>
-  </div>
+  </BedrijfDashboardLayout>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
 import { Heart, Calendar, User, Search, Building } from 'lucide-vue-next'
+import BedrijfDashboardLayout from '../../../components/BedrijfDashboardLayout.vue'
 
 const bedrijfData = ref({ bedrijfName: 'Cronos' })
 
@@ -131,6 +98,8 @@ const navigation = [
   { name: 'Favorieten', href: '/bedrijf/favorieten' },
   { name: 'Matches', href: '/bedrijfmatch'},
   { name: 'Gesprekken', href: '/bedrijf/gesprekken' },
+  { name: 'Matches', href: '/bedrijf/matches' },
+  { name: 'Gesprekken', href: '/GesprekkenBd' },
   { name: 'Profiel', href: '/bedrijf/profiel' },
 ]
 

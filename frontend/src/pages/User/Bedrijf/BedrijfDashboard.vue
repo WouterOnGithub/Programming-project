@@ -1,60 +1,11 @@
 <template>
-  <div class="dashboard-container">
-    <!-- Sidebar -->
-    <aside class="sidebar-nav">
-      <div class="sidebar-header">
-        <div class="sidebar-logo">
-          <i class="fas fa-building"></i>
-        </div>
-        <div>
-          <h1 class="sidebar-title">StudentMatch</h1>
-          <p class="sidebar-subtitle">Bedrijfsdashboard</p>
-        </div>
-      </div>
-
-      <nav class="sidebar-menu">
-        <router-link
-          v-for="item in navigation"
-          :key="item.name"
-          :to="item.href"
-          class="sidebar-link"
-          :class="{ active: $route.path === item.href }"
-        >
-          <i :class="item.icon"></i>
-          {{ item.name }}
-        </router-link>
-      </nav>
-
-      <div class="sidebar-user">
-        <div class="sidebar-user-avatar">
-          <i class="fas fa-user-tie"></i>
-        </div>
-        <div>
-          <p class="sidebar-user-name">{{ userData?.companyName || 'Bedrijf' }}</p>
-          <p class="sidebar-user-role">Recruiter</p>
-        </div>
-      </div>
-
-      <div class="sidebar-footer">
-        <router-link
-          to="/bedrijf/wijzig"
-          class="sidebar-link"
-          :class="{ active: $route.path === '/bedrijf/wijzig' }"
-        >
-          <i class="fas fa-pen"></i> Wijzig
-        </router-link>
-        <router-link to="/" class="sidebar-link">
-          <i class="fas fa-sign-out-alt"></i> Uitloggen
-        </router-link>
-      </div>
-    </aside>
-
+  <BedrijfDashboardLayout>
     <!-- Main content -->
     <main class="dashboard-main">
       <header class="dashboard-header">
         <div>
           <h1>Welkom terug, {{ userData?.companyName || 'Bedrijf' }}!</h1>
-          <p>Overzicht van geïnteresseerde studenten en geplande gesprekken</p>
+          <p>Overzicht van geïnteresseerde studenten en geplande afspraken</p>
           <p class="event-date-note">Career Launch vindt plaats op <strong>24 oktober 2025</strong>.</p>
         </div>
         <div class="dashboard-header-actions">
@@ -147,17 +98,20 @@
         </div>
       </section>
     </main>
-  </div>
+  </BedrijfDashboardLayout>
 </template>
 
 <script setup>
 import { ref } from 'vue'
+import BedrijfDashboardLayout from '../../../components/BedrijfDashboardLayout.vue'
 
 const navigation = [
   { name: 'Dashboard', href: '/BedrijfDashboard', icon: 'fas fa-chart-pie' },
   { name: 'Favorieten', href: '/bedrijf/favorieten', icon: 'fas fa-envelope' },
   { name: 'Matches', href: '/bedrijfmatch'},
   { name: 'Gesprekken', href: '/bedrijf/gesprekken', icon: 'fas fa-calendar' },
+  { name: 'Favorieten', href: '/Favorietenbd', icon: 'fas fa-envelope' },
+  { name: 'Gesprekken', href: '/GesprekkenBd', icon: 'fas fa-calendar' },
   { name: 'Profiel', href: '/bedrijf/profiel', icon: 'fas fa-user' },
   { name: 'Instellingen', href: '/SettingsBe', icon: 'fas fa-cog' }
 ]
@@ -182,7 +136,7 @@ const statsData = ref([
     color: 'text-blue-600',
   },
   {
-    title: 'Geplande Gesprekken',
+    title: 'Geplande Afspraken',
     value: '5',
     change: '+1',
     trend: 'up',

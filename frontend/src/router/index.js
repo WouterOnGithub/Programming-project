@@ -21,10 +21,8 @@ import StProfielFavorieten from '../pages/User/Student/StProfielFavorieten.vue'
 import StProfielWijzigen from '../pages/User/Student/StProfielWijzigen.vue'
 import BedrijfProfielInvoeren from '../pages/User/Bedrijf/BedrijfInvoeren.vue'
 import BedrijfDashboard from '../pages/User/Bedrijf/BedrijfDashboard.vue'
-
 import StMatch from '../pages/User/Student/StMatch.vue'
 import BedrijfMatch from '../pages/User/Bedrijf/BedrijfMatch.vue'
-
 import SettingsStu from '../pages/User/SettingsStu.vue'
 import SettingsBe from '../pages/User/Bedrijf/SettingsBe.vue'
 
