@@ -63,6 +63,9 @@
                 <Calendar :size="14" />
                 <span>Gesprek</span>
               </button>
+              <button class="knop-verwijder" @click="openConfirm(bedrijf.id)">
+                <span>Verwijder</span>
+              </button>
             </div>
           </div>
   
