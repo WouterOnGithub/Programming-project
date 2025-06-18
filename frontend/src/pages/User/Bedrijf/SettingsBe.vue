@@ -3,7 +3,7 @@
     <main class="dashboard-main">
       <header class="dashboard-header">
         <div>
-          <h1>Welkom terug, {{ userData?.name || 'Gebruiker' }}!</h1>
+          <h1>Welkom terug, {{ userData.name || 'Gebruiker' }}!</h1>
           <p>Hier is je instellingen overzicht</p>
         </div>
         <div class="dashboard-header-actions">
@@ -73,7 +73,9 @@
   </BedrijfDashboardLayout>
 </template>
 
-<script>
+<script setup>
+import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { useRouter } from 'vue-router'
 import {
   getAuth,
   updatePassword,
@@ -83,111 +85,101 @@ import {
   reauthenticateWithCredential
 } from 'firebase/auth';
 import BedrijfDashboardLayout from '../../../components/BedrijfDashboardLayout.vue'
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
 
-export default {
-  name: 'InstellingenStu',
-  components: {
-    BedrijfDashboardLayout
-  },
-  data() {
-    return {
-      currentPassword: '',
-      newPassword: '',
-      message: '',
-      passwordError: '',
-      userData: {},
-      showDropdown: ref(false)
-    };
-  },
-  setup() {
-    const router = useRouter()
-    const userData = ref({ name: 'Gebruiker' })
-    function handleAvatarClick() {
-      userData.value.showDropdown = !userData.value.showDropdown
+const router = useRouter()
+const currentPassword = ref('')
+const newPassword = ref('')
+const message = ref('')
+const passwordError = ref('')
+const userData = ref({ name: 'Gebruiker' })
+const showDropdown = ref(false)
+
+function handleAvatarClick() {
+  showDropdown.value = !showDropdown.value
+}
+function handleLogout() {
+  router.push('/')
+}
+function handleClickOutside(event) {
+  const dropdown = document.getElementById('bedrijf-profile-dropdown')
+  const avatar = document.getElementById('bedrijf-profile-avatar')
+  if (dropdown && !dropdown.contains(event.target) && avatar && !avatar.contains(event.target)) {
+    showDropdown.value = false
+  }
+}
+onMounted(() => {
+  document.addEventListener('mousedown', handleClickOutside)
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('mousedown', handleClickOutside)
+})
+
+async function changePassword() {
+  passwordError.value = ''
+  try {
+    const auth = getAuth();
+    const user = auth.currentUser;
+    if (!user || !user.email) {
+      passwordError.value = 'Er is iets misgegaan met je account. Probeer opnieuw in te loggen.';
+      return;
     }
-    function handleLogout() {
-      router.push('/')
+    if (user.providerData[0]?.providerId === 'google.com') {
+      passwordError.value = 'Je kan je wachtwoord niet wijzigen als je met Google bent ingelogd.';
+      return;
     }
-    function handleClickOutside(event) {
-      const dropdown = document.getElementById('bedrijf-profile-dropdown')
-      const avatar = document.getElementById('bedrijf-profile-avatar')
-      if (dropdown && !dropdown.contains(event.target) && avatar && !avatar.contains(event.target)) {
-        userData.value.showDropdown = false
-      }
+    if (!currentPassword.value || !newPassword.value) {
+      passwordError.value = 'Vul zowel je huidige als nieuwe wachtwoord in.';
+      return;
     }
-    if (typeof window !== 'undefined') {
-      window.addEventListener('mousedown', handleClickOutside)
-    }
-  },
-  methods: {
-    async changePassword() {
-      this.passwordError = '';
-      try {
-        const auth = getAuth();
-        const user = auth.currentUser;
-        if (!user || !user.email) {
-          this.passwordError = 'Er is iets misgegaan met je account. Probeer opnieuw in te loggen.';
-          return;
-        }
-        if (user.providerData[0]?.providerId === 'google.com') {
-          this.passwordError = 'Je kan je wachtwoord niet wijzigen als je met Google bent ingelogd.';
-          return;
-        }
-        if (!this.currentPassword || !this.newPassword) {
-          this.passwordError = 'Vul zowel je huidige als nieuwe wachtwoord in.';
-          return;
-        }
-        const credential = EmailAuthProvider.credential(user.email, this.currentPassword);
-        await reauthenticateWithCredential(user, credential);
-        await updatePassword(user, this.newPassword);
-        this.currentPassword = '';
-        this.newPassword = '';
-        alert('Je wachtwoord is gewijzigd.');
-      } catch (error) {
-        if (error.code === 'auth/invalid-credential') {
-          this.passwordError = 'Het huidige wachtwoord klopt niet.';
-        } else if (error.code === 'auth/too-many-requests') {
-          this.passwordError = 'Te veel pogingen. Wacht even en probeer opnieuw.';
-        } else if (error.code === 'auth/weak-password') {
-          this.passwordError = 'Je nieuwe wachtwoord is te zwak.';
-        } else {
-          this.passwordError = 'Er is een fout opgetreden. Probeer het opnieuw.';
-        }
-      }
-    },
-    async deleteAccount() {
-      if (!confirm('Weet je zeker dat je je account wilt verwijderen?')) return;
-      const auth = getAuth();
-      const user = auth.currentUser;
-      if (!user) {
-        this.message = 'Je bent niet ingelogd. Log opnieuw in en probeer het opnieuw.';
-        return;
-      }
-      if (user.providerData[0]?.providerId === 'google.com') {
-        this.message = 'Je kan je account niet verwijderen als je bent ingelogd via Google.';
-        return;
-      }
-      try {
-        await deleteUser(user);
-        await auth.signOut();
-        this.$router.push('/login');
-      } catch (error) {
-        console.error('Fout bij verwijderen account:', error);
-        if (error.code === 'auth/requires-recent-login') {
-          this.message = 'Log opnieuw in om je account te kunnen verwijderen.';
-        } else {
-          this.message = 'Fout bij verwijderen account. Probeer opnieuw.';
-        }
-      }
-    },
-    async logout() {
-      const auth = getAuth();
-      await signOut(auth);
-      this.$router.push('/login');
+    const credential = EmailAuthProvider.credential(user.email, currentPassword.value);
+    await reauthenticateWithCredential(user, credential);
+    await updatePassword(user, newPassword.value);
+    currentPassword.value = '';
+    newPassword.value = '';
+    alert('Je wachtwoord is gewijzigd.');
+  } catch (error) {
+    if (error.code === 'auth/invalid-credential') {
+      passwordError.value = 'Het huidige wachtwoord klopt niet.';
+    } else if (error.code === 'auth/too-many-requests') {
+      passwordError.value = 'Te veel pogingen. Wacht even en probeer opnieuw.';
+    } else if (error.code === 'auth/weak-password') {
+      passwordError.value = 'Je nieuwe wachtwoord is te zwak.';
+    } else {
+      passwordError.value = 'Er is een fout opgetreden. Probeer het opnieuw.';
     }
   }
+}
+
+async function deleteAccount() {
+  if (!confirm('Weet je zeker dat je je account wilt verwijderen?')) return;
+  const auth = getAuth();
+  const user = auth.currentUser;
+  if (!user) {
+    message.value = 'Je bent niet ingelogd. Log opnieuw in en probeer het opnieuw.';
+    return;
+  }
+  if (user.providerData[0]?.providerId === 'google.com') {
+    message.value = 'Je kan je account niet verwijderen als je bent ingelogd via Google.';
+    return;
+  }
+  try {
+    await deleteUser(user);
+    await auth.signOut();
+    router.push('/login');
+  } catch (error) {
+    console.error('Fout bij verwijderen account:', error);
+    if (error.code === 'auth/requires-recent-login') {
+      message.value = 'Log opnieuw in om je account te kunnen verwijderen.';
+    } else {
+      message.value = 'Fout bij verwijderen account. Probeer opnieuw.';
+    }
+  }
+}
+
+async function logout() {
+  const auth = getAuth();
+  await signOut(auth);
+  router.push('/login');
 }
 </script>
 
