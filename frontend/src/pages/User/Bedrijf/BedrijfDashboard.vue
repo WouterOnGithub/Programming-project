@@ -156,6 +156,7 @@ import { ref } from 'vue'
 const navigation = [
   { name: 'Dashboard', href: '/BedrijfDashboard', icon: 'fas fa-chart-pie' },
   { name: 'Favorieten', href: '/bedrijf/favorieten', icon: 'fas fa-envelope' },
+  { name: 'Matches', href: '/bedrijfmatch'},
   { name: 'Gesprekken', href: '/bedrijf/gesprekken', icon: 'fas fa-calendar' },
   { name: 'Profiel', href: '/bedrijf/profiel', icon: 'fas fa-user' },
   { name: 'Instellingen', href: '/SettingsBe', icon: 'fas fa-cog' }

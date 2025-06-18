@@ -98,6 +98,7 @@
   const navigation = [
     { name: 'Dashboard', href: '/bedrijf/dashboard' },
     { name: 'Favorieten', href: '/bedrijf/favorieten' },
+    { name: 'Matches', href: '/bedrijfmatch'},
     { name: 'Gesprekken', href: '/bedrijf/gesprekken' },
     { name: 'Profiel', href: '/bedrijf/profiel' },
   ]

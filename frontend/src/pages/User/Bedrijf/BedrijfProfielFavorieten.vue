@@ -106,6 +106,9 @@
                   <Calendar :size="14" />
                   <span>Gesprek</span>
                 </button>
+                <button class="knop-verwijder" @click="openConfirm(student.id)">
+                  <span>Verwijder</span>
+                </button>
               </div>
             </div>
   
@@ -117,6 +120,16 @@
           </div>
         </section>
       </main>
+  
+      <div v-if="showConfirm" class="modal-overlay">
+        <div class="modal">
+          <p>Weet je zeker dat je deze favoriet wilt verwijderen?</p>
+          <div class="modal-actions">
+            <button class="knop-ja" @click="verwijderFavoriet(favorietToDelete)">Ja</button>
+            <button class="knop-nee" @click="showConfirm = false">Nee</button>
+          </div>
+        </div>
+      </div>
     </div>
   </template>
   
@@ -129,6 +142,7 @@
   const navigation = [
     { name: 'Dashboard', href: '/bedrijf/dashboard' },
     { name: 'Favorieten', href: '/bedrijf/favorieten' },
+    { name: 'Matches', href: '/bedrijfmatch'},
     { name: 'Gesprekken', href: '/bedrijf/gesprekken' },
     { name: 'Profiel', href: '/bedrijf/profiel' },
   ]
@@ -160,6 +174,18 @@
   
   const planAfspraak = (id) => {
     console.log(`Plan afspraak met student ${id}`)
+  }
+  
+  const showConfirm = ref(false)
+  const favorietToDelete = ref(null)
+  const openConfirm = (id) => {
+    favorietToDelete.value = id
+    showConfirm.value = true
+  }
+  const verwijderFavoriet = (id) => {
+    studenten.value = studenten.value.filter(s => s.id !== id)
+    showConfirm.value = false
+    favorietToDelete.value = null
   }
   </script>
   
@@ -495,6 +521,71 @@
   .emoji {
     font-size: 3rem;
     margin-bottom: 1rem;
+  }
+  
+  .modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+  .modal {
+    background: #fff;
+    border-radius: 1rem;
+    padding: 2rem 2.5rem;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    text-align: center;
+    min-width: 300px;
+  }
+  .modal-actions {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+  .knop-ja {
+    background: #dc2626;
+    color: #fff;
+    border: none;
+    padding: 0.5rem 1.5rem;
+    border-radius: 0.5rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .knop-ja:hover {
+    background: #b91c1c;
+  }
+  .knop-nee {
+    background: #f3f4f6;
+    color: #374151;
+    border: none;
+    padding: 0.5rem 1.5rem;
+    border-radius: 0.5rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .knop-nee:hover {
+    background: #e5e7eb;
+  }
+  .knop-verwijder {
+    background-color: #fff;
+    color: #dc2626;
+    border: 1px solid #dc2626;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+  }
+  .knop-verwijder:hover {
+    background-color: #ffeaea;
   }
   </style>
   
