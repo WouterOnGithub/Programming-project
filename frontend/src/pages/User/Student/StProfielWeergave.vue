@@ -10,6 +10,7 @@
           <h1>{{ profiel.voornaam }} {{ profiel.achternaam }}</h1>
           <p>{{ profiel.domein }} – {{ profiel.studiejaar }}</p>
         </div>
+        <router-link to="/WijzigenSt" class="wijzig-knop">Wijzig</router-link>
       </section>
   
       <section class="section-card">
@@ -258,6 +259,7 @@ const navigation = [
   padding: 2rem;
   border-radius: 24px;
   margin: 2rem;
+  position: relative;
 }
 
 .hero-photo img {
@@ -323,6 +325,27 @@ const navigation = [
   background: #e5e7eb;
   padding: 0.3rem 0.7rem;
   border-radius: 12px;
+}
+
+.wijzig-knop {
+  position: absolute;
+  right: 2.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #fff;
+  color: var(--rood);
+  border: 2px solid var(--rood);
+  border-radius: 2rem;
+  padding: 0.5rem 1.5rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.2s, color 0.2s;
+  z-index: 2;
+}
+
+.wijzig-knop:hover {
+  background: var(--rood);
+  color: #fff;
 }
 </style>
   

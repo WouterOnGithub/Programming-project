@@ -1,128 +1,78 @@
 <template>
-  <div class="dashboard-container">
-    <!-- Sidebar -->
-    <aside class="sidebar-nav">
-      <div class="sidebar-header same-height">
-        <div class="sidebar-logo">
-          <Building class="icoon" />
-        </div>
-        <div>
-          <h1 class="sidebar-title">StudentMatch</h1>
-          <p class="sidebar-subtitle">Studentendashboard</p>
+  <StudentDashboardLayout>
+    <section class="pagina">
+      <div class="hoofding">
+        <div class="hoofding-links">
+          <div class="icoon-container">
+            <Heart :size="24" color="white" />
+          </div>
+          <div>
+            <h1 class="titel">Match bedrijven</h1>
+            <p class="subtekst">{{ matchBedrijven.length }} matches gevonden</p>
+          </div>
         </div>
       </div>
-      <nav class="sidebar-menu">
-        <a
-          v-for="item in navigation"
-          :key="item.name"
-          :href="item.href"
-          class="sidebar-link"
-          :data-actief="item.name === 'Matches'"
+      <div class="zoekbalk-container">
+        <Search class="zoek-icoon" :size="16" />
+        <input
+          type="text"
+          class="zoekveld"
+          placeholder="Zoek op naam, sector of locatie..."
+          v-model="zoekterm"
+        />
+      </div>
+      <div class="statistieken">
+        <div>
+          <div class="stat-value">{{ matchBedrijven.length }}</div>
+          <div class="stat-label">Totaal</div>
+        </div>
+        <div>
+          <div class="stat-value rood">{{ gefilterdeBedrijven.length }}</div>
+          <div class="stat-label">Resultaten</div>
+        </div>
+      </div>
+      <div class="studentenlijst">
+        <div class="lijst-hoofding">
+          <h2>Overzicht Matchs</h2>
+          <p>Klik op een bedrijf voor profiel of gesprek</p>
+        </div>
+        <div
+          class="student-kaart"
+          v-for="bedrijf in gefilterdeBedrijven"
+          :key="bedrijf.id"
         >
-          {{ item.name }}
-        </a>
-      </nav>
-      <div class="sidebar-user">
-        <div class="sidebar-user-avatar">
-          <User class="icoon" />
+          <div class="student-info">
+            <div class="avatar">{{ bedrijf.afkorting }}</div>
+            <div>
+              <h3>{{ bedrijf.naam }}</h3>
+              <p class="richting">{{ bedrijf.sector }} – {{ bedrijf.locatie }}</p>
+            </div>
+          </div>
+          <div class="acties">
+            <button class="knop-grijs" @click="toonProfiel(bedrijf.id)">
+              <Building :size="14" />
+              <span>Profiel</span>
+            </button>
+            <button class="knop-rood" @click="planAfspraak(bedrijf.id)">
+              <Calendar :size="14" />
+              <span>Gesprek</span>
+            </button>
+          </div>
         </div>
-        <div>
-          <p class="sidebar-user-name">{{ userData?.studentName || 'Student' }}</p>
-          <p class="sidebar-user-role">Student</p>
+        <div v-if="gefilterdeBedrijven.length === 0" class="geen-resultaten">
+          <div class="emoji">🔍</div>
+          <h3>Geen bedrijven gevonden</h3>
+          <p>Probeer een andere zoekterm.</p>
         </div>
       </div>
-    </aside>
-
-    <!-- Main Content -->
-    <main class="dashboard-main">
-      <header class="dashboard-header same-height">
-        <div class="header-info">
-          <h1>Welkom terug, {{ userData?.studentName || 'Student' }}!</h1>
-          <p>Overzicht van je matches</p>
-        </div>
-        <div class="dashboard-header-actions">
-          <div class="dashboard-profile-avatar">{{ userData?.studentName?.[0] || 'S' }}</div>
-        </div>
-      </header>
-
-      <section class="pagina">
-        <div class="hoofding">
-          <div class="hoofding-links">
-            <div class="icoon-container">
-              <Heart :size="24" color="white" />
-            </div>
-            <div>
-              <h1 class="titel">Match bedrijven</h1>
-              <p class="subtekst">{{ matchBedrijven.length }} matches gevonden</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="zoekbalk-container">
-          <Search class="zoek-icoon" :size="16" />
-          <input
-            type="text"
-            class="zoekveld"
-            placeholder="Zoek op naam, sector of locatie..."
-            v-model="zoekterm"
-          />
-        </div>
-
-        <div class="statistieken">
-          <div>
-            <div class="stat-value">{{ matchBedrijven.length }}</div>
-            <div class="stat-label">Totaal</div>
-          </div>
-          <div>
-            <div class="stat-value rood">{{ gefilterdeBedrijven.length }}</div>
-            <div class="stat-label">Resultaten</div>
-          </div>
-        </div>
-
-        <div class="studentenlijst">
-          <div class="lijst-hoofding">
-            <h2>Overzicht Matchs</h2>
-            <p>Klik op een bedrijf voor profiel of gesprek</p>
-          </div>
-
-          <div
-            class="student-kaart"
-            v-for="bedrijf in gefilterdeBedrijven"
-            :key="bedrijf.id"
-          >
-            <div class="student-info">
-              <div class="avatar">{{ bedrijf.afkorting }}</div>
-              <div>
-                <h3>{{ bedrijf.naam }}</h3>
-                <p class="richting">{{ bedrijf.sector }} – {{ bedrijf.locatie }}</p>
-              </div>
-            </div>
-            <div class="acties">
-              <button class="knop-grijs" @click="toonProfiel(bedrijf.id)">
-                <Building :size="14" />
-                <span>Profiel</span>
-              </button>
-              <button class="knop-rood" @click="planAfspraak(bedrijf.id)">
-                <Calendar :size="14" />
-                <span>Gesprek</span>
-              </button>
-            </div>
-          </div>
-
-          <div v-if="gefilterdeBedrijven.length === 0" class="geen-resultaten">
-            <div class="emoji">🔍</div>
-            <h3>Geen bedrijven gevonden</h3>
-            <p>Probeer een andere zoekterm.</p>
-          </div>
-        </div>
-      </section>
-    </main>
-  </div>
+    </section>
+  </StudentDashboardLayout>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
 import { Heart, Calendar, User, Search, Building } from 'lucide-vue-next'
+import StudentDashboardLayout from '../../../components/StudentDashboardLayout.vue'
 
 const userData = ref({ studentName: 'Cronos' })
 

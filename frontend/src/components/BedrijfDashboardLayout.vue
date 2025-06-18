@@ -4,7 +4,7 @@
     <aside class="sidebar-nav">
       <div class="sidebar-header">
         <div class="sidebar-logo">
-          <i class="fas fa-building"></i>
+          <img src="/Images/ehb-logo.png" alt="EHB logo" class="ehb-logo-img" />
         </div>
         <div>
           <h1 class="sidebar-title">StudentMatch</h1>
@@ -70,13 +70,18 @@ const navigation = [
 .sidebar-logo {
   width: 2rem;
   height: 2rem;
-  background: #c20000;
-  color: #fff;
   border-radius: 0.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.2rem;
+  overflow: hidden;
+}
+.ehb-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 .sidebar-title {
   font-size: 1.1rem;
