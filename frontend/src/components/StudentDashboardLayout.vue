@@ -39,7 +39,12 @@
             <i class="fas fa-bell"></i>
             <span class="dashboard-bell-dot"></span>
           </button>
-          <div class="dashboard-profile-avatar">{{ userInitial }}</div>
+          <div class="dashboard-profile-avatar" id="profile-avatar" @click="handleAvatarClick">
+            {{ userInitial }}
+          </div>
+          <div v-if="showDropdown" id="profile-dropdown" class="profile-dropdown">
+            <button class="dropdown-item" @click="handleLogout">Uitloggen</button>
+          </div>
         </div>
       </header>
       <slot />
@@ -48,8 +53,8 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: 'fas fa-chart-pie' },
@@ -62,6 +67,7 @@ const navigation = [
 ];
 
 const route = useRoute()
+const router = useRouter()
 
 // Dummy user info, in echte app kun je dit uit een store of prop halen
 const userName = computed(() => 'Gebruiker')
@@ -84,6 +90,32 @@ const pageSubtitle = computed(() => {
     default:
       return ''
   }
+})
+
+const showDropdown = ref(false)
+
+function handleAvatarClick() {
+  showDropdown.value = !showDropdown.value
+}
+
+function handleLogout() {
+  // Hier kun je je eigen logout logica toevoegen
+  router.push('/')
+}
+
+function handleClickOutside(event) {
+  const dropdown = document.getElementById('profile-dropdown')
+  const avatar = document.getElementById('profile-avatar')
+  if (dropdown && !dropdown.contains(event.target) && avatar && !avatar.contains(event.target)) {
+    showDropdown.value = false
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('mousedown', handleClickOutside)
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('mousedown', handleClickOutside)
 })
 </script>
 
@@ -179,6 +211,7 @@ const pageSubtitle = computed(() => {
   display: flex;
   align-items: center;
   gap: 1.2rem;
+  position: relative;
 }
 .dashboard-search {
   position: relative;
@@ -228,5 +261,39 @@ const pageSubtitle = computed(() => {
   justify-content: center;
   font-size: 1rem;
   font-weight: 600;
+  transition: transform 0.18s cubic-bezier(0.4,0,0.2,1), box-shadow 0.18s cubic-bezier(0.4,0,0.2,1);
+  cursor: pointer;
+}
+.dashboard-profile-avatar:hover {
+  transform: scale(1.12);
+  box-shadow: 0 4px 16px rgba(194,0,0,0.18);
+}
+.profile-dropdown {
+  position: absolute;
+  top: 3.5rem;
+  right: 0.5rem;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  z-index: 10;
+  min-width: 120px;
+  padding: 0.5rem 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+.dropdown-item {
+  background: none;
+  border: none;
+  color: #c20000;
+  font-weight: 500;
+  text-align: left;
+  padding: 0.7rem 1.2rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.dropdown-item:hover {
+  background: #f3f4f6;
 }
 </style> 

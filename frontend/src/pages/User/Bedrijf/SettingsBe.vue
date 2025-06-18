@@ -15,7 +15,12 @@
             <i class="fas fa-bell"></i>
             <span class="dashboard-bell-dot"></span>
           </button>
-          <div class="dashboard-profile-avatar">{{ userData?.name?.[0] || 'G' }}</div>
+          <div class="dashboard-profile-avatar" id="bedrijf-profile-avatar" @click="handleAvatarClick">
+            {{ userData.name[0] }}
+          </div>
+          <div v-if="showDropdown" id="bedrijf-profile-dropdown" class="profile-dropdown">
+            <button class="dropdown-item" @click="handleLogout">Uitloggen</button>
+          </div>
         </div>
       </header>
       <section class="dashboard-2col">
@@ -78,6 +83,8 @@ import {
   reauthenticateWithCredential
 } from 'firebase/auth';
 import BedrijfDashboardLayout from '../../../components/BedrijfDashboardLayout.vue'
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 
 export default {
   name: 'InstellingenStu',
@@ -91,7 +98,28 @@ export default {
       message: '',
       passwordError: '',
       userData: {},
+      showDropdown: ref(false)
     };
+  },
+  setup() {
+    const router = useRouter()
+    const userData = ref({ name: 'Gebruiker' })
+    function handleAvatarClick() {
+      userData.value.showDropdown = !userData.value.showDropdown
+    }
+    function handleLogout() {
+      router.push('/')
+    }
+    function handleClickOutside(event) {
+      const dropdown = document.getElementById('bedrijf-profile-dropdown')
+      const avatar = document.getElementById('bedrijf-profile-avatar')
+      if (dropdown && !dropdown.contains(event.target) && avatar && !avatar.contains(event.target)) {
+        userData.value.showDropdown = false
+      }
+    }
+    if (typeof window !== 'undefined') {
+      window.addEventListener('mousedown', handleClickOutside)
+    }
   },
   methods: {
     async changePassword() {
@@ -330,6 +358,40 @@ export default {
   justify-content: center;
   font-size: 1rem;
   font-weight: 600;
+  transition: transform 0.18s cubic-bezier(0.4,0,0.2,1), box-shadow 0.18s cubic-bezier(0.4,0,0.2,1);
+  cursor: pointer;
+}
+.dashboard-profile-avatar:hover {
+  transform: scale(1.12);
+  box-shadow: 0 4px 16px rgba(194,0,0,0.18);
+}
+.profile-dropdown {
+  position: absolute;
+  top: 3.5rem;
+  right: 0.5rem;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  z-index: 10;
+  min-width: 120px;
+  padding: 0.5rem 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+.dropdown-item {
+  background: none;
+  border: none;
+  color: #c20000;
+  font-weight: 500;
+  text-align: left;
+  padding: 0.7rem 1.2rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.dropdown-item:hover {
+  background: #f3f4f6;
 }
 .dashboard-stats {
   display: grid;
