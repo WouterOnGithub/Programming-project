@@ -137,6 +137,10 @@
       </div>
     </section>
 
+    <!-- Back to Top Button -->
+    <button class="back-to-top" @click="scrollToTop" aria-label="Terug naar boven">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="12" fill="#c20000"/><path d="M8 14l4-4 4 4" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
   </div>
 </template>
  
@@ -153,6 +157,7 @@ export default {
       slidesToShow: 3,
       companySearch: '',
       showAllCompanies: false,
+      showBackToTop: false,
       companies: [
         { id: 1, name: 'Accenture', logo: '/Images/accenture-logo.png' },
         { id: 2, name: 'Cegeka', logo: '/Images/cegeka-logo.jpg' },
@@ -222,6 +227,12 @@ export default {
       this.$nextTick(() => {
         this.updateCarousel()
       })
+    },
+    scrollToTop() {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    },
+    handleScroll() {
+      this.showBackToTop = window.scrollY > 300
     }
   },
   mounted() {
@@ -271,12 +282,34 @@ export default {
         }
       })
     }
+
+    // Back to top scroll event
+    window.addEventListener('scroll', this.handleScroll)
   },
   beforeUnmount() {
     window.removeEventListener('resize', this.handleResize)
+    window.removeEventListener('scroll', this.handleScroll)
   }
 }
 </script>
  
 <style scoped>
+.back-to-top {
+  position: fixed;
+  right: 2rem;
+  bottom: 2rem;
+  z-index: 1000;
+  background: transparent;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  opacity: 1;
+  pointer-events: auto;
+  transition: opacity 0.3s;
+}
+.back-to-top svg {
+  display: block;
+  box-shadow: 0 4px 16px rgba(194,0,0,0.18);
+  border-radius: 50%;
+}
 </style>
