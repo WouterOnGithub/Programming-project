@@ -8,7 +8,9 @@
           <span></span>
           <span></span>
         </button>
-        <h1>Admin</h1>
+        <router-link to="/admin/dashboard" class="admin-logo-link">
+          <span class="admin-logo-text">Admin</span>
+        </router-link>
       </div>
       <div class="header-actions">
         <a @click="handleLogout" class="logout-link">
@@ -235,6 +237,23 @@ export default {
   .logout-link i {
     font-size: 0.9rem;
   }
+}
+
+.admin-logo-link {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  font-weight: 700;
+  color: #1a1a1a;
+  font-size: 1.5rem;
+  transition: color 0.2s;
+}
+.admin-logo-link:hover {
+  color: #2563eb;
+}
+.admin-logo-text {
+  font-size: 1.5rem;
+  font-weight: 700;
 }
 </style>
 
