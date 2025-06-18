@@ -5,7 +5,6 @@ import { getAuth } from 'firebase/auth'
 import { getFirestore, collection, addDoc } from 'firebase/firestore'
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
 import profielfoto from '/Images/profielfoto.jpg'
-import BedrijfDashboardLayout from '../../../components/BedrijfDashboardLayout.vue'
 
 const router = useRouter()
 const auth = getAuth()
@@ -107,151 +106,149 @@ async function bevestigGegevens() {
 </script>
 
 <template>
-  <BedrijfDashboardLayout>
-    <main class="dashboard-main">
-      <div class="bedrijf-invoer">
-        <div class="header-blok">
-          <h2 class="titel">Bedrijf-profiel</h2>
-          <p class="uitleg">Vul hieronder je bedrijfsgegevens in. Velden met een * zijn verplicht.</p>
-        </div>
+  <main class="dashboard-main">
+    <div class="bedrijf-invoer">
+      <div class="header-blok">
+        <h2 class="titel">Bedrijf-profiel</h2>
+        <p class="uitleg">Vul hieronder je bedrijfsgegevens in. Velden met een * zijn verplicht.</p>
+      </div>
 
-        <form class="formulier-grid" @submit.prevent="bevestigGegevens">
-          <div class="form-column">
-            <div class="profielfoto-section">
-              <div class="foto-preview-wrapper">
-                <img
-                  v-if="fotoPreview"
-                  :src="fotoPreview"
-                  alt="Profielfoto bedrijf preview"
-                  class="foto-preview"
-                />
-                <img
-                  v-else
-                  :src="profielfoto"
-                  alt="Standaard profielfoto bedrijf"
-                  class="foto-preview"
-                />
-              </div>
-              <label for="foto-upload" class="foto-upload-button">Upload foto</label>
-              <input id="foto-upload" type="file" accept="image/*" @change="handleFotoUpload" hidden />
-              <p style="text-align:center;"><strong>{{ formData.bedrijfsnaam || 'Bedrijfsnaam' }}</strong></p>
+      <form class="formulier-grid" @submit.prevent="bevestigGegevens">
+        <div class="form-column">
+          <div class="profielfoto-section">
+            <div class="foto-preview-wrapper">
+              <img
+                v-if="fotoPreview"
+                :src="fotoPreview"
+                alt="Profielfoto bedrijf preview"
+                class="foto-preview"
+              />
+              <img
+                v-else
+                :src="profielfoto"
+                alt="Standaard profielfoto bedrijf"
+                class="foto-preview"
+              />
             </div>
+            <label for="foto-upload" class="foto-upload-button">Upload foto</label>
+            <input id="foto-upload" type="file" accept="image/*" @change="handleFotoUpload" hidden />
+            <p style="text-align:center;"><strong>{{ formData.bedrijfsnaam || 'Bedrijfsnaam' }}</strong></p>
+          </div>
 
-            <div class="form-group">
-              <label for="bedrijfsnaam">Bedrijfsnaam *</label>
-              <input id="bedrijfsnaam" v-model="formData.bedrijfsnaam" type="text" placeholder="Bijv. Mediahuis" required />
-            </div>
+          <div class="form-group">
+            <label for="bedrijfsnaam">Bedrijfsnaam *</label>
+            <input id="bedrijfsnaam" v-model="formData.bedrijfsnaam" type="text" placeholder="Bijv. Mediahuis" required />
+          </div>
 
-            <div class="form-group">
-              <label for="gesitueerdIn">Gesitueerd in *</label>
-              <input id="gesitueerdIn" v-model="formData.gesitueerdIn" type="text" placeholder="Bijv. Brussel" required />
-            </div>
+          <div class="form-group">
+            <label for="gesitueerdIn">Gesitueerd in *</label>
+            <input id="gesitueerdIn" v-model="formData.gesitueerdIn" type="text" placeholder="Bijv. Brussel" required />
+          </div>
 
-            <!-- Locatie onder elkaar -->
-            <div class="form-group">
-              <label for="locatie">Locatie *</label>
+          <!-- Locatie onder elkaar -->
+          <div class="form-group">
+            <label for="locatie">Locatie *</label>
+            <input
+              type="text"
+              id="locatie"
+              v-model="formData.locatie"
+              placeholder="Bijv. Brussels Expo"
+              required
+            />
+          </div>
+
+          <!-- Startuur en Einduur naast elkaar -->
+          <div class="tijd-grid">
+            <div class="tijd-veld">
+              <label for="starttijd">Startuur *</label>
               <input
-                type="text"
-                id="locatie"
-                v-model="formData.locatie"
-                placeholder="Bijv. Brussels Expo"
+                type="time"
+                id="starttijd"
+                v-model="formData.starttijd"
                 required
               />
             </div>
 
-            <!-- Startuur en Einduur naast elkaar -->
-            <div class="tijd-grid">
-              <div class="tijd-veld">
-                <label for="starttijd">Startuur *</label>
-                <input
-                  type="time"
-                  id="starttijd"
-                  v-model="formData.starttijd"
-                  required
-                />
-              </div>
-
-              <div class="tijd-veld">
-                <label for="eindtijd">Einduur *</label>
-                <input
-                  type="time"
-                  id="eindtijd"
-                  v-model="formData.eindtijd"
-                  required
-                />
-              </div>
-            </div>
-
-          </div>
-
-          <div class="form-column">
-            <div class="form-group">
-              <label for="linkedin">LinkedIn</label>
-              <input id="linkedin" v-model="formData.linkedin" type="url" placeholder="https://linkedin.com/company/jouwbedrijf" />
-            </div>
-
-            <div class="form-group">
-              <label for="opZoekNaar">Op zoek naar *</label>
-              <select id="opZoekNaar" v-model="formData.opZoekNaar" required>
-                <option disabled value="">Selecteer een profiel</option>
-                <option>IT-studenten</option>
-                <option>Marketing profielen</option>
-                <option>Boekhouders</option>
-                <option>Stagiairs</option>
-                <option>Vrijwilligers</option>
-                <option>Anders</option>
-              </select>
-              <div v-if="formData.opZoekNaar === 'Anders'" class="form-group">
-                <input
-                  ref="aangepasteZoektermInput"
-                  type="text"
-                  v-model="formData.aangepasteZoekterm"
-                  placeholder="Specificeer waar je naar zoekt..."
-                  required
-                />
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label for="gesprekDuur">Elk gesprek duurt *</label>
-              <select id="gesprekDuur" v-model="formData.gesprekDuur" required>
-                <option disabled value="">Kies duur</option>
-                <option>10 minuten</option>
-                <option>15 minuten</option>
-                <option>20 minuten</option>
-                <option>25 minuten</option>
-                <option>30 minuten</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label for="overOns">Over ons *</label>
-              <textarea
-                id="overOns"
-                v-model="formData.overOns"
-                placeholder="Beschrijf hier jullie missie, cultuur en troeven."
-                rows="6"
+            <div class="tijd-veld">
+              <label for="eindtijd">Einduur *</label>
+              <input
+                type="time"
+                id="eindtijd"
+                v-model="formData.eindtijd"
                 required
-              ></textarea>
+              />
             </div>
-
-            <div class="toestemming-richting">
-              <input type="checkbox" v-model="formData.toestemming" id="toestemming-checkbox" required />
-              <label for="toestemming-checkbox">
-                Ik geef toestemming dat mijn ingevulde gegevens gebruikt mogen worden in het kader van deze toepassing. *
-              </label>
-            </div>
-
-            <div class="submit-section">
-              <button class="submit-knop" type="submit">Bevestig gegevens</button>
-            </div>
-
-            <p v-if="foutmelding" class="foutmelding">{{ foutmelding }}</p>
           </div>
-        </form>
-      </div>
-    </main>
-  </BedrijfDashboardLayout>
+
+        </div>
+
+        <div class="form-column">
+          <div class="form-group">
+            <label for="linkedin">LinkedIn</label>
+            <input id="linkedin" v-model="formData.linkedin" type="url" placeholder="https://linkedin.com/company/jouwbedrijf" />
+          </div>
+
+          <div class="form-group">
+            <label for="opZoekNaar">Op zoek naar *</label>
+            <select id="opZoekNaar" v-model="formData.opZoekNaar" required>
+              <option disabled value="">Selecteer een profiel</option>
+              <option>IT-studenten</option>
+              <option>Marketing profielen</option>
+              <option>Boekhouders</option>
+              <option>Stagiairs</option>
+              <option>Vrijwilligers</option>
+              <option>Anders</option>
+            </select>
+            <div v-if="formData.opZoekNaar === 'Anders'" class="form-group">
+              <input
+                ref="aangepasteZoektermInput"
+                type="text"
+                v-model="formData.aangepasteZoekterm"
+                placeholder="Specificeer waar je naar zoekt..."
+                required
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="gesprekDuur">Elk gesprek duurt *</label>
+            <select id="gesprekDuur" v-model="formData.gesprekDuur" required>
+              <option disabled value="">Kies duur</option>
+              <option>10 minuten</option>
+              <option>15 minuten</option>
+              <option>20 minuten</option>
+              <option>25 minuten</option>
+              <option>30 minuten</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="overOns">Over ons *</label>
+            <textarea
+              id="overOns"
+              v-model="formData.overOns"
+              placeholder="Beschrijf hier jullie missie, cultuur en troeven."
+              rows="6"
+              required
+            ></textarea>
+          </div>
+
+          <div class="toestemming-richting">
+            <input type="checkbox" v-model="formData.toestemming" id="toestemming-checkbox" required />
+            <label for="toestemming-checkbox">
+              Ik geef toestemming dat mijn ingevulde gegevens gebruikt mogen worden in het kader van deze toepassing. *
+            </label>
+          </div>
+
+          <div class="submit-section">
+            <button class="submit-knop" type="submit">Bevestig gegevens</button>
+          </div>
+
+          <p v-if="foutmelding" class="foutmelding">{{ foutmelding }}</p>
+        </div>
+      </form>
+    </div>
+  </main>
 </template>
 
 <style scoped>
