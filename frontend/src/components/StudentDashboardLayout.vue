@@ -56,6 +56,7 @@ const navigation = [
   { name: 'Job Swiping', href: '/swipe', icon: 'fas fa-heart' },
   { name: 'Afspraken', href: '/appointments', icon: 'fas fa-calendar' },
   { name: 'Favorieten', href: '/Favorietenst', icon: 'fas fa-star' },
+  { name: 'Matches', href: '/stmatch', icon: 'fas fa-users' },
   { name: 'Profiel', href: '/WeergaveSt', icon: 'fas fa-user' },
   { name: 'Instellingen', href: '/SettingsStu', icon: 'fas fa-cog' },
 ];
