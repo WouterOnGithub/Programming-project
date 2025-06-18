@@ -100,10 +100,10 @@ import BedrijfDashboardLayout from '../../../components/BedrijfDashboardLayout.v
 
 const profielfotoURL = ref(profielfotoDefault)
 const bedrijfsnaam = ref('CoolCompany')
-const standlocatie = ref('Hal 3 – Stand 14')
-const startuur = ref('13:00')
-const einduur = ref('15:30')
 const gesitueerdIn = ref('Brussel')
+const locatie = ref('Hal 3 – Stand 14')
+const starttijd = ref('13:00')
+const eindtijd = ref('15:30')
 const linkedin = ref('https://www.linkedin.com/company/coolcompany')
 const overOns = ref('Wij zijn een innovatief bedrijf dat jong talent ondersteunt.')
 const opZoekNaar = ref('IT-studenten')
@@ -124,9 +124,9 @@ const navigation = [
 const velden = [
   { id: 'bedrijfsnaam', label: 'Bedrijfsnaam *', placeholder: 'Bv. CoolCompany', model: bedrijfsnaam, type: 'text', required: true },
   { id: 'gesitueerdIn', label: 'Gesitueerd in *', placeholder: 'Bv. Brussel', model: gesitueerdIn, type: 'text', required: true },
-  { id: 'standlocatie', label: 'Locatie op het event *', placeholder: 'Bv. Hal 3 – Stand 14', model: standlocatie, type: 'text', required: true },
-  { id: 'startuur', label: 'Startuur *', placeholder: '', model: startuur, type: 'time', required: true },
-  { id: 'einduur', label: 'Einduur *', placeholder: '', model: einduur, type: 'time', required: true },
+  { id: 'locatie', label: 'Locatie op het event *', placeholder: 'Bv. Hal 3 – Stand 14', model: locatie, type: 'text', required: true },
+  { id: 'starttijd', label: 'Starttijd *', placeholder: '', model: starttijd, type: 'time', required: true },
+  { id: 'eindtijd', label: 'Eindtijd *', placeholder: '', model: eindtijd, type: 'time', required: true },
   { id: 'linkedin', label: 'LinkedIn', placeholder: 'https://www.linkedin.com/...', model: linkedin, type: 'text', required: false },
   { id: 'overOns', label: 'Over ons *', placeholder: 'Bv. Wij zijn een innovatief bedrijf...', model: overOns, type: 'textarea', required: true }
 ]
@@ -152,7 +152,7 @@ function wijzigAfbeelding(event) {
 function bevestigGegevens() {
   const gekozenZoekterm = opZoekNaar.value === 'Anders' ? aangepasteZoekterm.value : opZoekNaar.value
 
-  if (!bedrijfsnaam.value || !gesitueerdIn.value || !standlocatie.value || !startuur.value || !einduur.value || !gekozenZoekterm || !gesprekDuur.value || !overOns.value || !toestemming.value) {
+  if (!bedrijfsnaam.value || !gesitueerdIn.value || !locatie.value || !starttijd.value || !eindtijd.value || !gekozenZoekterm || !gesprekDuur.value || !overOns.value || !toestemming.value) {
     foutmelding.value = 'Gelieve alle verplichte velden in te vullen en toestemming te geven.'
     return
   }

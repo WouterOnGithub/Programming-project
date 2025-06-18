@@ -57,181 +57,101 @@
         <!-- Personal Information -->
         <div class="form-section">
           <h3 class="section-title">Persoonlijke Gegevens</h3>
-         
           <div class="form-row">
             <div class="form-group">
-              <label for="firstName" class="form-label">Voornaam *</label>
-              <input
-                type="text"
-                id="firstName"
-                v-model="form.firstName"
-                class="form-input"
-                :class="{ 'error': errors.firstName }"
-                placeholder="Voer voornaam in"
-                required
-              >
-              <span v-if="errors.firstName" class="error-message">{{ errors.firstName }}</span>
+              <label for="voornaam" class="form-label">Voornaam *</label>
+              <input type="text" id="voornaam" v-model="form.voornaam" class="form-input" :class="{ 'error': errors.voornaam }" placeholder="Voer voornaam in" required>
+              <span v-if="errors.voornaam" class="error-message">{{ errors.voornaam }}</span>
             </div>
-           
             <div class="form-group">
-              <label for="lastName" class="form-label">Achternaam *</label>
-              <input
-                type="text"
-                id="lastName"
-                v-model="form.lastName"
-                class="form-input"
-                :class="{ 'error': errors.lastName }"
-                placeholder="Voer achternaam in"
-                required
-              >
-              <span v-if="errors.lastName" class="error-message">{{ errors.lastName }}</span>
+              <label for="achternaam" class="form-label">Achternaam *</label>
+              <input type="text" id="achternaam" v-model="form.achternaam" class="form-input" :class="{ 'error': errors.achternaam }" placeholder="Voer achternaam in" required>
+              <span v-if="errors.achternaam" class="error-message">{{ errors.achternaam }}</span>
             </div>
           </div>
- 
           <div class="form-group">
-            <label for="age" class="form-label">Leeftijd *</label>
-            <input
-              type="number"
-              id="age"
-              v-model="form.age"
-              class="form-input"
-              :class="{ 'error': errors.age }"
-              placeholder="Voer leeftijd in"
-              min="16"
-              max="100"
-              required
-            >
-            <span v-if="errors.age" class="error-message">{{ errors.age }}</span>
+            <label for="leeftijd" class="form-label">Leeftijd *</label>
+            <input type="number" id="leeftijd" v-model="form.leeftijd" class="form-input" :class="{ 'error': errors.leeftijd }" placeholder="Voer leeftijd in" min="16" max="100" required>
+            <span v-if="errors.leeftijd" class="error-message">{{ errors.leeftijd }}</span>
           </div>
         </div>
  
         <!-- Study Information -->
         <div class="form-section">
           <h3 class="section-title">Studie Informatie</h3>
-         
           <div class="form-group">
-            <label for="studyYear" class="form-label">Studiejaar *</label>
-            <select
-              id="studyYear"
-              v-model="form.studyYear"
-              class="form-select"
-              :class="{ 'error': errors.studyYear }"
-              required
-            >
+            <label for="studiejaar" class="form-label">Studiejaar *</label>
+            <select id="studiejaar" v-model="form.studiejaar" class="form-select" :class="{ 'error': errors.studiejaar }" required>
               <option value="">Selecteer studiejaar</option>
               <option value="1e jaar">1e jaar</option>
               <option value="2e jaar">2e jaar</option>
               <option value="3e jaar">3e jaar</option>
               <option value="Afgestudeerd">Afgestudeerd</option>
             </select>
-            <span v-if="errors.studyYear" class="error-message">{{ errors.studyYear }}</span>
+            <span v-if="errors.studiejaar" class="error-message">{{ errors.studiejaar }}</span>
           </div>
- 
           <div class="form-group">
-            <label for="domain" class="form-label">Domein *</label>
-            <input
-              type="text"
-              id="domain"
-              v-model="form.domain"
-              class="form-input"
-              :class="{ 'error': errors.domain }"
-              placeholder="Bijv. Informatica, Marketing, Grafisch Ontwerp"
-              required
-            >
-            <span v-if="errors.domain" class="error-message">{{ errors.domain }}</span>
+            <label for="domein" class="form-label">Domein *</label>
+            <div class="chips-input">
+              <input type="text" id="domein" v-model="domeinInput" class="form-input" placeholder="Voeg domein toe en druk op Enter" @keydown.enter.prevent="addDomein">
+              <button type="button" @click="addDomein" class="btn btn-outline btn-sm">Toevoegen</button>
+            </div>
+            <div class="chips-list">
+              <span v-for="(d, idx) in form.domein" :key="idx" class="chip">{{ d }} <button type="button" @click="removeDomein(idx)">&times;</button></span>
+            </div>
+            <span v-if="errors.domein" class="error-message">{{ errors.domein }}</span>
           </div>
         </div>
  
         <!-- Skills and Languages -->
         <div class="form-section">
           <h3 class="section-title">Vaardigheden & Talen</h3>
-         
           <div class="form-group">
-            <label for="skills" class="form-label">Keywords (Vaardigheden) *</label>
-            <div class="skills-input">
-              <input
-                type="text"
-                v-model="skillInput"
-                @keydown.enter.prevent="addSkill"
-                @keydown.comma.prevent="addSkill"
-                class="form-input"
-                placeholder="Voer vaardigheid in en druk op Enter"
-              >
+            <label for="skills" class="form-label">Vaardigheden *</label>
+            <div class="chips-input">
+              <input type="text" v-model="skillInput" @keydown.enter.prevent="addSkill" class="form-input" placeholder="Voeg skill toe en druk op Enter">
               <button type="button" @click="addSkill" class="btn btn-outline btn-sm">Toevoegen</button>
             </div>
-            <div class="skills-list">
-              <span
-                v-for="(skill, index) in form.skills"
-                :key="index"
-                class="skill-tag"
-              >
-                {{ skill }}
-                <button type="button" @click="removeSkill(index)" class="skill-remove">×</button>
-              </span>
+            <div class="chips-list">
+              <span v-for="(skill, idx) in form.skills" :key="idx" class="chip">{{ skill }} <button type="button" @click="removeSkill(idx)">&times;</button></span>
             </div>
             <span v-if="errors.skills" class="error-message">{{ errors.skills }}</span>
           </div>
- 
           <div class="form-group">
-            <label for="languages" class="form-label">Talenkennis *</label>
-            <textarea
-              id="languages"
-              v-model="form.languages"
-              class="form-textarea"
-              :class="{ 'error': errors.languages }"
-              placeholder="Bijv. Nederlands (moedertaal), Engels (vloeiend), Frans (basis)"
-              rows="3"
-              required
-            ></textarea>
-            <span v-if="errors.languages" class="error-message">{{ errors.languages }}</span>
+            <label for="talenkennis" class="form-label">Talenkennis *</label>
+            <div class="chips-input">
+              <input type="text" v-model="taalInput" @keydown.enter.prevent="addTaal" class="form-input" placeholder="Voeg taal toe en druk op Enter">
+              <button type="button" @click="addTaal" class="btn btn-outline btn-sm">Toevoegen</button>
+            </div>
+            <div class="chips-list">
+              <span v-for="(taal, idx) in form.talenkennis" :key="idx" class="chip">{{ taal }} <button type="button" @click="removeTaal(idx)">&times;</button></span>
+            </div>
+            <span v-if="errors.talenkennis" class="error-message">{{ errors.talenkennis }}</span>
           </div>
         </div>
  
         <!-- Professional Information -->
         <div class="form-section">
           <h3 class="section-title">Professionele Informatie</h3>
-         
           <div class="form-group">
             <label for="linkedin" class="form-label">LinkedIn URL</label>
-            <input
-              type="url"
-              id="linkedin"
-              v-model="form.linkedin"
-              class="form-input"
-              :class="{ 'error': errors.linkedin }"
-              placeholder="https://linkedin.com/in/jouwprofiel"
-            >
+            <input type="url" id="linkedin" v-model="form.linkedin" class="form-input" :class="{ 'error': errors.linkedin }" placeholder="https://linkedin.com/in/jouwprofiel">
             <span v-if="errors.linkedin" class="error-message">{{ errors.linkedin }}</span>
           </div>
- 
           <div class="form-group">
-            <label for="opportunity" class="form-label">Gezochte Opportuniteit *</label>
-            <select
-              id="opportunity"
-              v-model="form.opportunity"
-              class="form-select"
-              :class="{ 'error': errors.opportunity }"
-              required
-            >
+            <label for="opportuniteit" class="form-label">Gezochte Opportuniteit *</label>
+            <select id="opportuniteit" v-model="form.opportuniteit" class="form-select" :class="{ 'error': errors.opportuniteit }" required>
               <option value="">Kies een type</option>
               <option value="Stage">Stage</option>
               <option value="Studentenjob">Studentenjob</option>
               <option value="Voltijdse job">Voltijdse job</option>
             </select>
-            <span v-if="errors.opportunity" class="error-message">{{ errors.opportunity }}</span>
+            <span v-if="errors.opportuniteit" class="error-message">{{ errors.opportuniteit }}</span>
           </div>
- 
           <div class="form-group">
-            <label for="availableFrom" class="form-label">Beschikbaar vanaf *</label>
-            <input
-              type="date"
-              id="availableFrom"
-              v-model="form.availableFrom"
-              class="form-input"
-              :class="{ 'error': errors.availableFrom }"
-              required
-            >
-            <span v-if="errors.availableFrom" class="error-message">{{ errors.availableFrom }}</span>
+            <label for="beschikbaarVanaf" class="form-label">Beschikbaar vanaf *</label>
+            <input type="date" id="beschikbaarVanaf" v-model="form.beschikbaarVanaf" class="form-input" :class="{ 'error': errors.beschikbaarVanaf }" required>
+            <span v-if="errors.beschikbaarVanaf" class="error-message">{{ errors.beschikbaarVanaf }}</span>
           </div>
         </div>
  
@@ -272,19 +192,18 @@
         <!-- Introduction -->
         <div class="form-section full-width">
           <h3 class="section-title">Introductie</h3>
-         
           <div class="form-group">
-            <label for="introduction" class="form-label">Stel je kort voor *</label>
-            <textarea
-              id="introduction"
-              v-model="form.introduction"
-              class="form-textarea"
-              :class="{ 'error': errors.introduction }"
-              placeholder="Vertel kort over jezelf, je ambities en wat je zoekt..."
-              rows="4"
-              required
-            ></textarea>
-            <span v-if="errors.introduction" class="error-message">{{ errors.introduction }}</span>
+            <label for="intro" class="form-label">Stel je kort voor *</label>
+            <textarea id="intro" v-model="form.intro" class="form-textarea" :class="{ 'error': errors.intro }" placeholder="Vertel kort over jezelf, je ambities en wat je zoekt..." rows="4" required></textarea>
+            <span v-if="errors.intro" class="error-message">{{ errors.intro }}</span>
+          </div>
+        </div>
+        <!-- Toestemming -->
+        <div class="form-section">
+          <div class="form-group">
+            <input type="checkbox" id="toestemming" v-model="form.toestemming" required>
+            <label for="toestemming">Ik geef toestemming voor het verwerken van mijn gegevens *</label>
+            <span v-if="errors.toestemming" class="error-message">{{ errors.toestemming }}</span>
           </div>
         </div>
       </div>
@@ -319,21 +238,21 @@ export default {
       isEdit: false,
       isSubmitting: false,
       skillInput: '',
+      domeinInput: '',
+      taalInput: '',
       form: {
-        firstName: '',
-        lastName: '',
-        age: '',
-        studyYear: '',
-        domain: '',
+        voornaam: '',
+        achternaam: '',
+        leeftijd: '',
+        studiejaar: '',
+        domein: [],
         skills: [],
-        languages: '',
+        talenkennis: [],
         linkedin: '',
-        opportunity: '',
-        availableFrom: '',
-        introduction: '',
-        photoPreview: null,
-        photoFile: null,
-        cvFile: null
+        opportuniteit: '',
+        beschikbaarVanaf: '',
+        intro: '',
+        toestemming: false
       },
       errors: {}
     }
@@ -403,15 +322,39 @@ export default {
     },
    
     addSkill() {
-      const skill = this.skillInput.trim();
-      if (skill && !this.form.skills.includes(skill)) {
-        this.form.skills.push(skill);
-        this.skillInput = '';
+      const val = this.skillInput.trim();
+      if (val && !this.form.skills.includes(val)) {
+        this.form.skills.push(val);
       }
+      this.skillInput = '';
     },
    
-    removeSkill(index) {
-      this.form.skills.splice(index, 1);
+    removeSkill(idx) {
+      this.form.skills.splice(idx, 1);
+    },
+   
+    addDomein() {
+      const val = this.domeinInput.trim();
+      if (val && !this.form.domein.includes(val)) {
+        this.form.domein.push(val);
+      }
+      this.domeinInput = '';
+    },
+   
+    removeDomein(idx) {
+      this.form.domein.splice(idx, 1);
+    },
+   
+    addTaal() {
+      const val = this.taalInput.trim();
+      if (val && !this.form.talenkennis.includes(val)) {
+        this.form.talenkennis.push(val);
+      }
+      this.taalInput = '';
+    },
+   
+    removeTaal(idx) {
+      this.form.talenkennis.splice(idx, 1);
     },
    
     formatFileSize(bytes) {
@@ -424,51 +367,42 @@ export default {
    
     validateForm() {
       this.errors = {};
-     
-      if (!this.form.firstName.trim() && !this.form.name) {
-        this.errors.firstName = 'Voornaam is verplicht';
+      if (!this.form.voornaam.trim()) {
+        this.errors.voornaam = 'Voornaam is verplicht';
       }
-     
-      if (!this.form.lastName.trim() && !this.form.name) {
-        this.errors.lastName = 'Achternaam is verplicht';
+      if (!this.form.achternaam.trim()) {
+        this.errors.achternaam = 'Achternaam is verplicht';
       }
-     
-      if (!this.form.age || this.form.age < 16 || this.form.age > 100) {
-        this.errors.age = 'Voer een geldige leeftijd in (16-100)';
+      if (!this.form.leeftijd || this.form.leeftijd < 16 || this.form.leeftijd > 100) {
+        this.errors.leeftijd = 'Voer een geldige leeftijd in (16-100)';
       }
-     
-      if (!this.form.studyYear) {
-        this.errors.studyYear = 'Studiejaar is verplicht';
+      if (!this.form.studiejaar) {
+        this.errors.studiejaar = 'Studiejaar is verplicht';
       }
-     
-      if (!this.form.domain.trim()) {
-        this.errors.domain = 'Domein is verplicht';
+      if (!this.form.domein.length) {
+        this.errors.domein = 'Voeg minimaal één domein toe';
       }
-     
-      if (this.form.skills.length === 0) {
+      if (!this.form.skills.length) {
         this.errors.skills = 'Voeg minimaal één vaardigheid toe';
       }
-     
-      if (!this.form.languages.trim()) {
-        this.errors.languages = 'Talenkennis is verplicht';
+      if (!this.form.talenkennis.length) {
+        this.errors.talenkennis = 'Voeg minimaal één taal toe';
       }
-     
-      if (!this.form.opportunity) {
-        this.errors.opportunity = 'Gezochte opportuniteit is verplicht';
+      if (!this.form.opportuniteit) {
+        this.errors.opportuniteit = 'Gezochte opportuniteit is verplicht';
       }
-     
-      if (!this.form.availableFrom) {
-        this.errors.availableFrom = 'Beschikbaarheidsdatum is verplicht';
+      if (!this.form.beschikbaarVanaf) {
+        this.errors.beschikbaarVanaf = 'Beschikbaarheidsdatum is verplicht';
       }
-     
-      if (!this.form.introduction.trim()) {
-        this.errors.introduction = 'Introductie is verplicht';
+      if (!this.form.intro.trim()) {
+        this.errors.intro = 'Introductie is verplicht';
       }
-     
+      if (!this.form.toestemming) {
+        this.errors.toestemming = 'Toestemming is verplicht';
+      }
       if (this.form.linkedin && !this.isValidUrl(this.form.linkedin)) {
         this.errors.linkedin = 'Voer een geldige URL in';
       }
-     
       return Object.keys(this.errors).length === 0;
     },
    

@@ -65,7 +65,7 @@
                 <img 
                   v-if="student.photoUrl" 
                   :src="student.photoUrl" 
-                  :alt="`${student.firstName} ${student.lastName}`"
+                  :alt="`${student.voornaam} ${student.achternaam}`"
                 >
                 <div v-else class="no-photo">
                   <span class="photo-icon">👤</span>
@@ -78,23 +78,22 @@
                     :class="{ 'active-link': lastClickedStudentId === student.id }"
                     @click.native="handleStudentClick(student.id)"
                   >
-                    {{ student.firstName }} {{ student.lastName }}
+                    {{ student.voornaam }} {{ student.achternaam }}
                   </router-link>
                 </h4>
-                <p class="student-email">{{ student.email }}</p>
               </div>
             </td>
-            <td>{{ student.age }}</td>
+            <td>{{ student.leeftijd }}</td>
             <td>
-              <span class="study-year-badge">{{ student.studyYear }}</span>
+              <span class="study-year-badge">{{ student.studiejaar }}</span>
             </td>
-            <td>{{ student.domain }}</td>
+            <td>{{ Array.isArray(student.domein) ? student.domein.join(', ') : student.domein }}</td>
             <td>
-              <span :class="['opportunity-badge', student.opportunity ? student.opportunity.toLowerCase().replace(' ', '-') : '']">
-                {{ student.opportunity }}
+              <span :class="['opportunity-badge', student.opportuniteit ? student.opportuniteit.toLowerCase().replace(' ', '-') : '']">
+                {{ student.opportuniteit }}
               </span>
             </td>
-            <td>{{ formatDate(student.availableFrom) }}</td>
+            <td>{{ formatDate(student.beschikbaarVanaf) }}</td>
             <td class="actions">
               <router-link 
                 :to="`/admin/students/${student.id}`" 
@@ -177,17 +176,16 @@ export default {
       if (this.searchQuery) {
         const query = this.searchQuery.toLowerCase();
         filtered = filtered.filter(student => 
-          (student.firstName && student.firstName.toLowerCase().includes(query)) ||
-          (student.lastName && student.lastName.toLowerCase().includes(query)) ||
-          (student.email && student.email.toLowerCase().includes(query)) ||
-          (student.domain && student.domain.toLowerCase().includes(query))
+          (student.voornaam && student.voornaam.toLowerCase().includes(query)) ||
+          (student.achternaam && student.achternaam.toLowerCase().includes(query)) ||
+          (Array.isArray(student.domein) && student.domein.join(', ').toLowerCase().includes(query))
         );
       }
       if (this.filterStudyYear) {
-        filtered = filtered.filter(student => student.studyYear === this.filterStudyYear);
+        filtered = filtered.filter(student => student.studiejaar === this.filterStudyYear);
       }
       if (this.filterOpportunity) {
-        filtered = filtered.filter(student => student.opportunity === this.filterOpportunity);
+        filtered = filtered.filter(student => student.opportuniteit === this.filterOpportunity);
       }
       return filtered;
     }

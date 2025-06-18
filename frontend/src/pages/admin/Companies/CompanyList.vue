@@ -52,67 +52,30 @@
       <table class="companies-table">
         <thead>
           <tr>
-            <th>Bedrijf</th>
+            <th>Logo</th>
+            <th>Bedrijfsnaam</th>
             <th>Locatie</th>
-            <th>Branche</th>
-            <th>Grootte</th>
             <th>Op zoek naar</th>
             <th>Acties</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="company in filteredCompanies" :key="company.id" class="company-row">
-            <td class="company-info">
-              <div class="company-logo">
-                <img 
-                  v-if="company.logo" 
-                  :src="company.logo" 
-                  :alt="company.bedrijfsnaam"
-                >
-                <div v-else class="no-logo">
-                  <span class="logo-icon">{{ (company.bedrijfsnaam || '?').charAt(0) }}</span>
-                </div>
-              </div>
-              <div class="company-details">
-                <router-link 
-                  :to="`/admin/companies/${company.id}`"
-                  class="company-name"
-                  :class="{ 'active-link': lastClickedCompanyId === company.id }"
-                  @click.native="handleCompanyClick(company.id)"
-                >
-                  {{ company.bedrijfsnaam || 'Onbekend' }}
-                </router-link>
-                <p class="company-email">{{ company.email || 'Onbekend' }}</p>
-              </div>
-            </td>
-            <td>{{ company.gesitueerdIn || '-' }}</td>
+          <tr v-for="company in filteredCompanies" :key="company.id">
             <td>
-              <span class="industry-badge">{{ company.industry || '-' }}</span>
+              <div class="logo-circle">
+                <img v-if="company.foto" :src="company.foto" :alt="company.bedrijfsnaam" />
+                <span v-else>{{ (company.bedrijfsnaam || '?').charAt(0) }}</span>
+              </div>
             </td>
-            <td>{{ company.size || '-' }}</td>
-            <td class="looking-for">{{ company.lookingFor || '-' }}</td>
-            <td class="actions">
-              <button 
-                @click="viewCompany(company.id)" 
-                class="action-btn view"
-                title="Bekijken"
-              >
-                👁️
-              </button>
-              <router-link 
-                :to="`/admin/companies/${company.id}/edit`" 
-                class="action-btn edit"
-                title="Bewerken"
-              >
-                ✏️
-              </router-link>
-              <button 
-                @click="deleteCompany(company.id)" 
-                class="action-btn delete"
-                title="Verwijderen"
-              >
-                🗑️
-              </button>
+            <td>{{ company.bedrijfsnaam }}</td>
+            <td>{{ company.locatie }}</td>
+            <td>{{ company.opZoekNaar }}</td>
+            <td>
+              <div class="actions-cell">
+                <router-link :to="`/admin/companies/${company.id}`" class="action-btn view" title="Bekijken">👁️</router-link>
+                <router-link :to="`/admin/companies/${company.id}/edit`" class="action-btn edit" title="Bewerken">✏️</router-link>
+                <button @click="deleteCompany(company.id)" class="action-btn delete" title="Verwijderen">🗑️</button>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -157,17 +120,11 @@ export default {
       let filtered = this.companies;
       if (this.searchQuery) {
         const query = this.searchQuery.toLowerCase();
-        filtered = filtered.filter(company => 
+        filtered = filtered.filter(company =>
           (company.bedrijfsnaam && company.bedrijfsnaam.toLowerCase().includes(query)) ||
-          (company.email && company.email.toLowerCase().includes(query)) ||
-          (company.gesitueerdIn && company.gesitueerdIn.toLowerCase().includes(query))
+          (company.locatie && company.locatie.toLowerCase().includes(query)) ||
+          (company.opZoekNaar && company.opZoekNaar.toLowerCase().includes(query))
         );
-      }
-      if (this.filterIndustry) {
-        filtered = filtered.filter(company => company.industry === this.filterIndustry);
-      }
-      if (this.filterSize) {
-        filtered = filtered.filter(company => company.size === this.filterSize);
       }
       return filtered;
     }
@@ -359,24 +316,38 @@ export default {
   gap: 12px;
 }
 
-.company-logo {
+.logo-circle {
   width: 48px;
   height: 48px;
-  border-radius: 8px;
-  background: #007bff;
-  color: white;
+  border-radius: 50%;
+  background: #f3f4f6;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 600;
   overflow: hidden;
-  flex-shrink: 0;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
 }
 
-.company-logo img {
+.logo-circle img {
+  width: 80%;
+  height: 80%;
+  object-fit: contain;
+  display: block;
+  margin: auto;
+  padding: 6px;
+  background: transparent;
+}
+
+.logo-circle span {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #555;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  background: #f3f4f6;
 }
 
 .company-name {
@@ -427,22 +398,32 @@ export default {
 }
 
 .action-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 6px;
-  border: none;
   background: #f8f9fa;
-  color: #495057;
+  border: none;
+  border-radius: 6px;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 1rem;
+  transition: background 0.15s, box-shadow 0.15s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
   cursor: pointer;
-  transition: all 0.2s ease;
-  text-decoration: none;
+  margin: 0;
+  padding: 0;
+  text-decoration: none !important;
 }
 
 .action-btn:hover {
-  transform: translateY(-1px);
+  background: #ececec;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  text-decoration: none !important;
+}
+
+.action-btn:visited, .action-btn:active, .action-btn:focus {
+  text-decoration: none !important;
+  outline: none;
 }
 
 .action-btn.view:hover {
@@ -510,6 +491,11 @@ export default {
   .companies-table {
     min-width: 800px;
   }
+}
+
+.actions-cell {
+  display: flex;
+  gap: 0.3rem;
 }
 </style>
 

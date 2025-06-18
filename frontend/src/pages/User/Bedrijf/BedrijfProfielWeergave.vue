@@ -21,22 +21,22 @@
             <img :src="bedrijf.fotoPreview || profielfoto" alt="Bedrijfslogo" />
           </div>
           <div class="hero-text">
-            <h1>{{ bedrijf.naam }}</h1>
+            <h1>{{ bedrijf.bedrijfsnaam }}</h1>
             <p>{{ bedrijf.locatie }}</p>
           </div>
           <router-link to="/WijzigBd" class="wijzig-knop">Wijzig</router-link>
         </div>
         <div class="section-card">
           <h2>Over ons</h2>
-          <p class="intro-text">{{ bedrijf.beschrijving }}</p>
+          <p class="intro-text">{{ bedrijf.overOns }}</p>
         </div>
         <div class="section-card">
           <h2>Informatie</h2>
           <ul class="info-list">
-            <li><strong>Op zoek naar:</strong> {{ bedrijf.zoekprofiel }}</li>
+            <li><strong>Op zoek naar:</strong> {{ bedrijf.opZoekNaar }}</li>
             <li><strong>Gesprek duurt:</strong> {{ bedrijf.gesprekDuur }}</li>
-            <li><strong>Aanwezig van:</strong> {{ bedrijf.startuur }} tot {{ bedrijf.einduur }}</li>
-            <li><strong>Locatie stand:</strong> {{ bedrijf.locatie }}</li>
+            <li><strong>Aanwezig van:</strong> {{ bedrijf.starttijd }} tot {{ bedrijf.eindtijd }}</li>
+            <li><strong>Locatie stand:</strong> {{ bedrijf.gesitueerdIn }}</li>
             <li>
               <strong>LinkedIn:</strong>
               <a :href="bedrijf.linkedin" target="_blank">Bekijk profiel</a>
@@ -67,15 +67,19 @@ const navigation = [
 ]
 
 const bedrijf = ref({
-  naam: 'CoolCompany',
+  bedrijfsnaam: 'CoolCompany',
   locatie: 'Hal 3 – Stand 14',
-  startuur: '13:00',
-  einduur: '15:30',
-  zoekprofiel: 'IT-studenten',
+  gesitueerdIn: 'Brussel',
+  starttijd: '13:00',
+  eindtijd: '15:30',
+  opZoekNaar: 'IT-studenten',
   linkedin: 'https://www.linkedin.com/company/coolcompany',
   gesprekDuur: '20 minuten',
-  beschrijving: 'Wij zijn een innovatief bedrijf dat jong talent ondersteunt.',
-  fotoPreview: null
+  overOns: 'Wij zijn een innovatief bedrijf dat jong talent ondersteunt.',
+  email: 'info@coolcompany.com',
+  foto: null,
+  toestemming: true,
+  aangemaaktOp: new Date()
 })
 
 function handleAvatarClick() {

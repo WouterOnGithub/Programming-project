@@ -14,17 +14,18 @@ const storage = getStorage()
 const formData = reactive({
   bedrijfsnaam: '',
   gesitueerdIn: '',
+  locatie: '',
+  starttijd: '',
+  eindtijd: '',
   opZoekNaar: '',
   aangepasteZoekterm: '',
   linkedin: '',
   gesprekDuur: '',
   overOns: '',
-  locatie: '',
-  starttijd: '',
-  eindtijd: '',
-  toestemming: false,
+  email: '',
   foto: null,
-  fotoUrl: null
+  fotoUrl: null,
+  toestemming: false
 })
 
 const fotoPreview = ref(null)
@@ -48,53 +49,44 @@ function handleFotoUpload(e) {
 
 async function bevestigGegevens() {
   const gekozenZoekterm = formData.opZoekNaar === 'Anders' ? formData.aangepasteZoekterm : formData.opZoekNaar
-
   if (
     !formData.bedrijfsnaam ||
     !formData.gesitueerdIn ||
-    !gekozenZoekterm ||
-    !formData.gesprekDuur ||
-    !formData.overOns ||
     !formData.locatie ||
     !formData.starttijd ||
     !formData.eindtijd ||
+    !gekozenZoekterm ||
+    !formData.gesprekDuur ||
+    !formData.overOns ||
     !formData.toestemming
   ) {
     foutmelding.value = 'Gelieve alle verplichte velden in te vullen en toestemming te geven.'
     return
   }
-
   foutmelding.value = ''
   try {
     const user = auth.currentUser
-    if (!user) {
-      throw new Error('Geen ingelogde gebruiker gevonden')
-    }
-
-    // Upload foto indien aanwezig
+    if (!user) throw new Error('Geen ingelogde gebruiker gevonden')
     let fotoUrl = null
     if (formData.foto) {
       const fotoRef = storageRef(storage, `bedrijf_fotos/${user.uid}_${Date.now()}`)
       await uploadBytes(fotoRef, formData.foto)
       fotoUrl = await getDownloadURL(fotoRef)
     }
-
-    // Voeg bedrijf toe aan Firestore
     await addDoc(collection(db, 'bedrijf'), {
+      aangemaaktOp: new Date(),
       bedrijfsnaam: formData.bedrijfsnaam,
       gesitueerdIn: formData.gesitueerdIn,
+      locatie: formData.locatie,
+      starttijd: formData.starttijd,
+      eindtijd: formData.eindtijd,
       opZoekNaar: gekozenZoekterm,
       linkedin: formData.linkedin,
       gesprekDuur: formData.gesprekDuur,
       overOns: formData.overOns,
-      locatie: formData.locatie,
-      starttijd: formData.starttijd,
-      eindtijd: formData.eindtijd,
-      toestemming: formData.toestemming,
-      foto: fotoUrl,
-      authUid: user.uid,
       email: user.email,
-      aangemaaktOp: new Date()
+      foto: fotoUrl,
+      toestemming: formData.toestemming
     })
     alert('Bedrijfsprofiel succesvol opgeslagen!')
     router.push('/BedrijfDashboard')

@@ -4,7 +4,7 @@
     <div class="page-header">
       <div class="header-content">
         <h1 class="page-title">Student Details</h1>
-        <p class="page-subtitle" v-if="student">Bekijk alle informatie van {{ student.firstName }} {{ student.lastName }}</p>
+        <p class="page-subtitle" v-if="student">Bekijk alle informatie van {{ student.voornaam }} {{ student.achternaam }}</p>
       </div>
       <div class="header-actions">
         <router-link to="/admin/students" class="btn btn-secondary">
@@ -36,12 +36,11 @@
         <div class="detail-card profile-card">
           <div class="profile-header">
             <div class="profile-avatar">
-              <img v-if="student.photo" :src="student.photo" :alt="student.firstName">
-              <span v-else>{{ student.firstName?.charAt(0) }}{{ student.lastName?.charAt(0) }}</span>
+              <img v-if="student.photo" :src="student.photo" :alt="student.voornaam">
+              <span v-else>{{ student.voornaam?.charAt(0) }}{{ student.achternaam?.charAt(0) }}</span>
             </div>
             <div class="profile-info">
-              <h2 class="student-name">{{ student.firstName }} {{ student.lastName }}</h2>
-              <p class="student-email">{{ student.email }}</p>
+              <h2 class="student-name">{{ student.voornaam }} {{ student.achternaam }}</h2>
               <span class="status-badge active">Actief</span>
             </div>
           </div>
@@ -53,23 +52,23 @@
           <div class="info-grid">
             <div class="info-item">
               <label>Leeftijd</label>
-              <span>{{ student.age }} jaar</span>
+              <span>{{ student.leeftijd }} jaar</span>
             </div>
             <div class="info-item">
               <label>Studiejaar</label>
-              <span>{{ student.studyYear }}</span>
+              <span>{{ student.studiejaar }}</span>
             </div>
             <div class="info-item">
               <label>Domein</label>
-              <span>{{ student.domain }}</span>
+              <span>{{ Array.isArray(student.domein) ? student.domein.join(', ') : student.domein }}</span>
             </div>
             <div class="info-item">
               <label>Gezochte Opportuniteit</label>
-              <span>{{ student.opportunity }}</span>
+              <span>{{ student.opportuniteit }}</span>
             </div>
             <div class="info-item">
               <label>Beschikbaar vanaf</label>
-              <span>{{ formatDate(student.availableFrom) }}</span>
+              <span>{{ formatDate(student.beschikbaarVanaf) }}</span>
             </div>
           </div>
         </div>
@@ -87,13 +86,17 @@
         <!-- Languages -->
         <div class="detail-card">
           <h3 class="card-title">Talenkennis</h3>
-          <p class="languages-text">{{ student.languages }}</p>
+          <div class="skills-list">
+            <span v-for="taal in student.talenkennis" :key="taal" class="skill-tag">
+              {{ taal }}
+            </span>
+          </div>
         </div>
 
         <!-- Introduction -->
         <div class="detail-card full-width">
           <h3 class="card-title">Introductie</h3>
-          <p class="introduction-text">{{ student.introduction }}</p>
+          <p class="introduction-text">{{ student.intro }}</p>
         </div>
 
         <!-- Contact & Links -->
@@ -333,11 +336,6 @@ export default {
   font-size: 1.5rem;
   font-weight: 700;
   margin: 0 0 8px 0;
-}
-
-.student-email {
-  margin: 0 0 12px 0;
-  opacity: 0.9;
 }
 
 .status-badge {

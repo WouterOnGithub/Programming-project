@@ -26,60 +26,30 @@
       <div class="profile-section">
         <div class="profile-header">
           <div class="company-logo">
-            <img v-if="company.logo" :src="company.logo" :alt="company.bedrijfsnaam">
+            <img v-if="company.foto" :src="company.foto" :alt="company.bedrijfsnaam" />
             <span v-else>{{ (company.bedrijfsnaam || '?').charAt(0) }}</span>
           </div>
           <div class="company-info">
             <h2>{{ company.bedrijfsnaam || 'Onbekend' }}</h2>
-            <p class="company-title">{{ company.industry || '-' }} - {{ company.companySize || '-' }} werknemers</p>
             <div class="contact-info">
-              <p v-if="company.website"><span class="icon">🌐</span> <a :href="company.website" target="_blank">{{ company.website }}</a></p>
-              <p v-if="company.contactEmail"><span class="icon">📧</span> {{ company.contactEmail }}</p>
-              <p v-if="company.phoneNumber"><span class="icon">📱</span> {{ company.phoneNumber }}</p>
+              <p v-if="company.email"><span class="icon">📧</span> {{ company.email }}</p>
+              <p v-if="company.linkedin"><span class="icon">🔗</span> <a :href="company.linkedin" target="_blank">LinkedIn</a></p>
               <p v-if="company.gesitueerdIn"><span class="icon">📍</span> {{ company.gesitueerdIn }}</p>
+              <p v-if="company.locatie"><span class="icon">🏢</span> {{ company.locatie }}</p>
             </div>
           </div>
         </div>
       </div>
-
-      <!-- Description -->
+      <!-- Details Section -->
       <div class="profile-section">
-        <h3>Over het bedrijf</h3>
-        <p class="description">{{ company.aboutUs || 'Geen beschrijving beschikbaar' }}</p>
-      </div>
-
-      <!-- What they're looking for -->
-      <div class="profile-section">
-        <h3>Wat ze zoeken</h3>
-        <p class="description">{{ company.lookingFor || 'Geen informatie beschikbaar' }}</p>
-        
-        <div v-if="company.jobTypes && company.jobTypes.length" class="job-types">
-          <h4>Type posities:</h4>
-          <div class="tags-list">
-            <span v-for="type in company.jobTypes" :key="type" class="tag">
-              {{ type }}
-            </span>
-          </div>
-        </div>
-
-        <div v-if="company.requiredSkills && company.requiredSkills.length" class="skills">
-          <h4>Gewenste vaardigheden:</h4>
-          <div class="tags-list">
-            <span v-for="skill in company.requiredSkills" :key="skill" class="tag">
-              {{ skill }}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Social Media -->
-      <div class="profile-section" v-if="company.linkedin">
-        <h3>Sociale Media</h3>
-        <div class="social-links">
-          <a v-if="company.linkedin" :href="company.linkedin" target="_blank" class="social-link linkedin">
-            <span class="icon">🔗</span> LinkedIn
-          </a>
-        </div>
+        <h3>Details</h3>
+        <ul>
+          <li><strong>Op zoek naar:</strong> {{ company.opZoekNaar }}</li>
+          <li><strong>Gesprek duurt:</strong> {{ company.gesprekDuur }}</li>
+          <li><strong>Aanwezig van:</strong> {{ company.starttijd }} tot {{ company.eindtijd }}</li>
+          <li><strong>Over ons:</strong> {{ company.overOns }}</li>
+          <li><strong>Aangemaakt op:</strong> {{ company.aangemaaktOp ? new Date(company.aangemaaktOp.seconds ? company.aangemaaktOp.seconds * 1000 : company.aangemaaktOp).toLocaleString() : '-' }}</li>
+        </ul>
       </div>
     </div>
     <div v-else class="loading-message">
@@ -225,24 +195,38 @@ export default {
 }
 
 .company-logo {
-  width: 80px;
-  height: 80px;
-  border-radius: 12px;
-  background-color: #e5e7eb;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #f3f4f6;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 2rem;
-  font-weight: 600;
-  color: #4b5563;
-  flex-shrink: 0;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  margin-right: 1.5rem;
 }
 
 .company-logo img {
+  width: 80%;
+  height: 80%;
+  object-fit: contain;
+  display: block;
+  margin: auto;
+  padding: 6px;
+  background: transparent;
+}
+
+.company-logo span {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #555;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  border-radius: 12px;
+  background: #f3f4f6;
 }
 
 .company-info {
