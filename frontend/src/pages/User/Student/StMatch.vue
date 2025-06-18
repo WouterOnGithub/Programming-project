@@ -106,6 +106,9 @@
                 <Calendar :size="14" />
                 <span>Gesprek</span>
               </button>
+              <button class="knop-verwijder" @click="verwijderMatch(bedrijf.id)">
+                <span>Verwijder</span>
+              </button>
             </div>
           </div>
 
@@ -129,7 +132,7 @@ const userData = ref({ studentName: 'Cronos' })
 const navigation = [
   { name: 'Dashboard', href: '/student/dashboard' },
   { name: 'Favorieten', href: '/student/favorieten' },
-  { name: 'Matches', href: '/student/matches' },
+  { name: 'Matches', href: '/stmatch' },
   { name: 'Gesprekken', href: '/student/gesprekken' },
   { name: 'Profiel', href: '/student/profiel' },
 ]
@@ -162,6 +165,12 @@ const toonProfiel = (id) => {
 
 const planAfspraak = (id) => {
   console.log(`Plan afspraak met bedrijf ${id}`)
+}
+
+const verwijderMatch = (id) => {
+  if (confirm("Weet je zeker dat je deze match wilt verwijderen?")) {
+    matchBedrijven.value = matchBedrijven.value.filter(b => b.id !== id)
+  }
 }
 </script>
 
@@ -486,6 +495,23 @@ const planAfspraak = (id) => {
 
 .knop-rood:hover {
   background-color: #b91c1c;
+}
+
+.knop-verwijder {
+  background-color: #fff;
+  color: #dc2626;
+  border: 1px solid #dc2626;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.knop-verwijder:hover {
+  background-color: #ffeaea;
 }
 
 .geen-resultaten {
