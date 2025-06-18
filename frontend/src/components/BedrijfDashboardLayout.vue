@@ -23,27 +23,6 @@
           {{ item.name }}
         </router-link>
       </nav>
-      <div class="sidebar-user">
-        <div class="sidebar-user-avatar">
-          <i class="fas fa-user-tie"></i>
-        </div>
-        <div>
-          <p class="sidebar-user-name">{{ userData?.companyName || 'Bedrijf' }}</p>
-          <p class="sidebar-user-role">Recruiter</p>
-        </div>
-      </div>
-      <div class="sidebar-footer">
-        <router-link
-          to="/bedrijf/wijzig"
-          class="sidebar-link"
-          :class="{ active: $route.path === '/bedrijf/wijzig' }"
-        >
-          <i class="fas fa-pen"></i> Wijzig
-        </router-link>
-        <router-link to="/" class="sidebar-link">
-          <i class="fas fa-sign-out-alt"></i> Uitloggen
-        </router-link>
-      </div>
     </aside>
     <main class="dashboard-main">
       <slot />
@@ -129,40 +108,6 @@ const navigation = [
 .sidebar-link.active, .sidebar-link:hover {
   background: #f3f4f6;
   color: #c20000;
-}
-.sidebar-user {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 1rem;
-  border-top: 1px solid #e5e7eb;
-  background: #f9fafb;
-}
-.sidebar-user-avatar {
-  width: 2rem;
-  height: 2rem;
-  background: #c20000;
-  color: #fff;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1rem;
-}
-.sidebar-user-name {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #111827;
-}
-.sidebar-user-role {
-  font-size: 0.8rem;
-  color: #6b7280;
-}
-.sidebar-footer {
-  margin-top: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
 }
 .dashboard-main {
   flex: 1;

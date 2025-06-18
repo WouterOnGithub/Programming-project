@@ -93,6 +93,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { Heart, Calendar, User, Search, Building } from 'lucide-vue-next'
+import StudentDashboardLayout from '../../../components/StudentDashboardLayout.vue'
 
 const userData = ref({ studentName: 'Cronos' })
 
