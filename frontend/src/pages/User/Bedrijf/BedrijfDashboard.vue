@@ -44,12 +44,45 @@
             <h3>Recente Activiteit</h3>
             <i class="fas fa-chart-line"></i>
           </div>
+
           <ul class="dashboard-activity">
             <li v-for="activity in recentActivity" :key="activity.id" class="activity-row">
               <span class="activity-dot" :class="activity.type"></span>
               <span>{{ activity.text }}</span>
             </li>
           </ul>
+
+          <div class="dashboard-activity">
+            <div v-if="recentActivity.length === 0" class="no-data">
+              Geen recente activiteit
+            </div>
+            <div
+              v-else
+              v-for="(activity, index) in recentActivity"
+              :key="index"
+              class="activity-row"
+            >
+              <div :class="['activity-dot', activity.type]"></div>
+              <div>
+                <p class="activity-action">{{ activity.action }}</p>
+                <p class="activity-time">{{ activity.time }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Snelle acties -->
+      <section class="dashboard-card dashboard-actions">
+        <h3>Snelle Acties</h3>
+        <div class="dashboard-actions-grid">
+          <button class="dashboard-action-btn bg-primary text-white" @click="toast.info('Open de planner om een gesprek in te plannen')">
+            <i class="fas fa-calendar-plus"></i> Plan Gesprek
+          </button>
+          <button class="dashboard-action-btn bg-accent" @click="toast.success('Je standlocatie wordt geladen...')">
+            <i class="fas fa-map-marker-alt"></i> Bekijk Standlocatie
+          </button>
+
         </div>
       </section>
     </main>
@@ -57,9 +90,16 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import BedrijfDashboardLayout from '../../../components/BedrijfDashboardLayout.vue'
 import { useRouter } from 'vue-router'
+import { useToast } from 'vue-toastification'
+
+const toast = useToast()
+
+onMounted(() => {
+  toast.success('Welkom terug op je bedrijfsdashboard! 👋')
+})
 
 const navigation = [
   { name: 'Dashboard', href: '/BedrijfDashboard', icon: 'fas fa-chart-pie' },
@@ -148,6 +188,7 @@ if (typeof window !== 'undefined') {
   window.addEventListener('mousedown', handleClickOutside)
 }
 </script>
+
 
 <style scoped>
 .dashboard-container {

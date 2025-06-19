@@ -1,6 +1,20 @@
-import { createApp } from 'vue';
-import App from './App.vue';
-import router from './router';
-import './firebase/config'; // Import Firebase configuration
+import { createApp } from 'vue'
+import App from './App.vue'
+import router from './router'
 
-createApp(App).use(router).mount('#app');
+// ✅ Toast plugin import
+import Toast from 'vue-toastification'
+import 'vue-toastification/dist/index.css'
+
+const app = createApp(App)
+app.use(router)
+app.use(Toast, {
+  position: 'top-right',
+  timeout: 1500,
+  closeOnClick: true,
+  pauseOnHover: true,
+  draggable: true,
+  hideProgressBar: false
+})
+
+app.mount('#app')
