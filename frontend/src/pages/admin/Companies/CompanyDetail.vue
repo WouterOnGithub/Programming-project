@@ -21,6 +21,59 @@
       {{ error }}
     </div>
 
+    <!-- Bedrijfsprofiel Overzicht (read-only) -->
+    <div v-if="company" class="profile-overview">
+      <div class="profile-hero">
+        <div class="profile-photo">
+          <img v-if="company.foto" :src="company.foto" alt="Bedrijfslogo" />
+        </div>
+        <div class="profile-hero-text">
+          <h2>{{ company.bedrijfsnaam }}</h2>
+          <p>{{ company.gesitueerdIn }}</p>
+        </div>
+      </div>
+      <div class="profile-section">
+        <h3>Over ons</h3>
+        <p>{{ company.overOns }}</p>
+      </div>
+      <div class="profile-section">
+        <h3>Informatie</h3>
+        <ul class="profile-info-list">
+          <li><strong>Op zoek naar:</strong> {{ company.opZoekNaar && company.opZoekNaar.length ? (Array.isArray(company.opZoekNaar) ? company.opZoekNaar.join(', ') : company.opZoekNaar) : '' }}</li>
+          <li><strong>Gesprek duurt:</strong> {{ company.gesprekDuur }}</li>
+          <li><strong>Aanwezig van:</strong> {{ company.starttijd }} tot {{ company.eindtijd }}</li>
+          <li><strong>Locatie stand:</strong> {{ company.gesitueerdIn }}</li>
+          <li>
+            <strong>LinkedIn:</strong>
+            <a v-if="company.linkedin" :href="company.linkedin" target="_blank">Bekijk profiel</a>
+          </li>
+        </ul>
+      </div>
+      <div class="profile-section">
+        <h3>Vacature informatie</h3>
+        <ul class="profile-info-list">
+          <li><strong>Op zoek naar:</strong> {{ company.opZoekNaar && company.opZoekNaar.length ? (Array.isArray(company.opZoekNaar) ? company.opZoekNaar.join(', ') : company.opZoekNaar) : '' }}</li>
+          <li><strong>Type posities:</strong> {{ company.jobTypes && company.jobTypes.length ? (Array.isArray(company.jobTypes) ? company.jobTypes.join(', ') : company.jobTypes) : '' }}</li>
+        </ul>
+      </div>
+      <div class="profile-section">
+        <h3>Contactinformatie</h3>
+        <ul class="profile-info-list">
+          <li><strong>Contact e-mail:</strong> {{ company.email || company.contactEmail }}</li>
+          <li><strong>Website:</strong> {{ company.website }}</li>
+          <li><strong>Telefoonnummer:</strong> {{ company.phoneNumber || company.telefoonnummer }}</li>
+        </ul>
+      </div>
+      <div class="profile-section">
+        <h3>Bedrijfsdetails</h3>
+        <ul class="profile-info-list">
+          <li><strong>Branche:</strong> {{ company.industry || company.branche }}</li>
+          <li><strong>Bedrijfsgrootte:</strong> {{ company.companySize || company.bedrijfsgrootte }}</li>
+          <li><strong>Opgericht in:</strong> {{ company.foundedYear || company.opgerichtIn }}</li>
+        </ul>
+      </div>
+    </div>
+
     <div v-else-if="company" class="profile-content">
       <!-- Basic Information -->
       <div class="profile-section">
@@ -444,6 +497,85 @@ export default {
   text-align: center;
   padding: 2rem;
   color: #666;
+}
+
+/* Profiel Overzicht Styling */
+.profile-overview {
+  background: #f8f9fa;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  padding: 2.5rem 2.5rem 2rem 2.5rem;
+  margin-bottom: 2.5rem;
+}
+
+.profile-hero {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.profile-photo img {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #2563eb;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.profile-hero-text h2 {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin: 0;
+  color: #1a1a1a;
+}
+
+.profile-hero-text p {
+  color: #6c757d;
+  font-size: 1rem;
+}
+
+.profile-section {
+  background: #fff;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+  padding: 1.5rem 2rem;
+  margin-bottom: 1.5rem;
+  border-left: 4px solid #2563eb;
+}
+
+.profile-section h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #2563eb;
+  border-bottom: 1px dashed #e0e0e0;
+  padding-bottom: 0.4rem;
+}
+
+.profile-info-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  color: #374151;
+  font-size: 0.98rem;
+}
+
+.profile-info-list li {
+  display: flex;
+  justify-content: flex-start;
+  gap: 0.5rem;
+  border-bottom: 1px dashed #e0e0e0;
+  padding-bottom: 0.3rem;
+}
+
+.profile-info-list a {
+  color: #2563eb;
+  text-decoration: underline;
 }
 </style>
 
