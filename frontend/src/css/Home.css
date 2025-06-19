@@ -413,17 +413,21 @@ body, #app {
 .carousel-container {
   position: relative;
   overflow: hidden;
+  margin: 0 auto;
+  max-width: 100%;
 }
 
 .carousel-wrapper {
   overflow: hidden;
   margin: 0 60px;
+  position: relative;
 }
 
 .companies-carousel {
   display: flex;
   gap: 2rem;
   transition: transform 0.3s ease;
+  will-change: transform;
 }
 
 .company-card {
@@ -553,30 +557,43 @@ body, #app {
   }
   
   .carousel-wrapper {
-    margin: 0;
-    overflow-x: auto;
-    overflow-y: hidden;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-  
-  .carousel-wrapper::-webkit-scrollbar {
-    display: none;
+    margin: 0 45px;
+    overflow: hidden;
   }
   
   .companies-carousel {
     gap: 1rem;
-    transform: none !important;
-    padding: 0 1rem;
+    padding: 0;
   }
   
   .carousel-btn {
-    display: none;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.9);
+    z-index: 5;
   }
-  
-  .carousel-dots {
-    display: none;
+
+  .carousel-btn-prev {
+    left: 5px;
+  }
+
+  .carousel-btn-next {
+    right: 5px;
+  }
+}
+
+@media (max-width: 480px) {
+  .carousel-wrapper {
+    margin: 0 35px;
+  }
+
+  .carousel-btn {
+    width: 35px;
+    height: 35px;
+  }
+
+  .company-card {
+    flex: 0 0 90%;
   }
 }
  
@@ -850,4 +867,188 @@ body, #app {
   font-weight: 600;
   color: #1a1a1a;
   text-align: center;
+}
+
+@media (max-width: 768px) {
+  .hero-visual {
+    justify-content: center;
+    margin-top: 2rem;
+  }
+
+  .hero-img {
+    max-width: 80%;
+  }
+
+  .hero-text {
+    text-align: center;
+  }
+}
+
+/* Responsive Styles */
+@media (max-width: 1024px) {
+  .hero-container {
+    max-width: 90%;
+  }
+
+  .hero-title {
+    font-size: 3rem;
+  }
+
+  .hero-description {
+    font-size: 1.1rem;
+  }
+
+  .details-grid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero {
+    padding: 6rem 0 3rem;
+    min-height: auto;
+  }
+
+  .hero-container {
+    max-width: 95%;
+  }
+
+  .hero-content {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    text-align: center;
+  }
+
+  .hero-text {
+    order: 1;
+  }
+
+  .hero-visual {
+    order: 2;
+    margin-top: 2rem;
+  }
+
+  .hero-title {
+    font-size: 2.5rem;
+  }
+
+  .hero-description {
+    font-size: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .hero-actions {
+    justify-content: center;
+  }
+
+  .hero-image {
+    max-width: 80%;
+  }
+
+  .career-launch-banner-modern {
+    padding: 2rem 1rem;
+  }
+
+  .career-launch-banner-inner {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .career-launch-img-modern {
+    max-width: 200px;
+    margin-bottom: 1.5rem;
+  }
+
+  .event-details .container {
+    padding: 0 1rem;
+  }
+
+  .all-companies-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  .carousel-search-bar {
+    width: 90%;
+    margin: 0 auto 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero {
+    padding: 5rem 0 2rem;
+  }
+
+  .hero-container {
+    padding: 0 1rem;
+  }
+
+  .hero-title {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+  }
+
+  .hero-description {
+    font-size: 0.95rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .hero-actions {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .btn-primary, .btn-secondary {
+    width: 100%;
+    padding: 0.875rem 1.5rem;
+    font-size: 1rem;
+  }
+
+  .hero-image {
+    max-width: 100%;
+  }
+
+  .career-launch-title-modern {
+    font-size: 1.5rem;
+  }
+
+  .career-launch-date-modern {
+    font-size: 1rem;
+  }
+
+  .career-launch-desc-modern {
+    font-size: 0.9rem;
+  }
+
+  .all-companies-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .company-card {
+    padding: 1rem;
+  }
+
+  .carousel-search-input {
+    font-size: 0.9rem;
+    padding: 0.75rem 1rem;
+  }
+
+  .toggle-companies-btn {
+    width: 90%;
+    margin: 0 auto 1.5rem;
+    font-size: 0.9rem;
+    padding: 0.75rem 1rem;
+  }
+}
+
+/* Add smooth transitions for responsive changes */
+.hero-content,
+.hero-title,
+.hero-description,
+.hero-actions,
+.hero-image,
+.career-launch-banner-inner,
+.all-companies-grid {
+  transition: all 0.3s ease-in-out;
 }

@@ -209,20 +209,23 @@ export default {
       const carousel = this.$refs.carousel
       if (carousel) {
         const cardWidth = carousel.querySelector('.company-card').offsetWidth
-        const gap = 32 // 2rem gap
+        const gap = window.innerWidth < 768 ? 16 : 32 // Adjust gap based on screen size
         const translateX = -(this.currentSlide * (cardWidth + gap))
         carousel.style.transform = `translateX(${translateX}px)`
       }
     },
     handleResize() {
       const width = window.innerWidth
-      if (width < 768) {
+      if (width < 480) {
+        this.slidesToShow = 1
+      } else if (width < 768) {
         this.slidesToShow = 1
       } else if (width < 1024) {
         this.slidesToShow = 2
       } else {
         this.slidesToShow = 3
       }
+      // Reset current slide if needed
       this.currentSlide = Math.min(this.currentSlide, this.maxSlide)
       this.$nextTick(() => {
         this.updateCarousel()
@@ -246,9 +249,9 @@ export default {
       })
     })
     
-    // Initialize carousel
-    this.handleResize()
+    // Add resize event listener
     window.addEventListener('resize', this.handleResize)
+    this.handleResize()
     
     // Touch support for mobile
     let startX = 0
@@ -286,7 +289,8 @@ export default {
     // Back to top scroll event
     window.addEventListener('scroll', this.handleScroll)
   },
-  beforeUnmount() {
+  beforeDestroy() {
+    // Remove event listener
     window.removeEventListener('resize', this.handleResize)
     window.removeEventListener('scroll', this.handleScroll)
   }
