@@ -116,66 +116,6 @@ const navigation = [
   { name: 'Instellingen', href: '/SettingsBe', icon: 'fas fa-cog' }
 ]
 
-<<<<<<< Updated upstream
-const userData = ref({ companyName: 'Cronos' })
-
-const statsData = ref([
-  {
-    title: 'Eventdatum',
-    value: '24 oktober 2025',
-    change: '',
-    trend: 'neutral',
-    icon: 'fas fa-calendar-day',
-    color: 'text-red-600',
-  },
-  {
-    title: 'Openstaande Favorieten',
-    value: '12',
-    change: '+20%',
-    trend: 'up',
-    icon: 'fas fa-envelope-open-text',
-    color: 'text-blue-600',
-  },
-  {
-    title: 'Geplande Afspraken',
-    value: '5',
-    change: '+1',
-    trend: 'up',
-    icon: 'fas fa-calendar-check',
-    color: 'text-orange-600',
-  },
-  {
-    title: 'Bezoekers Vandaag',
-    value: '24',
-    change: '+3',
-    trend: 'up',
-    icon: 'fas fa-user-friends',
-    color: 'text-green-600',
-  },
-  {
-    title: 'Locatie (Aula)',
-    value: 'Aula B – Stand 14',
-    change: '',
-    trend: 'neutral',
-    icon: 'fas fa-map-marker-alt',
-    color: 'text-purple-600',
-  },
-])
-
-const interestedStudents = ref([
-  { id: 1, name: 'Lina V.', study: 'Toegepaste Informatica', campus: 'Campus Kaai' },
-  { id: 2, name: 'Joris D.', study: 'Multimedia & Creatieve Technologie', campus: 'Campus Kanal' },
-  { id: 3, name: 'Anas K.', study: 'Netwerkbeheer', campus: 'Campus Bloemenhof' },
-])
-
-const recentActivity = ref([
-  { type: 'favorieten', action: 'Nieuwe favoriet van A. Demir', time: '2 uur geleden' },
-  { type: 'interview', action: 'Gesprek gepland met L. Vanhoutte', time: '1 dag geleden' },
-  { type: 'match', action: 'Nieuwe match met R. De Wilde', time: '2 dagen geleden' },
-])
-
-=======
->>>>>>> Stashed changes
 const showDropdown = ref(false)
 const router = useRouter()
 function handleAvatarClick() {

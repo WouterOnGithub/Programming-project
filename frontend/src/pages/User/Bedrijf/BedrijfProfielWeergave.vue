@@ -5,32 +5,16 @@
         <div class="hero-banner">
           <div class="hero-photo">
             <img :src="bedrijf?.foto || profielfoto" alt="Bedrijfslogo" />
+            <img :src="bedrijf?.foto || profielfoto" alt="Bedrijfslogo" />
           </div>
           <div class="hero-text">
+            <h1>{{ bedrijf?.bedrijfsnaam || 'Bedrijfsnaam' }}</h1>
+            <p>{{ bedrijf?.gesitueerdIn }}</p>
             <h1>{{ bedrijf?.bedrijfsnaam || 'Bedrijfsnaam' }}</h1>
             <p>{{ bedrijf?.gesitueerdIn }}</p>
           </div>
           <router-link to="/WijzigBd" class="wijzig-knop">Wijzig</router-link>
         </div>
-<<<<<<< Updated upstream
-        <div class="section-card">
-          <h2>Over ons</h2>
-          <p class="intro-text">{{ bedrijf.overOns }}</p>
-        </div>
-        <div class="section-card">
-          <h2>Informatie</h2>
-          <ul class="info-list">
-            <li><strong>Op zoek naar:</strong> {{ bedrijf.opZoekNaar }}</li>
-            <li><strong>Gesprek duurt:</strong> {{ bedrijf.gesprekDuur }}</li>
-            <li><strong>Aanwezig van:</strong> {{ bedrijf.starttijd }} tot {{ bedrijf.eindtijd }}</li>
-            <li><strong>Locatie stand:</strong> {{ bedrijf.gesitueerdIn }}</li>
-            <li>
-              <strong>LinkedIn:</strong>
-              <a :href="bedrijf.linkedin" target="_blank">Bekijk profiel</a>
-            </li>
-          </ul>
-        </div>
-=======
         <div v-if="loading" class="section-card">Laden...</div>
         <div v-else-if="error" class="section-card" style="color: #b80000;">{{ error }}</div>
         <template v-else>
@@ -96,7 +80,6 @@
             </div>
           </div>
         </template>
->>>>>>> Stashed changes
       </section>
     </main>
   </BedrijfDashboardLayout>
@@ -119,22 +102,6 @@ const error = ref(null)
 const db = getFirestore()
 const auth = getAuth()
 
-<<<<<<< Updated upstream
-const bedrijf = ref({
-  bedrijfsnaam: 'CoolCompany',
-  locatie: 'Hal 3 – Stand 14',
-  gesitueerdIn: 'Brussel',
-  starttijd: '13:00',
-  eindtijd: '15:30',
-  opZoekNaar: 'IT-studenten',
-  linkedin: 'https://www.linkedin.com/company/coolcompany',
-  gesprekDuur: '20 minuten',
-  overOns: 'Wij zijn een innovatief bedrijf dat jong talent ondersteunt.',
-  email: 'info@coolcompany.com',
-  foto: null,
-  toestemming: true,
-  aangemaaktOp: new Date()
-=======
 onMounted(async () => {
   const user = auth.currentUser
   if (!user) {
@@ -155,7 +122,6 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
->>>>>>> Stashed changes
 })
 
 function handleAvatarClick() {

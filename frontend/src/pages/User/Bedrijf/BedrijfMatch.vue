@@ -62,6 +62,9 @@
               <button class="knop-verwijder" @click="weigerStudent(student.swipeDocId)">
                 <span>Weigeren</span>
               </button>
+              <button class="knop-verwijder" @click="weigerStudent(student.swipeDocId)">
+                <span>Weigeren</span>
+              </button>
             </div>
           </div>
           <div v-if="gefilterdeStudenten.length === 0" class="geen-resultaten">
@@ -156,14 +159,22 @@ const toonProfiel = (id) => {
   console.log(`Bekijk profiel van student ${id}`)
 }
 
-const accepteerStudent = async (swipeDocId) => {
-  await updateDoc(doc(db, 'student_swipes', swipeDocId), { status: 'geaccepteerd' });
-  matchStudenten.value = matchStudenten.value.filter(s => s.swipeDocId !== swipeDocId);
+const planAfspraak = (id) => {
+  console.log(`Plan afspraak met student ${id}`)
 }
 
-const weigerStudent = async (swipeDocId) => {
-  await updateDoc(doc(db, 'student_swipes', swipeDocId), { status: 'geweigerd' });
-  matchStudenten.value = matchStudenten.value.filter(s => s.swipeDocId !== swipeDocId);
+const showVerwijderPopup = ref(false)
+const teVerwijderenStudentId = ref(null)
+
+const openVerwijderPopup = (id) => {
+  teVerwijderenStudentId.value = id
+  showVerwijderPopup.value = true
+}
+
+const bevestigVerwijderen = () => {
+  matchStudenten.value = matchStudenten.value.filter(student => student.id !== teVerwijderenStudentId.value)
+  showVerwijderPopup.value = false
+  teVerwijderenStudentId.value = null
 }
 
 function handleAvatarClick() {
