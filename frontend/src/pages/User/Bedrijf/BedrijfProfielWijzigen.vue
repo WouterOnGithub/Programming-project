@@ -30,7 +30,6 @@
                   :type="veld.type !== 'textarea' ? veld.type : undefined"
                   :placeholder="veld.placeholder"
                   v-model="veld.model"
-                  :required="veld.required"
                 />
                 <img class="input-icon" :src="potlood" alt="potlood" />
               </div>
@@ -38,32 +37,26 @@
 
             <div class="form-group">
               <label for="opZoekNaar">Op zoek naar *</label>
-              <div class="input-wrapper">
-                <select id="opZoekNaar" v-model="opZoekNaar" required>
-                  <option disabled value="">Selecteer een profiel</option>
-                  <option>IT-studenten</option>
-                  <option>Marketing profielen</option>
-                  <option>Boekhouders</option>
-                  <option>Stagiairs</option>
-                  <option>Vrijwilligers</option>
-                  <option>Anders</option>
-                </select>
-                <img class="input-icon" :src="potlood" alt="potlood" />
+              <select class="skills-dropdown" v-model="selectedOpZoekNaar" @change="addOpZoekNaar">
+                <option disabled value="">Selecteer een profiel</option>
+                <option v-for="opt in opZoekNaarOpties" :key="opt" :value="opt">{{ opt }}</option>
+              </select>
+              <div v-if="showCustomOpZoekNaar" class="custom-skill-input">
+                <input type="text" v-model="customOpZoekNaar" placeholder="Typ je eigen profiel..." />
+                <button type="button" class="custom-skill-btn" @click="confirmCustomOpZoekNaar">Toevoegen</button>
               </div>
-              <div v-if="opZoekNaar === 'Anders'" class="custom-input">
-                <input
-                  ref="aangepasteZoektermInput"
-                  v-model="aangepasteZoekterm"
-                  placeholder="Specificeer..."
-                  required
-                />
+              <div class="chip-cloud">
+                <span class="chip" v-for="(profiel, index) in geselecteerdeZoekprofielen" :key="index">
+                  {{ profiel }}
+                  <button type="button" class="chip-delete" @click="removeOpZoekNaar(index)">&times;</button>
+                </span>
               </div>
             </div>
 
             <div class="form-group">
               <label for="gesprekDuur">Elk gesprek duurt *</label>
               <div class="input-wrapper">
-                <select id="gesprekDuur" v-model="gesprekDuur" required>
+                <select id="gesprekDuur" v-model="gesprekDuur">
                   <option disabled value="">Kies duur</option>
                   <option>10 minuten</option>
                   <option>15 minuten</option>
@@ -74,17 +67,10 @@
                 <img class="input-icon" :src="potlood" alt="potlood" />
               </div>
             </div>
-
-            <div class="form-group toestemming-box">
-              <label class="checkbox-label">
-                <input type="checkbox" v-model="toestemming" required />
-                Ik geef toestemming dat mijn ingevulde gegevens gebruikt mogen worden. *
-              </label>
-            </div>
           </div>
 
           <div v-if="foutmelding" class="error-message">{{ foutmelding }}</div>
-          <button class="submit-knop" type="submit">Wijzig gegevens</button>
+          <button class="submit-knop" type="submit">Gegevens opslaan</button>
         </form>
       </div>
 
@@ -94,6 +80,7 @@
 
 <script setup>
 import { ref, nextTick, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import profielfotoDefault from '/Images/profielfoto.jpg'
 import potlood from '/Images/potlood.png'
 import BedrijfDashboardLayout from '../../../components/BedrijfDashboardLayout.vue'
@@ -101,17 +88,27 @@ import BedrijfDashboardLayout from '../../../components/BedrijfDashboardLayout.v
 const profielfotoURL = ref(profielfotoDefault)
 const bedrijfsnaam = ref('CoolCompany')
 const gesitueerdIn = ref('Brussel')
-const locatie = ref('Hal 3 – Stand 14')
 const starttijd = ref('13:00')
 const eindtijd = ref('15:30')
 const linkedin = ref('https://www.linkedin.com/company/coolcompany')
 const overOns = ref('Wij zijn een innovatief bedrijf dat jong talent ondersteunt.')
-const opZoekNaar = ref('IT-studenten')
-const aangepasteZoekterm = ref('')
+const opZoekNaarOpties = [
+  'IT-studenten',
+  'Marketing profielen',
+  'Boekhouders',
+  'Stagiairs',
+  'Vrijwilligers',
+  'Anders'
+]
+const geselecteerdeZoekprofielen = ref([])
+const selectedOpZoekNaar = ref('')
+const showCustomOpZoekNaar = ref(false)
+const customOpZoekNaar = ref('')
 const gesprekDuur = ref('20 minuten')
 const toestemming = ref(true)
 const foutmelding = ref('')
 const aangepasteZoektermInput = ref(null)
+const router = useRouter()
 
 const navigation = [
   { name: 'Dashboard', href: '/bedrijf/dashboard', icon: 'fas fa-chart-pie' },
@@ -124,19 +121,11 @@ const navigation = [
 const velden = [
   { id: 'bedrijfsnaam', label: 'Bedrijfsnaam *', placeholder: 'Bv. CoolCompany', model: bedrijfsnaam, type: 'text', required: true },
   { id: 'gesitueerdIn', label: 'Gesitueerd in *', placeholder: 'Bv. Brussel', model: gesitueerdIn, type: 'text', required: true },
-  { id: 'locatie', label: 'Locatie op het event *', placeholder: 'Bv. Hal 3 – Stand 14', model: locatie, type: 'text', required: true },
   { id: 'starttijd', label: 'Starttijd *', placeholder: '', model: starttijd, type: 'time', required: true },
   { id: 'eindtijd', label: 'Eindtijd *', placeholder: '', model: eindtijd, type: 'time', required: true },
   { id: 'linkedin', label: 'LinkedIn', placeholder: 'https://www.linkedin.com/...', model: linkedin, type: 'text', required: false },
   { id: 'overOns', label: 'Over ons *', placeholder: 'Bv. Wij zijn een innovatief bedrijf...', model: overOns, type: 'textarea', required: true }
 ]
-
-watch(opZoekNaar, async (val) => {
-  if (val === 'Anders') {
-    await nextTick()
-    aangepasteZoektermInput.value?.focus()
-  }
-})
 
 function wijzigAfbeelding(event) {
   const file = event.target.files[0]
@@ -149,16 +138,39 @@ function wijzigAfbeelding(event) {
   }
 }
 
-function bevestigGegevens() {
-  const gekozenZoekterm = opZoekNaar.value === 'Anders' ? aangepasteZoekterm.value : opZoekNaar.value
-
-  if (!bedrijfsnaam.value || !gesitueerdIn.value || !locatie.value || !starttijd.value || !eindtijd.value || !gekozenZoekterm || !gesprekDuur.value || !overOns.value || !toestemming.value) {
-    foutmelding.value = 'Gelieve alle verplichte velden in te vullen en toestemming te geven.'
-    return
+function addOpZoekNaar() {
+  if (selectedOpZoekNaar.value === 'Anders') {
+    showCustomOpZoekNaar.value = true
+  } else if (
+    selectedOpZoekNaar.value &&
+    !geselecteerdeZoekprofielen.value.includes(selectedOpZoekNaar.value)
+  ) {
+    geselecteerdeZoekprofielen.value.push(selectedOpZoekNaar.value)
+    showCustomOpZoekNaar.value = false
+    selectedOpZoekNaar.value = ''
   }
+}
 
+function confirmCustomOpZoekNaar() {
+  const trimmed = customOpZoekNaar.value.trim()
+  if (trimmed && !geselecteerdeZoekprofielen.value.includes(trimmed)) {
+    geselecteerdeZoekprofielen.value.push(trimmed)
+  }
+  customOpZoekNaar.value = ''
+  showCustomOpZoekNaar.value = false
+  selectedOpZoekNaar.value = ''
+}
+
+function removeOpZoekNaar(index) {
+  geselecteerdeZoekprofielen.value.splice(index, 1)
+}
+
+function bevestigGegevens() {
   foutmelding.value = ''
-  alert('Gegevens succesvol gewijzigd!')
+  alert('Gegevens succesvol opgeslagen!')
+  setTimeout(() => {
+    router.push('/WeergaveBd')
+  }, 800)
 }
 </script>
 
@@ -265,16 +277,17 @@ function bevestigGegevens() {
 
 .main-content {
   flex: 1;
-  padding: 3rem;
-  max-width: 1100px;
-  margin: 0 auto;
+  padding: 2.5rem;
+  width: 100%;
+  max-width: none;
+  margin: 0;
 }
 
 .banner {
   display: flex;
   align-items: center;
   background: #fff1f1;
-  padding: 2rem;
+  padding: 2.5rem;
   border-radius: 20px;
   margin-bottom: 2rem;
   gap: 2rem;
@@ -322,12 +335,13 @@ function bevestigGegevens() {
 }
 
 .form-container {
-  max-width: 900px;
-  margin: 0 auto;
+  width: 100%;
   background: white;
-  padding: 2rem;
+  padding: 2rem 2.5rem;
   border-radius: 12px;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+  margin: 0 0 2rem 0;
+  max-width: none;
 }
 
 .form {
@@ -338,7 +352,7 @@ function bevestigGegevens() {
 
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 2rem;
 }
 
@@ -388,21 +402,6 @@ textarea {
 
 .custom-input input {
   margin-top: 0.5rem;
-}
-
-.toestemming-box {
-  grid-column: span 2;
-  background: #f9f9f9;
-  padding: 1rem;
-  border-radius: 10px;
-  border: 1px solid #ccc;
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  font-weight: 500;
 }
 
 .submit-knop {
@@ -470,6 +469,50 @@ textarea {
   .form-grid {
     grid-template-columns: 1fr;
   }
+}
+
+.chip-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 0.3rem;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  background-color: #eee;
+  padding: 6px 10px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+}
+.chip-delete {
+  background: none;
+  border: none;
+  color: #e53935;
+  font-size: 16px;
+  font-weight: bold;
+  margin-left: 6px;
+  cursor: pointer;
+}
+.custom-skill-input {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.custom-skill-input input {
+  flex: 1;
+}
+.custom-skill-btn {
+  background-color: #b80000;
+  color: white;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.custom-skill-btn:hover {
+  background-color: #990000;
 }
 </style>
     

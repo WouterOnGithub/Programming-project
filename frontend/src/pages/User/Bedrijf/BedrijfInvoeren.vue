@@ -16,7 +16,6 @@ const storage = getStorage()
 const formData = reactive({
   bedrijfsnaam: '',
   gesitueerdIn: '',
-  locatie: '',
   starttijd: '',
   eindtijd: '',
   opZoekNaar: '',
@@ -33,6 +32,19 @@ const formData = reactive({
 const fotoPreview = ref(null)
 const aangepasteZoektermInput = ref(null)
 
+const opZoekNaarOpties = [
+  'IT-studenten',
+  'Marketing profielen',
+  'Boekhouders',
+  'Stagiairs',
+  'Vrijwilligers',
+  'Anders'
+]
+const geselecteerdeZoekprofielen = ref([])
+const selectedOpZoekNaar = ref('')
+const showCustomOpZoekNaar = ref(false)
+const customOpZoekNaar = ref('')
+
 watch(() => formData.opZoekNaar, async (val) => {
   if (val === 'Anders') {
     await nextTick()
@@ -48,13 +60,39 @@ function handleFotoUpload(e) {
   }
 }
 
+function addOpZoekNaar() {
+  if (selectedOpZoekNaar.value === 'Anders') {
+    showCustomOpZoekNaar.value = true
+  } else if (
+    selectedOpZoekNaar.value &&
+    !geselecteerdeZoekprofielen.value.includes(selectedOpZoekNaar.value)
+  ) {
+    geselecteerdeZoekprofielen.value.push(selectedOpZoekNaar.value)
+    showCustomOpZoekNaar.value = false
+    selectedOpZoekNaar.value = ''
+  }
+}
+
+function confirmCustomOpZoekNaar() {
+  const trimmed = customOpZoekNaar.value.trim()
+  if (trimmed && !geselecteerdeZoekprofielen.value.includes(trimmed)) {
+    geselecteerdeZoekprofielen.value.push(trimmed)
+  }
+  customOpZoekNaar.value = ''
+  showCustomOpZoekNaar.value = false
+  selectedOpZoekNaar.value = ''
+}
+
+function removeOpZoekNaar(index) {
+  geselecteerdeZoekprofielen.value.splice(index, 1)
+}
+
 async function bevestigGegevens() {
   const gekozenZoekterm = formData.opZoekNaar === 'Anders' ? formData.aangepasteZoekterm : formData.opZoekNaar
 
   if (
     !formData.bedrijfsnaam ||
     !formData.gesitueerdIn ||
-    !formData.locatie ||
     !formData.starttijd ||
     !formData.eindtijd ||
     !gekozenZoekterm ||
@@ -81,7 +119,6 @@ async function bevestigGegevens() {
       aangemaaktOp: new Date(),
       bedrijfsnaam: formData.bedrijfsnaam,
       gesitueerdIn: formData.gesitueerdIn,
-      locatie: formData.locatie,
       starttijd: formData.starttijd,
       eindtijd: formData.eindtijd,
       opZoekNaar: gekozenZoekterm,
@@ -145,18 +182,6 @@ async function bevestigGegevens() {
             <input id="gesitueerdIn" v-model="formData.gesitueerdIn" type="text" placeholder="Bijv. Brussel" required />
           </div>
 
-          <!-- Locatie onder elkaar -->
-          <div class="form-group">
-            <label for="locatie">Locatie *</label>
-            <input
-              type="text"
-              id="locatie"
-              v-model="formData.locatie"
-              placeholder="Bijv. Brussels Expo"
-              required
-            />
-          </div>
-
           <!-- Startuur en Einduur naast elkaar -->
           <div class="tijd-grid">
             <div class="tijd-veld">
@@ -190,23 +215,19 @@ async function bevestigGegevens() {
 
           <div class="form-group">
             <label for="opZoekNaar">Op zoek naar *</label>
-            <select id="opZoekNaar" v-model="formData.opZoekNaar" required>
+            <select class="skills-dropdown" v-model="selectedOpZoekNaar" @change="addOpZoekNaar">
               <option disabled value="">Selecteer een profiel</option>
-              <option>IT-studenten</option>
-              <option>Marketing profielen</option>
-              <option>Boekhouders</option>
-              <option>Stagiairs</option>
-              <option>Vrijwilligers</option>
-              <option>Anders</option>
+              <option v-for="opt in opZoekNaarOpties" :key="opt" :value="opt">{{ opt }}</option>
             </select>
-            <div v-if="formData.opZoekNaar === 'Anders'" class="form-group">
-              <input
-                ref="aangepasteZoektermInput"
-                type="text"
-                v-model="formData.aangepasteZoekterm"
-                placeholder="Specificeer waar je naar zoekt..."
-                required
-              />
+            <div v-if="showCustomOpZoekNaar" class="custom-skill-input">
+              <input type="text" v-model="customOpZoekNaar" placeholder="Typ je eigen profiel..." />
+              <button type="button" class="custom-skill-btn" @click="confirmCustomOpZoekNaar">Toevoegen</button>
+            </div>
+            <div class="chip-cloud">
+              <span class="chip" v-for="(profiel, index) in geselecteerdeZoekprofielen" :key="index">
+                {{ profiel }}
+                <button type="button" class="chip-delete" @click="removeOpZoekNaar(index)">&times;</button>
+              </span>
             </div>
           </div>
 
@@ -428,4 +449,47 @@ textarea {
   flex-direction: column;
 }
 
+.chip-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 0.3rem;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  background-color: #eee;
+  padding: 6px 10px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+}
+.chip-delete {
+  background: none;
+  border: none;
+  color: #e53935;
+  font-size: 16px;
+  font-weight: bold;
+  margin-left: 6px;
+  cursor: pointer;
+}
+.custom-skill-input {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.custom-skill-input input {
+  flex: 1;
+}
+.custom-skill-btn {
+  background-color: #b80000;
+  color: white;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.custom-skill-btn:hover {
+  background-color: #990000;
+}
 </style>
