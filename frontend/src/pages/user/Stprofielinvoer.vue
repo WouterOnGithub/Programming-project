@@ -1,6 +1,9 @@
 <script setup>
 import { ref } from 'vue'
 import profielfoto from '/Images/profielfoto.jpg'
+import { getAuth } from 'firebase/auth'
+import { getFirestore, collection, addDoc } from 'firebase/firestore'
+import { useRouter } from 'vue-router'
 
 const voornaam = ref('')
 const achternaam = ref('')
@@ -57,6 +60,10 @@ const possibleDomeinen = [
   'Blockchain Development',
   'Game Development'
 ]
+
+const db = getFirestore()
+const auth = getAuth()
+const router = useRouter()
 
 function addSkill() {
   if (selectedSkill.value === 'custom') {
@@ -162,6 +169,50 @@ function handleFotoUpload(e) {
     reader.readAsDataURL(file)
   }
 }
+
+function handleCvUpload(e) {
+  const file = e.target.files?.[0] || null;
+  cv.value = file;
+}
+
+async function bevestigGegevens() {
+  const user = auth.currentUser
+  if (!user) {
+    alert('Je moet ingelogd zijn om je profiel op te slaan.')
+    return
+  }
+  // (Optioneel) upload foto/cv naar storage en haal url op, hier dummy-url
+  let fotoUrl = ''
+  if (foto.value) {
+    // upload naar storage en haal url op
+    fotoUrl = 'dummy-foto-url' // TODO: upload implementeren
+  }
+  let cvUrl = ''
+  if (cv.value) {
+    // upload naar storage en haal url op
+    cvUrl = 'dummy-cv-url' // TODO: upload implementeren
+  }
+  await addDoc(collection(db, 'student'), {
+    authUid: user.uid,
+    voornaam: voornaam.value,
+    achternaam: achternaam.value,
+    leeftijd: leeftijd.value,
+    domein: domein.value,
+    studiejaar: studiejaar.value,
+    talenkennis: talenkennis.value,
+    linkedin: linkedin.value,
+    beschikbaarVanaf: beschikbaarVanaf.value,
+    opportuniteit: opportuniteit.value,
+    intro: intro.value,
+    skills: skills.value,
+    toestemming: toestemming.value,
+    foto: fotoUrl,
+    cv: cvUrl,
+    aangemaaktOp: new Date()
+  })
+  alert('Profiel succesvol opgeslagen!')
+  router.push('/dashboard')
+}
 </script>
 
 <template>
@@ -174,7 +225,7 @@ function handleFotoUpload(e) {
       </p>
     </div>
 
-    <form class="formulier-grid" @submit.prevent>
+    <form class="formulier-grid" @submit.prevent="bevestigGegevens">
 
       <div class="form-column">
         <div class="form-group">
@@ -248,7 +299,7 @@ function handleFotoUpload(e) {
 
         <div class="form-group">
           <label for="cv-upload">CV uploaden *</label>
-          <input id="cv-upload" type="file" @change="e => cv.value = e.target.files[0]" required />
+          <input id="cv-upload" type="file" @change="handleCvUpload" required />
         </div>
       </div>
 

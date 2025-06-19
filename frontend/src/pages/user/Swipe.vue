@@ -52,6 +52,10 @@
                   <span class="btn-icon">♥</span>
                   Interessant!
                 </button>
+                <button class="action-btn favorite-btn" @click="favoriteJob">
+                  <span class="btn-icon">★</span>
+                  Favoriet
+                </button>
               </div>
             </div>
           </div>
@@ -70,7 +74,7 @@
 <script>
 import { ref, computed, onMounted } from 'vue';
 import { db, auth } from '../../firebase/config';
-import { collection, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, getDocs, setDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import StudentDashboardLayout from '../../components/StudentDashboardLayout.vue'
 
@@ -91,31 +95,56 @@ export default {
   setup() {
     const animateReject = ref(false);
     const animateAccept = ref(false);
-
     const jobs = ref([]);
     const loading = ref(true);
     const error = ref(null);
+    const swipedIds = ref(new Set());
+    const favorietIds = ref(new Set());
 
-    const loadCompanies = async () => {
+    // Haal geswipete en favoriete bedrijven op
+    const loadSwipesAndFavorieten = async (studentId) => {
+      // Swipes
+      const swipesSnap = await getDocs(collection(db, 'student_swipes'));
+      swipesSnap.forEach(docu => {
+        const d = docu.data();
+        if (d.studentUid === studentId && (d.status === 'interessant' || d.status === 'niet_interessant')) {
+          swipedIds.value.add(d.bedrijfUid);
+        }
+      });
+      // Favorieten
+      const favSnap = await getDocs(collection(db, 'student_favorieten'));
+      favSnap.forEach(docu => {
+        const d = docu.data();
+        if (d.studentUid === studentId) {
+          favorietIds.value.add(d.bedrijfUid);
+        }
+      });
+    };
+
+    const loadCompanies = async (studentId) => {
       try {
         loading.value = true;
+        await loadSwipesAndFavorieten(studentId);
         const companiesSnap = await getDocs(collection(db, 'bedrijf'));
-        jobs.value = companiesSnap.docs.map(doc => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            company: data.bedrijfsnaam || 'Onbekend',
-            title: data.opZoekNaar || 'Stageplaats',
-            location: data.gesitueerdIn || '-',
-            type: data.gesprekDuur || 'Stage',
-            description: data.overOns || 'Geen beschrijving beschikbaar',
-            duration: data.gesprekDuur ? `${data.gesprekDuur} min` : '10 min',
-            schedule: data.starttijd && data.eindtijd ? `${data.starttijd} - ${data.eindtijd}` : '-',
-            skills: data.skills || [],
-            linkedinUrl: data.linkedin || '#',
-            logo: data.foto || null
-          };
-        });
+        jobs.value = companiesSnap.docs
+          .map(doc => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              bedrijfUid: doc.id,
+              company: data.bedrijfsnaam || 'Onbekend',
+              title: data.opZoekNaar || 'Stageplaats',
+              location: data.gesitueerdIn || '-',
+              type: data.gesprekDuur || 'Stage',
+              description: data.overOns || 'Geen beschrijving beschikbaar',
+              duration: data.gesprekDuur ? `${data.gesprekDuur} min` : '10 min',
+              schedule: data.starttijd && data.eindtijd ? `${data.starttijd} - ${data.eindtijd}` : '-',
+              skills: data.skills || [],
+              linkedinUrl: data.linkedin || '#',
+              logo: data.foto || null
+            };
+          })
+          .filter(job => !swipedIds.value.has(job.bedrijfUid) && !favorietIds.value.has(job.bedrijfUid));
       } catch (err) {
         error.value = 'Fout bij laden van bedrijven';
       } finally {
@@ -123,7 +152,17 @@ export default {
       }
     };
 
-    onMounted(loadCompanies);
+    onMounted(async () => {
+      let studentId = null;
+      if (auth.currentUser) {
+        studentId = auth.currentUser.uid;
+      } else {
+        await new Promise(resolve => onAuthStateChanged(auth, user => { studentId = user?.uid; resolve(); }));
+      }
+      if (studentId) {
+        await loadCompanies(studentId);
+      }
+    });
 
     const currentJob = computed(() => jobs.value[0]);
 
@@ -133,39 +172,55 @@ export default {
       animateAccept.value = false;
     };
 
-    const rejectJob = () => {
+    const rejectJob = async () => {
       animateReject.value = true;
-      setTimeout(() => {
-        nextJob();
-      }, 300);
+      let studentId = auth.currentUser?.uid;
+      if (!studentId) {
+        await new Promise(resolve => onAuthStateChanged(auth, user => { studentId = user?.uid; resolve(); }));
+      }
+      if (studentId && currentJob.value) {
+        await setDoc(doc(db, 'student_swipes', `${studentId}_${currentJob.value.id}`), {
+          studentUid: studentId,
+          bedrijfUid: currentJob.value.id,
+          bedrijfEmail: currentJob.value.email || currentJob.value.emailadres || currentJob.value.emailBedrijf || '',
+          status: 'niet_interessant',
+          timestamp: serverTimestamp()
+        });
+      }
+      setTimeout(() => { nextJob(); }, 300);
     };
 
     const acceptJob = async () => {
       animateAccept.value = true;
-      // Like opslaan in Firestore
-      try {
-        let studentId = null;
-        if (auth.currentUser) {
-          studentId = auth.currentUser.uid;
-        } else {
-          // fallback: probeer user te detecteren
-          await new Promise(resolve => onAuthStateChanged(auth, user => { studentId = user?.uid; resolve(); }));
-        }
-        if (studentId && currentJob.value) {
-          await addDoc(collection(db, 'matches'), {
-            studentId,
-            companyId: currentJob.value.id,
-            companyName: currentJob.value.company,
-            createdAt: serverTimestamp(),
-            status: 'pending'
-          });
-        }
-      } catch (err) {
-        console.error('Fout bij opslaan van like/match:', err);
+      let studentId = auth.currentUser?.uid;
+      if (!studentId) {
+        await new Promise(resolve => onAuthStateChanged(auth, user => { studentId = user?.uid; resolve(); }));
       }
-      setTimeout(() => {
-        nextJob();
-      }, 300);
+      if (studentId && currentJob.value) {
+        await setDoc(doc(db, 'student_swipes', `${studentId}_${currentJob.value.id}`), {
+          studentUid: studentId,
+          bedrijfUid: currentJob.value.id,
+          bedrijfEmail: currentJob.value.email || currentJob.value.emailadres || currentJob.value.emailBedrijf || '',
+          status: 'interessant',
+          timestamp: serverTimestamp()
+        });
+      }
+      setTimeout(() => { nextJob(); }, 300);
+    };
+
+    const favoriteJob = async () => {
+      let studentId = auth.currentUser?.uid;
+      if (!studentId) {
+        await new Promise(resolve => onAuthStateChanged(auth, user => { studentId = user?.uid; resolve(); }));
+      }
+      if (studentId && currentJob.value) {
+        await setDoc(doc(db, 'student_favorieten', `${studentId}_${currentJob.value.id}`), {
+          studentUid: studentId,
+          bedrijfUid: currentJob.value.id,
+          timestamp: serverTimestamp()
+        });
+      }
+      nextJob();
     };
 
     return {
@@ -174,6 +229,7 @@ export default {
       currentJob,
       rejectJob,
       acceptJob,
+      favoriteJob,
       navigation,
       userData,
       loading,

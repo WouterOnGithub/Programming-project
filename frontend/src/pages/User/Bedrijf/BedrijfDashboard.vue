@@ -97,6 +97,10 @@ import { useToast } from 'vue-toastification'
 
 const toast = useToast()
 
+const statsData = ref([])
+const interestedStudents = ref([])
+const recentActivity = ref([])
+
 onMounted(() => {
   toast.success('Welkom terug op je bedrijfsdashboard!')
 })
@@ -111,6 +115,8 @@ const navigation = [
   { name: 'Profiel', href: '/bedrijf/profiel', icon: 'fas fa-user' },
   { name: 'Instellingen', href: '/SettingsBe', icon: 'fas fa-cog' }
 ]
+
+
 
 const userData = ref({ companyName: 'Cronos' })
 
@@ -159,6 +165,7 @@ const recentActivity = ref([
   { type: 'interview', action: 'Gesprek gepland met L. Vanhoutte', time: '1 dag geleden' },
   { type: 'match', action: 'Nieuwe match met R. De Wilde', time: '2 dagen geleden' },
 ])
+
 
 const showDropdown = ref(false)
 const router = useRouter()

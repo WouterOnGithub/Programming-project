@@ -36,6 +36,7 @@ const formData = reactive({
 
 const fotoPreview = ref(null)
 const aangepasteZoektermInput = ref(null)
+const foutmelding = ref('')
 
 const opZoekNaarOpties = [
   'IT-studenten',
@@ -115,18 +116,19 @@ function removeOpZoekNaar(index) {
 }
 
 async function bevestigGegevens() {
-  const gekozenZoekterm = formData.opZoekNaar === 'Anders' ? formData.aangepasteZoekterm : formData.opZoekNaar
-
   if (
     !formData.bedrijfsnaam ||
     !formData.gesitueerdIn ||
     !formData.starttijd ||
     !formData.eindtijd ||
-    !gekozenZoekterm ||
+    geselecteerdeZoekprofielen.value.length === 0 ||
+    geselecteerdeZoekprofielen.value.length === 0 ||
     !formData.gesprekDuur ||
     !formData.overOns ||
     !formData.toestemming
   ) {
+    foutmelding.value = 'Vul alle verplichte velden in en geef toestemming.'
+    foutmelding.value = 'Vul alle verplichte velden in en geef toestemming.'
     toast.error('Vul alle verplichte velden in en geef toestemming.')
     return
   }
@@ -143,12 +145,15 @@ async function bevestigGegevens() {
     }
 
     await addDoc(collection(db, 'bedrijf'), {
+      authUid: user.uid,
+      authUid: user.uid,
       aangemaaktOp: new Date(),
       bedrijfsnaam: formData.bedrijfsnaam,
       gesitueerdIn: formData.gesitueerdIn,
       starttijd: formData.starttijd,
       eindtijd: formData.eindtijd,
-      opZoekNaar: gekozenZoekterm,
+      opZoekNaar: geselecteerdeZoekprofielen.value,
+      opZoekNaar: geselecteerdeZoekprofielen.value,
       linkedin: formData.linkedin,
       gesprekDuur: formData.gesprekDuur,
       overOns: formData.overOns,
@@ -162,6 +167,8 @@ async function bevestigGegevens() {
       toestemming: formData.toestemming
     })
 
+    foutmelding.value = ''
+    foutmelding.value = ''
     toast.success('Bedrijfsprofiel succesvol opgeslagen!')
     setTimeout(() => {
       router.push('/BedrijfDashboard')
@@ -169,6 +176,8 @@ async function bevestigGegevens() {
 
   } catch (error) {
     console.error('Fout bij opslaan:', error)
+    foutmelding.value = 'Fout bij opslaan van je gegevens.'
+    foutmelding.value = 'Fout bij opslaan van je gegevens.'
     toast.error('Fout bij opslaan van je gegevens.')
   }
 }

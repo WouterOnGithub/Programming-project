@@ -145,6 +145,7 @@ const auth = getAuth();
 
 const fetchDashboardData = async () => {
   const userId = auth.currentUser?.uid;
+  console.log('StudentDashboard userId:', userId);
   if (!userId) {
     error.value.stats = 'Gebruiker niet ingelogd';
     error.value.appointments = 'Gebruiker niet ingelogd';

@@ -2,6 +2,7 @@
   <BedrijfDashboardLayout>
     <main class="dashboard-main">
       <section class="pagina">
+        <div style="color: #b80000; font-weight: bold; margin-bottom: 1rem;">Hier zoekt de pagina naar echte match-data uit Firestore (studenten die interesse hebben in jouw bedrijf).</div>
         <div class="hoofding">
           <div class="hoofding-links">
             <div class="icoon-container">
@@ -57,9 +58,15 @@
                 <User :size="14" />
                 <span>Profiel</span>
               </button>
-              <button class="knop-rood" @click="planAfspraak(student.id)">
+              <button class="knop-rood" @click="accepteerStudent(student.swipeDocId)">
                 <Calendar :size="14" />
                 <span>Accepteren</span>
+              </button>
+              <button class="knop-verwijder" @click="weigerStudent(student.swipeDocId)">
+                <span>Weigeren</span>
+              </button>
+              <button class="knop-verwijder" @click="weigerStudent(student.swipeDocId)">
+                <span>Weigeren</span>
               </button>
             </div>
           </div>
@@ -85,38 +92,73 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { Heart, Calendar, User, Search, Building } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import BedrijfDashboardLayout from '../../../components/BedrijfDashboardLayout.vue'
+import { getAuth } from 'firebase/auth'
+import { getFirestore, collection, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore'
 
-const bedrijfData = ref({ bedrijfName: 'Cronos' })
-const showDropdown = ref(false)
+const db = getFirestore();
+const auth = getAuth();
 const router = useRouter()
-
-const navigation = [
-  { name: 'Dashboard', href: '/bedrijf/dashboard' },
-  { name: 'Favorieten', href: '/bedrijf/favorieten' },
-  { name: 'Matches', href: '/bedrijfmatch'},
-  { name: 'Gesprekken', href: '/bedrijf/gesprekken' },
-  { name: 'Matches', href: '/bedrijf/matches' },
-  { name: 'Gesprekken', href: '/GesprekkenBd' },
-  { name: 'Profiel', href: '/bedrijf/profiel' },
-]
-
-// Liste des étudiants matchés (exemple)
-const matchStudenten = ref([
-  { id: 1, naam: 'Alice Dupont', richting: 'Informatica', afkorting: 'AD', locatie: 'Brussel' },
-  { id: 2, naam: 'Benoit Janssens', richting: 'Marketing', afkorting: 'BJ', locatie: 'Gent' },
-  { id: 3, naam: 'Chloé Peeters', richting: 'Design', afkorting: 'CP', locatie: 'Antwerpen' },
-  { id: 4, naam: 'David Leroy', richting: 'Finance', afkorting: 'DL', locatie: 'Brussel' },
-  { id: 5, naam: 'Emma Dubois', richting: 'Biotech', afkorting: 'ED', locatie: 'Leuven' },
-  { id: 6, naam: 'Fatima El Amrani', richting: 'Informatica', afkorting: 'FE', locatie: 'Brussel' },
-  { id: 7, naam: 'Gianni Rossi', richting: 'Logistiek', afkorting: 'GR', locatie: 'Mechelen' },
-  { id: 8, naam: 'Hélène Martin', richting: 'UX/UI', afkorting: 'HM', locatie: 'Brussel' }
-])
-
+const matchStudenten = ref([])
 const zoekterm = ref('')
+
+console.log('BedrijfMatch component geladen');
+
+onMounted(async () => {
+  console.log('auth.currentUser:', auth.currentUser);
+  let bedrijfId = auth.currentUser?.uid;
+  let bedrijfEmail = auth.currentUser?.email;
+  console.log('bedrijfId:', bedrijfId);
+  if (!bedrijfId) {
+    await new Promise(resolve => {
+      const unsub = auth.onAuthStateChanged(user => {
+        bedrijfId = user?.uid;
+        bedrijfEmail = user?.email;
+        unsub();
+        resolve();
+      });
+    });
+    console.log('bedrijfId na onAuthStateChanged:', bedrijfId);
+  }
+  if (!bedrijfId) return;
+  console.debug('Ingelogde bedrijfUid:', bedrijfId);
+  // Haal alle swipes op dit bedrijf met status 'interessant'
+  const swipesSnap = await getDocs(collection(db, 'student_swipes'));
+  console.log('Alle swipes:', swipesSnap.docs.map(d => d.data()));
+  let relevanteSwipes = swipesSnap.docs
+    .map(docu => ({ id: docu.id, ...docu.data() }))
+    .filter(d => (d.bedrijfUid === bedrijfId || d.authUid === bedrijfId) && d.status === 'interessant');
+  // Alternatieve zoekmethode: zoek op email als er geen matches zijn
+  if (relevanteSwipes.length === 0 && bedrijfEmail) {
+    relevanteSwipes = swipesSnap.docs
+      .map(docu => ({ id: docu.id, ...docu.data() }))
+      .filter(d => d.bedrijfEmail === bedrijfEmail && d.status === 'interessant');
+    if (relevanteSwipes.length > 0) {
+      console.debug('Matches gevonden via email:', relevanteSwipes);
+    }
+  }
+  console.debug('Relevante swipes:', relevanteSwipes);
+  // Haal studenten op
+  const studentenSnap = await getDocs(collection(db, 'student'));
+  const studentenMap = {};
+  studentenSnap.forEach(docu => { studentenMap[docu.id] = docu.data(); });
+  console.debug('StudentenMap:', studentenMap);
+  matchStudenten.value = relevanteSwipes.map(swipe => {
+    const student = studentenMap[swipe.studentUid] || {};
+    return {
+      id: swipe.studentUid,
+      naam: (student.voornaam || 'Onbekend') + ' ' + (student.achternaam || ''),
+      richting: student.domein ? (Array.isArray(student.domein) ? student.domein.join(', ') : student.domein) : '-',
+      afkorting: ((student.voornaam || '?')[0] + (student.achternaam || '?')[0]).toUpperCase(),
+      locatie: student.locatie || '-',
+      swipeDocId: swipe.id
+    };
+  });
+  console.debug('Matchende studenten:', matchStudenten.value);
+});
 
 const gefilterdeStudenten = computed(() =>
   matchStudenten.value.filter((student) =>

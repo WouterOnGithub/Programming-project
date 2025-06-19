@@ -91,31 +91,49 @@
 </template>
   
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { Heart, Calendar, User, Search, Building } from 'lucide-vue-next'
 import StudentDashboardLayout from '../../../components/StudentDashboardLayout.vue'
+import { getAuth } from 'firebase/auth'
+import { getFirestore, collection, getDocs, doc, deleteDoc } from 'firebase/firestore'
 
-const userData = ref({ studentName: 'Cronos' })
-
-const navigation = [
-  { name: 'Dashboard', href: '/student/dashboard' },
-  { name: 'Favorieten', href: '/student/favorieten' },
-  { name: 'Gesprekken', href: '/student/gesprekken' },
-  { name: 'Profiel', href: '/student/profiel' },
-]
-
-const bedrijven = ref([
-  { id: 1, naam: 'Cronos', sector: 'IT Consulting', afkorting: 'CR', locatie: 'Brussel' },
-  { id: 2, naam: 'Colruyt', sector: 'Retail', afkorting: 'CO', locatie: 'Halle' },
-  { id: 3, naam: 'Proximus', sector: 'Telecom', afkorting: 'PR', locatie: 'Brussel' },
-  { id: 4, naam: 'BNP Paribas', sector: 'Finance', afkorting: 'BN', locatie: 'Brussel' },
-  { id: 5, naam: 'Solvay', sector: 'Chemie', afkorting: 'SO', locatie: 'Brussel' },
-  { id: 6, naam: 'Barco', sector: 'Technologie', afkorting: 'BA', locatie: 'Kortrijk' },
-  { id: 7, naam: 'UCB', sector: 'Pharma', afkorting: 'UC', locatie: 'Brussel' },
-  { id: 8, naam: 'Telenet', sector: 'Telecom', afkorting: 'TE', locatie: 'Mechelen' }
-])
-
+const db = getFirestore();
+const auth = getAuth();
+const bedrijven = ref([])
 const zoekterm = ref('')
+
+onMounted(async () => {
+  let studentId = auth.currentUser?.uid;
+  if (!studentId) {
+    await new Promise(resolve => {
+      const unsub = auth.onAuthStateChanged(user => {
+        studentId = user?.uid;
+        unsub();
+        resolve();
+      });
+    });
+  }
+  if (!studentId) return;
+  // Haal favorieten op
+  const favSnap = await getDocs(collection(db, 'student_favorieten'));
+  const favorieten = favSnap.docs
+    .map(docu => ({ id: docu.id, ...docu.data() }))
+    .filter(fav => fav.studentUid === studentId);
+  // Haal bedrijven op
+  const bedrijvenSnap = await getDocs(collection(db, 'bedrijf'));
+  const bedrijvenMap = {};
+  bedrijvenSnap.forEach(docu => { bedrijvenMap[docu.id] = docu.data(); });
+  bedrijven.value = favorieten.map(fav => {
+    const bedrijf = bedrijvenMap[fav.bedrijfUid] || {};
+    return {
+      id: fav.bedrijfUid,
+      naam: bedrijf.bedrijfsnaam || 'Onbekend',
+      sector: bedrijf.sector || bedrijf.opZoekNaar || '-',
+      afkorting: (bedrijf.bedrijfsnaam || '??').substring(0,2).toUpperCase(),
+      locatie: bedrijf.gesitueerdIn || '-'
+    };
+  });
+});
 
 const gefilterdeBedrijven = computed(() =>
   bedrijven.value.filter((bedrijf) =>
@@ -126,11 +144,11 @@ const gefilterdeBedrijven = computed(() =>
 )
 
 const toonProfiel = (id) => {
-  console.log(`Bekijk profiel van bedrijf ${id}`)
+  // Navigeer naar bedrijfsprofiel
 }
 
 const planAfspraak = (id) => {
-  console.log(`Plan afspraak met bedrijf ${id}`)
+  // Navigeer naar afspraak plannen
 }
 
 const showConfirm = ref(false)
@@ -139,7 +157,18 @@ const openConfirm = (id) => {
   favorietToDelete.value = id
   showConfirm.value = true
 }
-const verwijderFavoriet = (id) => {
+const verwijderFavoriet = async (id) => {
+  let studentId = auth.currentUser?.uid;
+  if (!studentId) {
+    await new Promise(resolve => {
+      const unsub = auth.onAuthStateChanged(user => {
+        studentId = user?.uid;
+        unsub();
+        resolve();
+      });
+    });
+  }
+  await deleteDoc(doc(db, 'student_favorieten', `${studentId}_${id}`));
   bedrijven.value = bedrijven.value.filter(b => b.id !== id)
   showConfirm.value = false
   favorietToDelete.value = null
