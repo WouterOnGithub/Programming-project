@@ -97,6 +97,10 @@ import { useToast } from 'vue-toastification'
 
 const toast = useToast()
 
+const statsData = ref([])
+const interestedStudents = ref([])
+const recentActivity = ref([])
+
 onMounted(() => {
   toast.success('Welkom terug op je bedrijfsdashboard!')
 })
@@ -112,6 +116,7 @@ const navigation = [
   { name: 'Instellingen', href: '/SettingsBe', icon: 'fas fa-cog' }
 ]
 
+<<<<<<< Updated upstream
 const userData = ref({ companyName: 'Cronos' })
 
 const statsData = ref([
@@ -169,6 +174,8 @@ const recentActivity = ref([
   { type: 'match', action: 'Nieuwe match met R. De Wilde', time: '2 dagen geleden' },
 ])
 
+=======
+>>>>>>> Stashed changes
 const showDropdown = ref(false)
 const router = useRouter()
 function handleAvatarClick() {

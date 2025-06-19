@@ -59,11 +59,7 @@ const userData = ref({ companyName: 'Cronos' })
 const showDropdown = ref(false)
 const router = useRouter()
 
-const gesprekken = ref([
-  { id: 1, student: 'Emma Janssen', domein: 'Toegepaste Informatica', studiejaar: '3e bachelor', tijd: '09:00', duur: '15 min', locatie: 'Aula 1' },
-  { id: 2, student: 'Luca Van Der Berg', domein: 'Cyber Security', studiejaar: '2e bachelor', tijd: '14:30', duur: '15 min', locatie: 'Aula 2' },
-  { id: 3, student: 'Sophie Martens', domein: 'Data Science', studiejaar: '1e master', tijd: '10:15', duur: '15 min', locatie: 'Aula 3' }
-])
+const gesprekken = ref([]); // TODO: Haal echte data uit Firestore of API
 
 const gesorteerdeGesprekken = computed(() =>
   gesprekken.value.sort((a, b) => a.tijd.localeCompare(b.tijd))

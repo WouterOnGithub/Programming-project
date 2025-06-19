@@ -15,7 +15,7 @@
           <div v-for="appointment in filteredAppointments" :key="appointment.id" class="appointment-card">
             <div class="appointment-header">
               <div class="company-info">
-                <div class="company-logo">{{ appointment.company.charAt(0) }}</div>
+                <div class="company-logo">{{ appointment.company ? appointment.company.charAt(0) : '?' }}</div>
                 <div class="company-details">
                   <h3>{{ appointment.company }}</h3>
                   <div class="job-title">{{ appointment.position }}</div>
@@ -97,11 +97,14 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
-import { useRoute } from 'vue-router';
-import { useRouter } from 'vue-router';
+import { ref, computed, onMounted, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import StudentDashboardLayout from '../../components/StudentDashboardLayout.vue'
+import { getAuth } from 'firebase/auth';
+import { getFirestore, collection, getDocs, updateDoc, doc } from 'firebase/firestore';
 
+const db = getFirestore();
+const auth = getAuth();
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: 'fas fa-chart-pie' },
   { name: 'Job Swiping', href: '/swipe', icon: 'fas fa-heart' },
@@ -112,53 +115,31 @@ const navigation = [
 const userData = ref({ name: 'imad' }); // Dummy data, vervang door echte user info indien nodig
 
 const activeFilter = ref('all');
+const appointments = ref([]);
 
-const appointments = ref([
-  {
-    id: 1,
-    company: 'Deloitte',
-    position: 'Junior IT Consultant',
-    date: '2026-03-13',
-    time: '14:00 - 14:30',
-    location: 'Aula 1',
-    duration: '30 minuten',
-    status: 'upcoming'
-  },
-  {
-    id: 2,
-    company: 'ASML',
-    position: 'Software Engineer Intern',
-    date: '2026-03-13',
-    time: '10:30 - 11:00',
-    location: 'Aula 2',
-    duration: '30 minuten',
-    status: 'upcoming'
-  },
-  {
-    id: 3,
-    company: 'Philips',
-    position: 'UX Design Trainee',
-    date: '2026-03-13',
-    time: '15:15 - 15:45',
-    location: 'Aula 3',
-    duration: '30 minuten',
-    status: 'upcoming'
-  },
-  {
-    id: 4,
-    company: 'ING Bank',
-    position: 'Data Analyst Stage',
-    date: '2026-03-13',
-    time: '11:00 - 11:30',
-    location: 'Aula 4',
-    duration: '30 minuten',
-    status: 'completed'
+onMounted(async () => {
+  let studentId = auth.currentUser?.uid;
+  if (!studentId) {
+    await new Promise(resolve => {
+      const unsub = auth.onAuthStateChanged(user => {
+        studentId = user?.uid;
+        unsub();
+        resolve();
+      });
+    });
   }
-]);
+  if (!studentId) return;
+  const afsprakenSnap = await getDocs(collection(db, 'afspraken'));
+  appointments.value = afsprakenSnap.docs
+    .map(docu => ({ id: docu.id, ...docu.data() }))
+    .filter(a => a.studentUid === studentId);
+});
 
 const filteredAppointments = computed(() => {
   if (activeFilter.value === 'all') return appointments.value;
-  return appointments.value.filter(a => a.status === activeFilter.value);
+  if (activeFilter.value === 'upcoming') return appointments.value.filter(a => a.status === 'upcoming');
+  if (activeFilter.value === 'completed') return appointments.value.filter(a => a.status === 'completed');
+  return appointments.value;
 });
 
 const editingAppointmentId = ref(null);
@@ -190,20 +171,29 @@ function setFilter(filter) {
 function getStatusText(status) {
   return {
     upcoming: 'Komend',
-    completed: 'Afgerond'
+    completed: 'Afgerond',
+    geannuleerd: 'Geannuleerd'
   }[status] || status;
 }
 
 function formatDate(dateString) {
-  return 'vrijdag 13 maart 2026';
+  // Pas aan naar gewenste formaat
+  return dateString;
+}
+
+async function cancelAppointment(id) {
+  const appt = appointments.value.find(a => a.id === id);
+  if (!appt) return;
+  await updateDoc(doc(db, 'afspraken', id), { status: 'geannuleerd' });
+  appt.status = 'geannuleerd';
 }
 
 function startEditTime(id) {
   editingAppointmentId.value = id;
   showTimeModal.value = true;
-  const apt = appointments.value.find(a => a.id === id);
-  selectedTimeSlot.value = apt?.time || null;
-  editingAppointmentOriginalTime.value = apt?.time || null;
+  const appt = appointments.value.find(a => a.id === id);
+  editingAppointmentOriginalTime.value = appt?.time || null;
+  selectedTimeSlot.value = appt?.time || null;
 }
 
 function closeTimeModal() {
@@ -214,39 +204,19 @@ function closeTimeModal() {
 }
 
 function selectTimeSlot(slot) {
-  if (!isSlotTaken(slot) || slot === editingAppointmentOriginalTime.value) {
-    selectedTimeSlot.value = slot;
-  }
+  selectedTimeSlot.value = slot;
 }
 
-function isSlotTaken(slot) {
-  return appointments.value.some(
-    a => a.id !== editingAppointmentId.value && a.time === slot
-  );
-}
-
-function saveTime(id, newTime) {
-  const apt = appointments.value.find(a => a.id === id);
-  if (apt) {
-    apt.time = newTime;
-  }
+async function saveTime(id, slot) {
+  const appt = appointments.value.find(a => a.id === id);
+  if (!appt) return;
+  await updateDoc(doc(db, 'afspraken', id), { time: slot });
+  appt.time = slot;
   closeTimeModal();
 }
 
-function cancelAppointment(id) {
-  const index = appointments.value.findIndex(a => a.id === id);
-  if (index !== -1 && confirm(`Weet je zeker dat je de afspraak met ${appointments.value[index].company} wilt annuleren?`)) {
-    appointments.value.splice(index, 1);
-    alert('Afspraak succesvol geannuleerd!');
-  }
-}
-
-function getAvailableTimeSlots(appointmentId) {
-  const currentApt = appointments.value.find(a => a.id === appointmentId);
-  const takenSlots = appointments.value
-    .filter(a => a.id !== appointmentId)
-    .map(a => a.time);
-  return timeSlots.filter(slot => !takenSlots.includes(slot) || slot === currentApt.time);
+function isSlotTaken(slot) {
+  return appointments.value.some(a => a.time === slot && a.id !== editingAppointmentId.value && a.status !== 'geannuleerd');
 }
 
 function loadAppointments() {

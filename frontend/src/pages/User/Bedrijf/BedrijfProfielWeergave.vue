@@ -4,14 +4,15 @@
       <section class="dashboard-card">
         <div class="hero-banner">
           <div class="hero-photo">
-            <img :src="bedrijf.fotoPreview || profielfoto" alt="Bedrijfslogo" />
+            <img :src="bedrijf?.foto || profielfoto" alt="Bedrijfslogo" />
           </div>
           <div class="hero-text">
-            <h1>{{ bedrijf.bedrijfsnaam }}</h1>
-            <p>{{ bedrijf.locatie }}</p>
+            <h1>{{ bedrijf?.bedrijfsnaam || 'Bedrijfsnaam' }}</h1>
+            <p>{{ bedrijf?.gesitueerdIn }}</p>
           </div>
           <router-link to="/WijzigBd" class="wijzig-knop">Wijzig</router-link>
         </div>
+<<<<<<< Updated upstream
         <div class="section-card">
           <h2>Over ons</h2>
           <p class="intro-text">{{ bedrijf.overOns }}</p>
@@ -29,29 +30,96 @@
             </li>
           </ul>
         </div>
+=======
+        <div v-if="loading" class="section-card">Laden...</div>
+        <div v-else-if="error" class="section-card" style="color: #b80000;">{{ error }}</div>
+        <template v-else>
+          <div class="section-card">
+            <h2>Over ons</h2>
+            <p class="intro-text">{{ bedrijf.overOns }}</p>
+          </div>
+          <div class="section-card">
+            <h2>Informatie</h2>
+            <div style="color: #b80000; font-weight: bold; margin-bottom: 1rem;">Hier wordt echte bedrijfsdata uit Firestore weergegeven.</div>
+            <ul class="info-list">
+              <li><strong>Op zoek naar:</strong> {{ bedrijf.opZoekNaar?.join ? bedrijf.opZoekNaar.join(', ') : bedrijf.opZoekNaar }}</li>
+              <li><strong>Gesprek duurt:</strong> {{ bedrijf.gesprekDuur }}</li>
+              <li><strong>Aanwezig van:</strong> {{ bedrijf.starttijd }} tot {{ bedrijf.eindtijd }}</li>
+              <li><strong>Locatie stand:</strong> {{ bedrijf.gesitueerdIn }}</li>
+              <li>
+                <strong>LinkedIn:</strong>
+                <a :href="bedrijf.linkedin" target="_blank">Bekijk profiel</a>
+              </li>
+            </ul>
+          </div>
+          <div class="section-card">
+            <h2>Vacature informatie</h2>
+            <ul class="info-list">
+              <li><strong>Op zoek naar:</strong> IT-studenten, Marketing profielen</li>
+              <li><strong>Type posities:</strong> Stage, Studentenjob</li>
+            </ul>
+          </div>
+          <!-- Contactinformatie sectie -->
+          <div class="section-card">
+            <h2>Contactinformatie</h2>
+            <div class="contactinfo-fields">
+              <div class="contactinfo-field">
+                <label for="contact-email"><strong>Contact e-mail</strong></label>
+                <input id="contact-email" type="email" :value="bedrijf.email" readonly />
+              </div>
+              <div class="contactinfo-field">
+                <label for="contact-website"><strong>Website</strong></label>
+                <input id="contact-website" type="text" :value="bedrijf.website" readonly />
+              </div>
+              <div class="contactinfo-field">
+                <label for="contact-telefoon"><strong>Telefoonnummer</strong></label>
+                <input id="contact-telefoon" type="text" :value="bedrijf.telefoonnummer" readonly />
+              </div>
+            </div>
+          </div>
+          <!-- Bedrijfsdetails sectie -->
+          <div class="section-card">
+            <h2>Bedrijfsdetails</h2>
+            <div class="contactinfo-fields">
+              <div class="contactinfo-field">
+                <label for="bedrijf-branche"><strong>Branche</strong></label>
+                <input id="bedrijf-branche" type="text" :value="bedrijf.branche" readonly />
+              </div>
+              <div class="contactinfo-field">
+                <label for="bedrijf-grootte"><strong>Bedrijfsgrootte</strong></label>
+                <input id="bedrijf-grootte" type="text" :value="bedrijf.bedrijfsgrootte" readonly />
+              </div>
+              <div class="contactinfo-field">
+                <label for="bedrijf-opgericht"><strong>Opgericht in</strong></label>
+                <input id="bedrijf-opgericht" type="text" :value="bedrijf.opgerichtIn" readonly />
+              </div>
+            </div>
+          </div>
+        </template>
+>>>>>>> Stashed changes
       </section>
     </main>
   </BedrijfDashboardLayout>
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { getAuth } from 'firebase/auth'
+import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore'
 import profielfoto from '/Images/profielfoto.jpg'
 import BedrijfDashboardLayout from '../../../components/BedrijfDashboardLayout.vue'
 
-const $route = useRoute()
 const router = useRouter()
-const userData = ref({ companyName: 'Cronos' })
 const showDropdown = ref(false)
+const bedrijf = ref(null)
+const loading = ref(true)
+const error = ref(null)
 
-const navigation = [
-  { name: 'Dashboard', href: '/bedrijf/dashboard', icon: 'fas fa-chart-pie' },
-  { name: 'Favorieten', href: '/bedrijf/favorieten', icon: 'fas fa-envelope' },
-  { name: 'Gesprekken', href: '/GesprekkenBd', icon: 'fas fa-calendar' },
-  { name: 'Profiel', href: '/bedrijf/profiel', icon: 'fas fa-user' }
-]
+const db = getFirestore()
+const auth = getAuth()
 
+<<<<<<< Updated upstream
 const bedrijf = ref({
   bedrijfsnaam: 'CoolCompany',
   locatie: 'Hal 3 – Stand 14',
@@ -66,6 +134,28 @@ const bedrijf = ref({
   foto: null,
   toestemming: true,
   aangemaaktOp: new Date()
+=======
+onMounted(async () => {
+  const user = auth.currentUser
+  if (!user) {
+    error.value = 'Niet ingelogd.'
+    loading.value = false
+    return
+  }
+  try {
+    const q = query(collection(db, 'bedrijf'), where('authUid', '==', user.uid))
+    const snapshot = await getDocs(q)
+    if (!snapshot.empty) {
+      bedrijf.value = snapshot.docs[0].data()
+    } else {
+      error.value = 'Geen bedrijfsprofiel gevonden.'
+    }
+  } catch (e) {
+    error.value = 'Fout bij ophalen bedrijfsprofiel.'
+  } finally {
+    loading.value = false
+  }
+>>>>>>> Stashed changes
 })
 
 function handleAvatarClick() {

@@ -53,10 +53,15 @@
               <Building :size="14" />
               <span>Profiel</span>
             </button>
-            <button class="knop-rood" @click="planAfspraak(bedrijf.id)">
+            <button
+              v-if="bedrijf.status === 'geaccepteerd'"
+              class="knop-rood"
+              @click="planAfspraak(bedrijf.id)"
+            >
               <Calendar :size="14" />
               <span>Gesprek</span>
             </button>
+            <span v-else class="status-wacht">In afwachting van validatie door het bedrijf</span>
           </div>
         </div>
         <div v-if="gefilterdeBedrijven.length === 0" class="geen-resultaten">
@@ -65,38 +70,95 @@
           <p>Probeer een andere zoekterm.</p>
         </div>
       </div>
+      <!-- Modal voor tijdslot selectie -->
+      <div v-if="showTimeModal" class="modal-overlay">
+        <div class="modal-content">
+          <h3>Kies een tijdslot voor je gesprek</h3>
+          <div class="timeslot-grid">
+            <button
+              v-for="slot in timeSlots"
+              :key="slot"
+              :disabled="isSlotTaken(slot)"
+              :class="['timeslot-btn', { taken: isSlotTaken(slot), selected: selectedTimeSlot === slot }]"
+              @click="selectTimeSlot(slot)"
+            >
+              {{ slot }}
+            </button>
+          </div>
+          <div class="modal-actions">
+            <button class="action-btn btn-save" :disabled="!selectedTimeSlot" @click="bevestigAfspraak">Bevestig</button>
+            <button class="action-btn btn-cancel-edit" @click="closeTimeModal">Annuleren</button>
+          </div>
+        </div>
+      </div>
     </section>
   </StudentDashboardLayout>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { Heart, Calendar, User, Search, Building } from 'lucide-vue-next'
 import StudentDashboardLayout from '../../../components/StudentDashboardLayout.vue'
+import { getAuth } from 'firebase/auth'
+import { getFirestore, collection, getDocs, doc, getDoc, addDoc } from 'firebase/firestore'
 
-const userData = ref({ studentName: 'Cronos' })
-
-const navigation = [
-  { name: 'Dashboard', href: '/student/dashboard' },
-  { name: 'Favorieten', href: '/student/favorieten' },
-  { name: 'Matches', href: '/stmatch' },
-  { name: 'Gesprekken', href: '/student/gesprekken' },
-  { name: 'Profiel', href: '/student/profiel' },
-]
-
-// Liste des entreprises matchées (exemple)
-const matchBedrijven = ref([
-  { id: 1, naam: 'Cronos', sector: 'IT Consulting', afkorting: 'CR', locatie: 'Brussel' },
-  { id: 2, naam: 'Colruyt', sector: 'Retail', afkorting: 'CO', locatie: 'Halle' },
-  { id: 3, naam: 'Proximus', sector: 'Telecom', afkorting: 'PR', locatie: 'Brussel' },
-  { id: 4, naam: 'BNP Paribas', sector: 'Finance', afkorting: 'BN', locatie: 'Brussel' },
-  { id: 5, naam: 'Solvay', sector: 'Chemie', afkorting: 'SO', locatie: 'Brussel' },
-  { id: 6, naam: 'Barco', sector: 'Technologie', afkorting: 'BA', locatie: 'Kortrijk' },
-  { id: 7, naam: 'UCB', sector: 'Pharma', afkorting: 'UC', locatie: 'Brussel' },
-  { id: 8, naam: 'Telenet', sector: 'Telecom', afkorting: 'TE', locatie: 'Mechelen' }
-])
-
+const db = getFirestore();
+const auth = getAuth();
+const matchBedrijven = ref([])
 const zoekterm = ref('')
+const showTimeModal = ref(false)
+const selectedTimeSlot = ref(null)
+const timeSlots = [
+  '10:00 - 10:30',
+  '10:30 - 11:00',
+  '11:00 - 11:30',
+  '11:30 - 12:00',
+  '12:00 - 12:30',
+  '12:30 - 13:00',
+  '13:00 - 13:30',
+  '13:30 - 14:00',
+  '14:00 - 14:30',
+  '14:30 - 15:00',
+  '15:00 - 15:30',
+  '15:30 - 16:00',
+]
+const takenSlots = ref([])
+const selectedBedrijfId = ref(null)
+
+onMounted(async () => {
+  let studentId = auth.currentUser?.uid;
+  if (!studentId) {
+    await new Promise(resolve => {
+      const unsub = auth.onAuthStateChanged(user => {
+        studentId = user?.uid;
+        unsub();
+        resolve();
+      });
+    });
+  }
+  if (!studentId) return;
+  // Haal alle swipes met status 'interessant' of 'geaccepteerd'
+  const swipesSnap = await getDocs(collection(db, 'student_swipes'));
+  const relevantSwipes = swipesSnap.docs
+    .map(docu => ({ id: docu.id, ...docu.data() }))
+    .filter(d => d.studentUid === studentId && (d.status === 'interessant' || d.status === 'geaccepteerd'));
+  // Haal bedrijven op
+  const bedrijvenSnap = await getDocs(collection(db, 'bedrijf'));
+  const bedrijvenMap = {};
+  bedrijvenSnap.forEach(docu => { bedrijvenMap[docu.id] = docu.data(); });
+  // Combineer
+  matchBedrijven.value = relevantSwipes.map(swipe => {
+    const bedrijf = bedrijvenMap[swipe.bedrijfUid] || {};
+    return {
+      id: swipe.bedrijfUid,
+      naam: bedrijf.bedrijfsnaam || 'Onbekend',
+      sector: bedrijf.sector || bedrijf.opZoekNaar || '-',
+      afkorting: (bedrijf.bedrijfsnaam || '??').substring(0,2).toUpperCase(),
+      locatie: bedrijf.gesitueerdIn || '-',
+      status: swipe.status
+    };
+  });
+});
 
 const gefilterdeBedrijven = computed(() =>
   matchBedrijven.value.filter((bedrijf) =>
@@ -110,8 +172,48 @@ const toonProfiel = (id) => {
   console.log(`Bekijk profiel van bedrijf ${id}`)
 }
 
-const planAfspraak = (id) => {
-  console.log(`Plan afspraak met bedrijf ${id}`)
+const planAfspraak = async (id) => {
+  selectedBedrijfId.value = id
+  selectedTimeSlot.value = null
+  // Haal reeds geboekte tijdsloten op voor dit bedrijf
+  const afsprakenSnap = await getDocs(collection(db, 'afspraken'))
+  takenSlots.value = afsprakenSnap.docs
+    .map(docu => docu.data())
+    .filter(a => a.bedrijfId === id)
+    .map(a => a.time)
+  showTimeModal.value = true
+}
+
+function selectTimeSlot(slot) {
+  selectedTimeSlot.value = slot
+}
+
+async function bevestigAfspraak() {
+  if (!selectedTimeSlot.value || !selectedBedrijfId.value) return
+  const studentId = auth.currentUser?.uid
+  if (!studentId) return
+  // Sla afspraak op in Firestore
+  await addDoc(collection(db, 'afspraken'), {
+    studentUid: studentId,
+    bedrijfId: selectedBedrijfId.value,
+    time: selectedTimeSlot.value,
+    status: 'upcoming',
+    aangemaaktOp: new Date()
+  })
+  showTimeModal.value = false
+  selectedTimeSlot.value = null
+  selectedBedrijfId.value = null
+  // Optioneel: reload matches/afspraken
+}
+
+function closeTimeModal() {
+  showTimeModal.value = false
+  selectedTimeSlot.value = null
+  selectedBedrijfId.value = null
+}
+
+function isSlotTaken(slot) {
+  return takenSlots.value.includes(slot)
 }
 </script>
 
@@ -485,5 +587,87 @@ const planAfspraak = (id) => {
 .emoji {
   font-size: 3rem;
   margin-bottom: 1rem;
+}
+
+/* Modal styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-content {
+  background-color: white;
+  padding: 2rem;
+  border-radius: 0.5rem;
+  width: 80%;
+  max-width: 400px;
+}
+
+.timeslot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.timeslot-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  background-color: #fff;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.timeslot-btn:hover {
+  background-color: #f3f4f6;
+}
+
+.timeslot-btn.selected {
+  background-color: #c20000;
+  color: #fff;
+}
+
+.timeslot-btn.taken {
+  background-color: #f3f4f6;
+  cursor: not-allowed;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1rem;
+}
+
+.action-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-save {
+  background-color: #c20000;
+  color: #fff;
+}
+
+.btn-save:hover {
+  background-color: #b91c1c;
+}
+
+.btn-cancel-edit {
+  background-color: #f3f4f6;
+}
+
+.btn-cancel-edit:hover {
+  background-color: #e5e7eb;
 }
 </style>
