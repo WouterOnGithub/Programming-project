@@ -5,7 +5,9 @@ import { getAuth } from 'firebase/auth'
 import { getFirestore, collection, addDoc } from 'firebase/firestore'
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
 import profielfoto from '/Images/profielfoto.jpg'
+import { useToast } from 'vue-toastification'
 
+const toast = useToast()
 const router = useRouter()
 const auth = getAuth()
 const db = getFirestore()
@@ -30,7 +32,6 @@ const formData = reactive({
 
 const fotoPreview = ref(null)
 const aangepasteZoektermInput = ref(null)
-const foutmelding = ref('')
 
 watch(() => formData.opZoekNaar, async (val) => {
   if (val === 'Anders') {
@@ -49,6 +50,7 @@ function handleFotoUpload(e) {
 
 async function bevestigGegevens() {
   const gekozenZoekterm = formData.opZoekNaar === 'Anders' ? formData.aangepasteZoekterm : formData.opZoekNaar
+
   if (
     !formData.bedrijfsnaam ||
     !formData.gesitueerdIn ||
@@ -60,19 +62,21 @@ async function bevestigGegevens() {
     !formData.overOns ||
     !formData.toestemming
   ) {
-    foutmelding.value = 'Gelieve alle verplichte velden in te vullen en toestemming te geven.'
+    toast.error('Vul alle verplichte velden in en geef toestemming.')
     return
   }
-  foutmelding.value = ''
+
   try {
     const user = auth.currentUser
     if (!user) throw new Error('Geen ingelogde gebruiker gevonden')
+
     let fotoUrl = null
     if (formData.foto) {
       const fotoRef = storageRef(storage, `bedrijf_fotos/${user.uid}_${Date.now()}`)
       await uploadBytes(fotoRef, formData.foto)
       fotoUrl = await getDownloadURL(fotoRef)
     }
+
     await addDoc(collection(db, 'bedrijf'), {
       aangemaaktOp: new Date(),
       bedrijfsnaam: formData.bedrijfsnaam,
@@ -88,11 +92,15 @@ async function bevestigGegevens() {
       foto: fotoUrl,
       toestemming: formData.toestemming
     })
-    alert('Bedrijfsprofiel succesvol opgeslagen!')
-    router.push('/BedrijfDashboard')
+
+    toast.success('Bedrijfsprofiel succesvol opgeslagen!')
+    setTimeout(() => {
+      router.push('/BedrijfDashboard')
+    }, 1500)
+
   } catch (error) {
-    console.error('Error saving company profile:', error)
-    foutmelding.value = 'Er is een fout opgetreden bij het opslaan van het bedrijfsprofiel.'
+    console.error('Fout bij opslaan:', error)
+    toast.error('Fout bij opslaan van je gegevens.')
   }
 }
 </script>

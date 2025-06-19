@@ -98,7 +98,7 @@ import { useToast } from 'vue-toastification'
 const toast = useToast()
 
 onMounted(() => {
-  toast.success('Welkom terug op je bedrijfsdashboard! 👋')
+  toast.success('Welkom terug op je bedrijfsdashboard!')
 })
 
 const navigation = [
