@@ -94,10 +94,10 @@
       <section class="dashboard-card dashboard-actions">
         <h3>Snelle Acties</h3>
         <div class="dashboard-actions-grid">
-          <button class="dashboard-action-btn bg-primary text-white">
+          <button class="dashboard-action-btn bg-primary text-white" @click="toast.info('Open de planner om een gesprek in te plannen')">
             <i class="fas fa-calendar-plus"></i> Plan Gesprek
           </button>
-          <button class="dashboard-action-btn bg-accent">
+          <button class="dashboard-action-btn bg-accent" @click="toast.success('Je standlocatie wordt geladen...')">
             <i class="fas fa-map-marker-alt"></i> Bekijk Standlocatie
           </button>
         </div>
@@ -107,9 +107,16 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import BedrijfDashboardLayout from '../../../components/BedrijfDashboardLayout.vue'
 import { useRouter } from 'vue-router'
+import { useToast } from 'vue-toastification'
+
+const toast = useToast()
+
+onMounted(() => {
+  toast.success('Welkom terug op je bedrijfsdashboard! 👋')
+})
 
 const navigation = [
   { name: 'Dashboard', href: '/BedrijfDashboard', icon: 'fas fa-chart-pie' },
@@ -198,6 +205,7 @@ if (typeof window !== 'undefined') {
   window.addEventListener('mousedown', handleClickOutside)
 }
 </script>
+
 
 <style scoped>
 .dashboard-container {
