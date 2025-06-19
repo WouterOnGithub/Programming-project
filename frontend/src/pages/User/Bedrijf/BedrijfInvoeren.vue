@@ -16,7 +16,6 @@ const storage = getStorage()
 const formData = reactive({
   bedrijfsnaam: '',
   gesitueerdIn: '',
-  locatie: '',
   starttijd: '',
   eindtijd: '',
   opZoekNaar: '',
@@ -25,6 +24,11 @@ const formData = reactive({
   gesprekDuur: '',
   overOns: '',
   email: '',
+  website: '',
+  telefoonnummer: '',
+  branche: '',
+  bedrijfsgrootte: '',
+  opgerichtIn: '',
   foto: null,
   fotoUrl: null,
   toestemming: false
@@ -32,6 +36,41 @@ const formData = reactive({
 
 const fotoPreview = ref(null)
 const aangepasteZoektermInput = ref(null)
+
+const opZoekNaarOpties = [
+  'IT-studenten',
+  'Marketing profielen',
+  'Boekhouders',
+  'Stagiairs',
+  'Vrijwilligers',
+  'Anders'
+]
+const geselecteerdeZoekprofielen = ref([])
+const selectedOpZoekNaar = ref('')
+const showCustomOpZoekNaar = ref(false)
+const customOpZoekNaar = ref('')
+
+const brancheOpties = [
+  'IT & Software',
+  'Marketing & Communicatie',
+  'Finance & Banking',
+  'Healthcare',
+  'Education',
+  'Retail',
+  'Manufacturing',
+  'Consulting',
+  'Media & Entertainment',
+  'Non-profit',
+  'Overig'
+]
+const bedrijfsgrootteOpties = [
+  '1-10 medewerkers',
+  '11-50 medewerkers',
+  '51-200 medewerkers',
+  '201-500 medewerkers',
+  '501-1000 medewerkers',
+  '1000+ medewerkers'
+]
 
 watch(() => formData.opZoekNaar, async (val) => {
   if (val === 'Anders') {
@@ -48,13 +87,39 @@ function handleFotoUpload(e) {
   }
 }
 
+function addOpZoekNaar() {
+  if (selectedOpZoekNaar.value === 'Anders') {
+    showCustomOpZoekNaar.value = true
+  } else if (
+    selectedOpZoekNaar.value &&
+    !geselecteerdeZoekprofielen.value.includes(selectedOpZoekNaar.value)
+  ) {
+    geselecteerdeZoekprofielen.value.push(selectedOpZoekNaar.value)
+    showCustomOpZoekNaar.value = false
+    selectedOpZoekNaar.value = ''
+  }
+}
+
+function confirmCustomOpZoekNaar() {
+  const trimmed = customOpZoekNaar.value.trim()
+  if (trimmed && !geselecteerdeZoekprofielen.value.includes(trimmed)) {
+    geselecteerdeZoekprofielen.value.push(trimmed)
+  }
+  customOpZoekNaar.value = ''
+  showCustomOpZoekNaar.value = false
+  selectedOpZoekNaar.value = ''
+}
+
+function removeOpZoekNaar(index) {
+  geselecteerdeZoekprofielen.value.splice(index, 1)
+}
+
 async function bevestigGegevens() {
   const gekozenZoekterm = formData.opZoekNaar === 'Anders' ? formData.aangepasteZoekterm : formData.opZoekNaar
 
   if (
     !formData.bedrijfsnaam ||
     !formData.gesitueerdIn ||
-    !formData.locatie ||
     !formData.starttijd ||
     !formData.eindtijd ||
     !gekozenZoekterm ||
@@ -81,7 +146,6 @@ async function bevestigGegevens() {
       aangemaaktOp: new Date(),
       bedrijfsnaam: formData.bedrijfsnaam,
       gesitueerdIn: formData.gesitueerdIn,
-      locatie: formData.locatie,
       starttijd: formData.starttijd,
       eindtijd: formData.eindtijd,
       opZoekNaar: gekozenZoekterm,
@@ -89,6 +153,11 @@ async function bevestigGegevens() {
       gesprekDuur: formData.gesprekDuur,
       overOns: formData.overOns,
       email: user.email,
+      website: formData.website,
+      telefoonnummer: formData.telefoonnummer,
+      branche: formData.branche,
+      bedrijfsgrootte: formData.bedrijfsgrootte,
+      opgerichtIn: formData.opgerichtIn,
       foto: fotoUrl,
       toestemming: formData.toestemming
     })
@@ -145,18 +214,6 @@ async function bevestigGegevens() {
             <input id="gesitueerdIn" v-model="formData.gesitueerdIn" type="text" placeholder="Bijv. Brussel" required />
           </div>
 
-          <!-- Locatie onder elkaar -->
-          <div class="form-group">
-            <label for="locatie">Locatie *</label>
-            <input
-              type="text"
-              id="locatie"
-              v-model="formData.locatie"
-              placeholder="Bijv. Brussels Expo"
-              required
-            />
-          </div>
-
           <!-- Startuur en Einduur naast elkaar -->
           <div class="tijd-grid">
             <div class="tijd-veld">
@@ -189,24 +246,56 @@ async function bevestigGegevens() {
           </div>
 
           <div class="form-group">
-            <label for="opZoekNaar">Op zoek naar *</label>
-            <select id="opZoekNaar" v-model="formData.opZoekNaar" required>
-              <option disabled value="">Selecteer een profiel</option>
-              <option>IT-studenten</option>
-              <option>Marketing profielen</option>
-              <option>Boekhouders</option>
-              <option>Stagiairs</option>
-              <option>Vrijwilligers</option>
-              <option>Anders</option>
+            <label for="contactEmail">Contact e-mail</label>
+            <input id="contactEmail" v-model="formData.email" type="email" placeholder="contact@bedrijf.nl" />
+          </div>
+
+          <div class="form-group">
+            <label for="website">Website</label>
+            <input id="website" v-model="formData.website" type="url" placeholder="https://www.bedrijf.nl" />
+          </div>
+
+          <div class="form-group">
+            <label for="telefoonnummer">Telefoonnummer</label>
+            <input id="telefoonnummer" v-model="formData.telefoonnummer" type="tel" placeholder="+31 20 123 4567" />
+          </div>
+
+          <div class="form-group">
+            <label for="branche">Branche</label>
+            <select id="branche" v-model="formData.branche">
+              <option disabled value="">Selecteer branche</option>
+              <option v-for="opt in brancheOpties" :key="opt" :value="opt">{{ opt }}</option>
             </select>
-            <div v-if="formData.opZoekNaar === 'Anders'" class="form-group">
-              <input
-                ref="aangepasteZoektermInput"
-                type="text"
-                v-model="formData.aangepasteZoekterm"
-                placeholder="Specificeer waar je naar zoekt..."
-                required
-              />
+          </div>
+
+          <div class="form-group">
+            <label for="bedrijfsgrootte">Bedrijfsgrootte</label>
+            <select id="bedrijfsgrootte" v-model="formData.bedrijfsgrootte">
+              <option disabled value="">Selecteer grootte</option>
+              <option v-for="opt in bedrijfsgrootteOpties" :key="opt" :value="opt">{{ opt }}</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="opgerichtIn">Opgericht in</label>
+            <input id="opgerichtIn" v-model="formData.opgerichtIn" type="number" min="1800" :max="new Date().getFullYear()" placeholder="2020" />
+          </div>
+
+          <div class="form-group">
+            <label for="opZoekNaar">Op zoek naar *</label>
+            <select class="skills-dropdown" v-model="selectedOpZoekNaar" @change="addOpZoekNaar">
+              <option disabled value="">Selecteer een profiel</option>
+              <option v-for="opt in opZoekNaarOpties" :key="opt" :value="opt">{{ opt }}</option>
+            </select>
+            <div v-if="showCustomOpZoekNaar" class="custom-skill-input">
+              <input type="text" v-model="customOpZoekNaar" placeholder="Typ je eigen profiel..." />
+              <button type="button" class="custom-skill-btn" @click="confirmCustomOpZoekNaar">Toevoegen</button>
+            </div>
+            <div class="chip-cloud">
+              <span class="chip" v-for="(profiel, index) in geselecteerdeZoekprofielen" :key="index">
+                {{ profiel }}
+                <button type="button" class="chip-delete" @click="removeOpZoekNaar(index)">&times;</button>
+              </span>
             </div>
           </div>
 
@@ -324,6 +413,17 @@ textarea {
   font-family: inherit;
 }
 
+input[type='email'],
+input[type='tel'],
+input[type='number'] {
+  font-size: 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #e0b4b4;
+  border-radius: 12px;
+  background-color: #fff;
+  font-family: inherit;
+}
+
 input:focus,
 select:focus,
 textarea:focus {
@@ -428,4 +528,47 @@ textarea {
   flex-direction: column;
 }
 
+.chip-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 0.3rem;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  background-color: #eee;
+  padding: 6px 10px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+}
+.chip-delete {
+  background: none;
+  border: none;
+  color: #e53935;
+  font-size: 16px;
+  font-weight: bold;
+  margin-left: 6px;
+  cursor: pointer;
+}
+.custom-skill-input {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.custom-skill-input input {
+  flex: 1;
+}
+.custom-skill-btn {
+  background-color: #b80000;
+  color: white;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.custom-skill-btn:hover {
+  background-color: #990000;
+}
 </style>
