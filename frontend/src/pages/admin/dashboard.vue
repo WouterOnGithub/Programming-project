@@ -44,6 +44,61 @@
 
     <!-- Dashboard Content Grid -->
     <div class="dashboard-grid">
+      <!-- Bedrijfsverificatie -->
+      <div class="dashboard-card full-width">
+        <div class="card-header">
+          <h2 class="card-title">Bedrijfsverificatie</h2>
+          <router-link to="/admin/companies/verification" class="view-all-link">Bekijk alle</router-link>
+        </div>
+        <div class="card-content">
+          <div class="verification-stats">
+            <div class="verification-item">
+              <span class="verification-number">{{ stats.pendingVerifications || 0 }}</span>
+              <span class="verification-label">Wachtend op verificatie</span>
+            </div>
+            <div class="verification-item">
+              <span class="verification-number">{{ stats.verifiedCompanies || 0 }}</span>
+              <span class="verification-label">Geverifieerde bedrijven</span>
+            </div>
+            <div class="verification-item">
+              <span class="verification-number">{{ stats.totalCompanies }}</span>
+              <span class="verification-label">Totaal bedrijven</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="dashboard-card full-width">
+        <div class="card-header">
+          <h2 class="card-title">Snelle Acties</h2>
+        </div>
+        <div class="card-content">
+          <div class="quick-actions">
+            <div class="actions-column">
+              <router-link to="/admin/students/new" class="action-button primary">
+                <span class="action-icon">➕</span>
+                <span class="action-text">Nieuwe Student</span>
+              </router-link>
+              <router-link to="/admin/companies/new" class="action-button secondary">
+                <span class="action-icon">➕</span>
+                <span class="action-text">Nieuw Bedrijf</span>
+              </router-link>
+            </div>
+            <div class="actions-column">
+              <router-link to="/admin/matches" class="action-button secondary">
+                <span class="action-icon">💫</span>
+                <span class="action-text">Matches Beheren</span>
+              </router-link>
+              <router-link to="/admin/appointments" class="action-button secondary">
+                <span class="action-icon">📅</span>
+                <span class="action-text">Afspraken Beheren</span>
+              </router-link>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Recent Matches -->
       <div class="dashboard-card">
         <div class="card-header">
@@ -108,33 +163,6 @@
         </div>
       </div>
 
-      <!-- Quick Actions -->
-      <div class="dashboard-card">
-        <div class="card-header">
-          <h2 class="card-title">Snelle Acties</h2>
-        </div>
-        <div class="card-content">
-          <div class="quick-actions">
-            <router-link to="/admin/students/new" class="action-button primary">
-              <span class="action-icon">➕</span>
-              <span class="action-text">Nieuwe Student</span>
-            </router-link>
-            <router-link to="/admin/companies/new" class="action-button secondary">
-              <span class="action-icon">➕</span>
-              <span class="action-text">Nieuw Bedrijf</span>
-            </router-link>
-            <router-link to="/admin/matches" class="action-button secondary">
-              <span class="action-icon">💫</span>
-              <span class="action-text">Matches Beheren</span>
-            </router-link>
-            <router-link to="/admin/appointments" class="action-button secondary">
-              <span class="action-icon">📅</span>
-              <span class="action-text">Afspraken Beheren</span>
-            </router-link>
-          </div>
-        </div>
-      </div>
-
       <!-- Activity Feed -->
       <div class="dashboard-card full-width">
         <div class="card-header">
@@ -172,7 +200,9 @@ export default {
       totalStudents: 0,
       totalCompanies: 0,
       totalMatches: 0,
-      totalAppointments: 0
+      totalAppointments: 0,
+      pendingVerifications: 0,
+      verifiedCompanies: 0
     })
     const recentStudents = ref([])
     const recentMatches = ref([])
@@ -200,6 +230,7 @@ export default {
     const loadStats = async () => {
       try {
         loading.value.stats = true
+        
         // Students count
         const studentsRef = collection(db, 'student')
         unsubscribeStudents && unsubscribeStudents()
@@ -207,11 +238,15 @@ export default {
           stats.value.totalStudents = snapshot.size
         })
 
-        // Companies count
+        // Companies count and verification stats
         const companiesRef = collection(db, 'bedrijf')
         unsubscribeCompanies && unsubscribeCompanies()
         unsubscribeCompanies = onSnapshot(companiesRef, (snapshot) => {
           stats.value.totalCompanies = snapshot.size
+          
+          // Use mock data for verification stats
+          stats.value.pendingVerifications = 0
+          stats.value.verifiedCompanies = Math.max(0, snapshot.size - 0)
         })
 
         // Matches count
@@ -420,7 +455,7 @@ export default {
   font-size: 1.5rem;
 }
 
-.stat-icon.students { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+.stat-icon.students { background: #f8f9fa; }
 .stat-icon.courses { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
 .stat-icon.enrollment { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
 .stat-icon.completion { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
@@ -576,7 +611,18 @@ export default {
 /* Quick Actions */
 .quick-actions {
   display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.actions-column {
+  display: flex;
+  flex-direction: column;
   gap: 12px;
+}
+
+.quick-actions .action-button {
+  width: 100%;
 }
 
 .action-button {
@@ -778,5 +824,32 @@ export default {
   background: #cce5ff;
   color: #004085;
 }
-</style>
 
+/* Verification Stats */
+.verification-stats {
+  display: flex;
+  justify-content: space-around;
+  gap: 24px;
+}
+
+.verification-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  flex: 1;
+}
+
+.verification-number {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 8px;
+}
+
+.verification-label {
+  color: #666;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+</style>
