@@ -59,7 +59,6 @@ const userData = ref({ companyName: 'Bedrijf' })
 const userFoto = ref(null)
 const navigation = [
   { name: 'Dashboard', href: '/BedrijfDashboard', icon: 'fas fa-chart-pie' },
-  { name: 'Favorieten', href: '/Favorietenbd', icon: 'fas fa-envelope' },
   { name: 'Afspraken', href: '/GesprekkenBd', icon: 'fas fa-calendar' },
   { name: 'Matches', href: '/bedrijfmatch', icon: 'fas fa-users' },
   { name: 'Profiel', href: '/WeergaveBd', icon: 'fas fa-user' },

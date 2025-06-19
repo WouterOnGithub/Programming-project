@@ -124,14 +124,6 @@ const statsData = ref([
     color: 'text-red-600',
   },
   {
-    title: 'Openstaande Favorieten',
-    value: '12',
-    change: '+20%',
-    trend: 'up',
-    icon: 'fas fa-envelope-open-text',
-    color: 'text-blue-600',
-  },
-  {
     title: 'Geplande Afspraken',
     value: '5',
     change: '+1',
@@ -164,7 +156,6 @@ const interestedStudents = ref([
 ])
 
 const recentActivity = ref([
-  { type: 'favorieten', action: 'Nieuwe favoriet van A. Demir', time: '2 uur geleden' },
   { type: 'interview', action: 'Gesprek gepland met L. Vanhoutte', time: '1 dag geleden' },
   { type: 'match', action: 'Nieuwe match met R. De Wilde', time: '2 dagen geleden' },
 ])
