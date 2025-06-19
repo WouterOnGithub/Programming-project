@@ -67,7 +67,6 @@
               class="form-input"
               :class="{ 'error': errors.bedrijfsnaam }"
               placeholder="Voer bedrijfsnaam in"
-              required
             >
             <span v-if="errors.bedrijfsnaam" class="error-message">{{ errors.bedrijfsnaam }}</span>
           </div>
@@ -81,7 +80,6 @@
               class="form-input"
               :class="{ 'error': errors.gesitueerdIn }"
               placeholder="Bijv. Amsterdam, Nederland"
-              required
             >
             <span v-if="errors.gesitueerdIn" class="error-message">{{ errors.gesitueerdIn }}</span>
           </div>
@@ -173,7 +171,6 @@
               :class="{ 'error': errors.aboutUs }"
               placeholder="Vertel over jullie bedrijf, missie, visie, cultuur en wat jullie uniek maakt..."
               rows="6"
-              required
             ></textarea>
             <span v-if="errors.aboutUs" class="error-message">{{ errors.aboutUs }}</span>
           </div>
@@ -345,29 +342,12 @@ export default {
 
     const validateForm = () => {
       errors.value = {}
-      let isValid = true
-
-      if (!form.value.bedrijfsnaam) {
-        errors.value.bedrijfsnaam = 'Bedrijfsnaam is verplicht'
-        isValid = false
-      }
-
-      if (!form.value.gesitueerdIn) {
-        errors.value.gesitueerdIn = 'Locatie is verplicht'
-        isValid = false
-      }
-
-      if (!form.value.aboutUs) {
-        errors.value.aboutUs = 'Over het bedrijf is verplicht'
-        isValid = false
-      }
-
+      // Geen enkel veld is verplicht, alleen e-mail validatie als er iets is ingevuld
       if (form.value.contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.value.contactEmail)) {
         errors.value.contactEmail = 'Ongeldig e-mailadres'
-        isValid = false
+        return false
       }
-
-      return isValid
+      return true
     }
 
     const handleLogoUpload = async (event) => {
