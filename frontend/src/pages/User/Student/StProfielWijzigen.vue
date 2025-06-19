@@ -1,31 +1,6 @@
 StprofielWijizig.vue  RANIA
 <template>
-  <div class="student-wijzig">
-    <!-- Sidebar identiek aan bedrijf -->
-    <aside class="sidebar-nav">
-      <div class="sidebar-header">
-        <div class="sidebar-logo">
-          <i class="fas fa-user-graduate"></i>
-        </div>
-        <div>
-          <h1 class="sidebar-title">StudentMatch</h1>
-          <p class="sidebar-subtitle">Studentendashboard</p>
-        </div>
-      </div>
-
-      <nav class="sidebar-menu">
-        <router-link
-          v-for="item in navigation"
-          :key="item.name"
-          :to="item.href"
-          :class="['sidebar-link', $route.path === item.href ? 'active' : '']"
-        >
-          <i :class="item.icon"></i>
-          {{ item.name }}
-        </router-link>
-      </nav>
-    </aside>
-
+  <StudentDashboardLayout>
     <main class="main-content">
       <section class="banner">
         <router-link to="/WeergaveSt" class="go-back-knop">
@@ -52,132 +27,193 @@ StprofielWijizig.vue  RANIA
         </div>
       </section>
 
-      <!-- Formulier -->
       <form class="form" @submit.prevent="bevestigGegevens">
-  <div class="form-grid">
+        <!-- 2-koloms grid voor basisgegevens -->
+        <section class="section-card">
+          <div class="gegevens-grid">
+            <div class="form-group">
+              <label>Voornaam *</label>
+              <div class="input-wrapper">
+                <input v-model="voornaam" required />
+                <img class="input-icon" :src="potlood" alt="potlood" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Achternaam *</label>
+              <div class="input-wrapper">
+                <input v-model="achternaam" required />
+                <img class="input-icon" :src="potlood" alt="potlood" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Leeftijd *</label>
+              <div class="input-wrapper">
+                <input type="number" v-model="leeftijd" required />
+                <img class="input-icon" :src="potlood" alt="potlood" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Domein *</label>
+              <select class="skills-dropdown" v-model="selectedDomein" @change="addDomein">
+                <option disabled value="">Selecteer je domein</option>
+                <option v-for="d in possibleDomeinen" :key="d" :value="d">{{ d }}</option>
+                <option value="custom">Andere domein...</option>
+              </select>
+              <div v-if="showCustomDomein" class="custom-skill-input">
+                <input type="text" v-model="customDomein" placeholder="Typ je eigen domein..." />
+                <button type="button" class="custom-domein-btn" @click="confirmCustomDomein">Toevoegen</button>
+              </div>
+              <div class="chip-cloud">
+                <span class="chip" v-for="(d, index) in domein" :key="index">
+                  {{ d }}
+                  <button type="button" class="chip-delete" @click="removeDomein(index)">&times;</button>
+                </span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Studiejaar</label>
+              <div class="input-wrapper">
+                <select v-model="studiejaar">
+                  <option>1e jaar</option>
+                  <option>2e jaar</option>
+                  <option>3e jaar</option>
+                  <option>Afgestudeerd</option>
+                </select>
+                <img class="input-icon" :src="potlood" alt="potlood" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Beschikbaar vanaf</label>
+              <div class="input-wrapper">
+                <input type="date" v-model="beschikbaarVanaf" />
+                <img class="input-icon" :src="potlood" alt="potlood" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Opportuniteit *</label>
+              <div class="input-wrapper">
+                <select v-model="opportuniteit" required>
+                  <option>Stage</option>
+                  <option>Studentenjob</option>
+                  <option>Vrijwilligerswerk</option>
+                  <option>Andere</option>
+                </select>
+                <img class="input-icon" :src="potlood" alt="potlood" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>LinkedIn</label>
+              <div class="input-wrapper">
+                <input v-model="linkedin" />
+                <img class="input-icon" :src="potlood" alt="potlood" />
+              </div>
+            </div>
+          </div>
+        </section>
 
-    <div class="form-group">
-      <label>Voornaam *</label>
-      <div class="input-wrapper">
-        <input v-model="voornaam" required />
-        <img class="input-icon" :src="potlood" alt="potlood" />
-      </div>
-    </div>
+        <!-- Introductie -->
+        <section class="section-card">
+          <label>Introductie *</label>
+          <div class="input-wrapper">
+            <textarea v-model="intro" required class="intro-textarea"></textarea>
+            <img class="input-icon" :src="potlood" alt="potlood" />
+          </div>
+        </section>
 
-    <div class="form-group">
-      <label>Achternaam *</label>
-      <div class="input-wrapper">
-        <input v-model="achternaam" required />
-        <img class="input-icon" :src="potlood" alt="potlood" />
-      </div>
-    </div>
+        <!-- Vaardigheden -->
+        <section class="section-card">
+          <h2>Vaardigheden</h2>
+          <select class="skills-dropdown" v-model="selectedSkill" @change="addSkill">
+            <option disabled value="">Maak een keuze</option>
+            <option>Teamwork</option>
+            <option>Leiderschap</option>
+            <option>Python</option>
+            <option>Machine Learning</option>
+            <option>Projectmanagement</option>
+            <option>Cloud</option>
+            <option value="custom">Andere...</option>
+          </select>
+          <div v-if="showCustomSkill" class="custom-skill-input">
+            <input type="text" v-model="customSkill" placeholder="Typ je eigen skill..." />
+            <button type="button" class="custom-skill-btn" @click="confirmCustomSkill">Toevoegen</button>
+          </div>
+          <div class="chip-cloud">
+            <span class="chip" v-for="(skill, index) in skills" :key="index">
+              {{ skill }}
+              <button type="button" class="chip-delete" @click="removeSkill(index)">&times;</button>
+            </span>
+          </div>
+        </section>
 
-    <div class="form-group">
-      <label>Leeftijd *</label>
-      <div class="input-wrapper">
-        <input type="number" v-model="leeftijd" required />
-        <img class="input-icon" :src="potlood" alt="potlood" />
-      </div>
-    </div>
+        <!-- Talenkennis -->
+        <section class="section-card">
+          <h2>Talenkennis</h2>
+          <select class="skills-dropdown" v-model="selectedTaal" @change="addTaal">
+            <option disabled value="">Maak een keuze</option>
+            <option v-for="taal in possibleTalen" :key="taal" :value="taal">{{ taal }}</option>
+            <option value="custom">Andere taal...</option>
+          </select>
+          <div v-if="showCustomTaal" class="custom-skill-input">
+            <input type="text" v-model="customTaal" placeholder="Typ je eigen taal..." />
+            <button type="button" class="custom-skill-btn" @click="confirmCustomTaal">Toevoegen</button>
+          </div>
+          <div class="chip-cloud">
+            <span class="chip" v-for="(taal, index) in talenkennis" :key="index">
+              {{ taal }}
+              <button type="button" class="chip-delete" @click="removeTaal(index)">&times;</button>
+            </span>
+          </div>
+        </section>
 
-    <div class="form-group">
-      <label>Domein *</label>
-      <div class="input-wrapper">
-        <input v-model="domein" required />
-        <img class="input-icon" :src="potlood" alt="potlood" />
-      </div>
-    </div>
+        <!-- CV -->
+        <section class="section-card">
+          <h2>CV</h2>
+          <div class="input-wrapper">
+            <input type="file" accept=".pdf,.doc,.docx" @change="uploadCV" />
+            <img class="input-icon" :src="potlood" alt="potlood" />
+          </div>
+          <div v-if="cv.naam" class="cv-info">
+            <span><strong>Huidige CV:</strong> {{ cv.naam }} ({{ cv.grootte }})</span>
+            <button type="button" class="cv-verwijder-knop" @click="verwijderCV">Verwijder</button>
+          </div>
+        </section>
 
-    <div class="form-group">
-      <label>Studiejaar</label>
-      <div class="input-wrapper">
-        <select v-model="studiejaar">
-          <option>1e jaar</option>
-          <option>2e jaar</option>
-          <option>3e jaar</option>
-          <option>4e jaar</option>
-        </select>
-        <img class="input-icon" :src="potlood" alt="potlood" />
-      </div>
-    </div>
-
-    <div class="form-group">
-      <label>Beschikbaar vanaf</label>
-      <div class="input-wrapper">
-        <input type="date" v-model="beschikbaarVanaf" />
-        <img class="input-icon" :src="potlood" alt="potlood" />
-      </div>
-    </div>
-
-    <div class="form-group">
-      <label>Opportuniteit *</label>
-      <div class="input-wrapper">
-        <select v-model="opportuniteit" required>
-          <option>Stage</option>
-          <option>Studentenjob</option>
-          <option>Vrijwilligerswerk</option>
-          <option>Andere</option>
-        </select>
-        <img class="input-icon" :src="potlood" alt="potlood" />
-      </div>
-    </div>
-
-    <div class="form-group">
-      <label>LinkedIn</label>
-      <div class="input-wrapper">
-        <input v-model="linkedin" />
-        <img class="input-icon" :src="potlood" alt="potlood" />
-      </div>
-    </div>
-
-    <div class="form-group tekstvak volle-breedte">
-      <label>Introductie *</label>
-      <div class="input-wrapper">
-        <textarea v-model="intro" required></textarea>
-        <img class="input-icon" :src="potlood" alt="potlood" />
-      </div>
-    </div>
-
-    <!-- De rest zoals talenkennis, skills en toestemming blijven gelijk -->
-
-  </div>
-
-  <div v-if="bevestiging" class="bevestiging-tekst">{{ bevestiging }}</div>
-  <div v-if="foutmelding" class="error-message">{{ foutmelding }}</div>
-
-  <button class="submit-knop" type="submit">Profiel opslaan</button>
-</form>
-
+        <div v-if="bevestiging" class="bevestiging-tekst">{{ bevestiging }}</div>
+        <div v-if="foutmelding" class="error-message">{{ foutmelding }}</div>
+        <button class="submit-knop" type="submit">Profiel opslaan</button>
+      </form>
     </main>
-  </div>
+  </StudentDashboardLayout>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import profielfotoDefault from '/Images/profielfoto.jpg'
 import potlood from '/Images/potlood.png'
+import StudentDashboardLayout from '../../../components/StudentDashboardLayout.vue'
 
 const route = useRoute()
+const router = useRouter()
 const voornaam = ref('Jonathan')
 const achternaam = ref('Primo')
 const leeftijd = ref(22)
-const domein = ref('Cybersecurity')
 const studiejaar = ref('3e jaar')
 const beschikbaarVanaf = ref('2025-09-01')
 const opportuniteit = ref('Stage')
 const linkedin = ref('https://www.linkedin.com/in/jonathan-primo')
 const intro = ref('Hallo, ik ben Jonathan...')
 
-const talenkennis = ref([])
+const talenkennis = ref(['Nederlands', 'Engels', 'Frans', 'Andere (Japans)'])
 const andereTaal = ref('')
-const skills = ref([])
+const skills = ref(['Teamwork', 'Python', 'Machine Learning', 'Leiderschap'])
 const nieuweSkill = ref('')
 const toestemming = ref(false)
 const bevestiging = ref('')
 const foutmelding = ref('')
 const profielfotoURL = ref(profielfotoDefault)
 const fileInputKey = ref(Date.now())
+const cv = ref({ naam: '', grootte: '' })
 
 const talenSuggesties = ['Nederlands', 'Engels', 'Frans', 'Duits', 'Spaans']
 const skillsSuggesties = ['JavaScript', 'Vue.js', 'Python', 'SQL', 'Java']
@@ -200,6 +236,75 @@ const gefilterdeSkillSuggesties = computed(() => {
     : []
 })
 
+const possibleTalen = [
+  'Nederlands', 'Engels', 'Frans', 'Duits', 'Spaans',
+  'Chinees', 'Arabisch', 'Russisch', 'Italiaans', 'Portugees'
+]
+const selectedTaal = ref('')
+const showCustomTaal = ref(false)
+const customTaal = ref('')
+
+const selectedSkill = ref("");
+const showCustomSkill = ref(false);
+const customSkill = ref("");
+
+const possibleDomeinen = [
+  'Software Development',
+  'Web Development',
+  'Mobile Development',
+  'Cloud Computing',
+  'DevOps',
+  'Cybersecurity',
+  'Data Science',
+  'Artificial Intelligence',
+  'Machine Learning',
+  'Network Engineering',
+  'System Administration',
+  'Database Management',
+  'UI/UX Design',
+  'Business Intelligence',
+  'IT Project Management',
+  'Quality Assurance',
+  'Embedded Systems',
+  'IoT Development',
+  'Blockchain Development',
+  'Game Development'
+];
+const domein = ref([]);
+const selectedDomein = ref("");
+const showCustomDomein = ref(false);
+const customDomein = ref("");
+
+// Mock profieldata (voor demo)
+const profiel = {
+  voornaam: 'Jonathan',
+  achternaam: 'Primo',
+  leeftijd: 22,
+  domein: 'Cybersecurity', // of ['Cybersecurity', 'Cloud Computing']
+  studiejaar: '3e jaar',
+  beschikbaarVanaf: '2025-09-01',
+  opportuniteit: 'Stage',
+  linkedin: 'https://www.linkedin.com/in/jonathan-primo',
+  intro: 'Hallo, ik ben Jonathan...'
+  // ... andere velden ...
+}
+
+onMounted(() => {
+  // Zet domein-array correct bij laden van de pagina
+  if (profiel.domein) {
+    domein.value = Array.isArray(profiel.domein) ? profiel.domein : [profiel.domein];
+  }
+  // Eventueel ook andere velden initialiseren
+  voornaam.value = profiel.voornaam;
+  achternaam.value = profiel.achternaam;
+  leeftijd.value = profiel.leeftijd;
+  studiejaar.value = profiel.studiejaar;
+  beschikbaarVanaf.value = profiel.beschikbaarVanaf;
+  opportuniteit.value = profiel.opportuniteit;
+  linkedin.value = profiel.linkedin;
+  intro.value = profiel.intro;
+});
+
 function wijzigAfbeelding(event) {
   const file = event.target.files[0]
   if (file && file.type.startsWith('image/')) {
@@ -213,13 +318,11 @@ function wijzigAfbeelding(event) {
 }
 
 function bevestigGegevens() {
-  if (!voornaam.value || !achternaam.value || !leeftijd.value || !domein.value || !opportuniteit.value || !intro.value || !toestemming.value) {
-    foutmelding.value = 'Gelieve alle verplichte velden in te vullen.'
-    bevestiging.value = ''
-    return
-  }
   foutmelding.value = ''
   bevestiging.value = 'Gegevens succesvol opgeslagen!'
+  setTimeout(() => {
+    router.push('/WeergaveSt');
+  }, 1000);
 }
 
 function voegTaalToe(taal = andereTaal.value) {
@@ -242,6 +345,96 @@ function voegSkillToe(skill = nieuweSkill.value) {
 
 function verwijderSkill(index) {
   skills.value.splice(index, 1)
+}
+
+function uploadCV(event) {
+  const file = event.target.files[0]
+  if (file) {
+    cv.value.naam = file.name
+    cv.value.grootte = Math.round(file.size / 1024) + ' kB'
+  }
+}
+
+function verwijderCV() {
+  cv.value = { naam: '', grootte: '' }
+}
+
+function addTaal() {
+  if (selectedTaal.value === 'custom') {
+    showCustomTaal.value = true;
+  } else if (
+    selectedTaal.value &&
+    !talenkennis.value.includes(selectedTaal.value)
+  ) {
+    talenkennis.value.push(selectedTaal.value);
+    showCustomTaal.value = false;
+  }
+}
+
+function confirmCustomTaal() {
+  const trimmed = customTaal.value.trim();
+  if (trimmed && !talenkennis.value.includes(trimmed)) {
+    talenkennis.value.push(trimmed);
+  }
+  customTaal.value = '';
+}
+
+function removeTaal(index) {
+  talenkennis.value.splice(index, 1)
+}
+
+function addSkill() {
+  if (selectedSkill.value === "custom") {
+    showCustomSkill.value = true;
+  } else if (
+    selectedSkill.value &&
+    !skills.value.includes(selectedSkill.value)
+  ) {
+    skills.value.push(selectedSkill.value);
+    showCustomSkill.value = false;
+    selectedSkill.value = "";
+  }
+}
+
+function confirmCustomSkill() {
+  const trimmed = customSkill.value.trim();
+  if (trimmed && !skills.value.includes(trimmed)) {
+    skills.value.push(trimmed);
+  }
+  customSkill.value = "";
+  showCustomSkill.value = false;
+  selectedSkill.value = "";
+}
+
+function removeSkill(index) {
+  skills.value.splice(index, 1);
+}
+
+function addDomein() {
+  if (selectedDomein.value === "custom") {
+    showCustomDomein.value = true;
+  } else if (
+    selectedDomein.value &&
+    !domein.value.includes(selectedDomein.value)
+  ) {
+    domein.value.push(selectedDomein.value);
+    showCustomDomein.value = false;
+    selectedDomein.value = "";
+  }
+}
+
+function confirmCustomDomein() {
+  const trimmed = customDomein.value.trim();
+  if (trimmed && !domein.value.includes(trimmed)) {
+    domein.value.push(trimmed);
+  }
+  customDomein.value = "";
+  showCustomDomein.value = false;
+  selectedDomein.value = "";
+}
+
+function removeDomein(index) {
+  domein.value.splice(index, 1);
 }
 
 const navigation = [
@@ -356,16 +549,17 @@ const navigation = [
 
 .main-content {
   flex: 1;
-  padding: 3rem;
-  max-width: 1100px;
-  margin: 0 auto;
+  padding: 2.5rem;
+  width: 100%;
+  max-width: none;
+  margin: 0;
 }
 
 .banner {
   display: flex;
   align-items: center;
   background: #fff1f1;
-  padding: 2rem;
+  padding: 2.5rem;
   border-radius: 20px;
   margin-bottom: 2rem;
   gap: 2rem;
@@ -659,5 +853,78 @@ textarea {
 .go-back-arrow {
   font-size: 1.2rem;
   margin-right: 0.3rem;
+}
+
+.cv-info {
+  margin-top: 0.5rem;
+  color: #333;
+  font-size: 0.98rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.cv-verwijder-knop {
+  background: #fff;
+  color: #b80000;
+  border: 1px solid #b80000;
+  border-radius: 1.2rem;
+  padding: 0.2rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.cv-verwijder-knop:hover {
+  background: #b80000;
+  color: #fff;
+}
+
+.gegevens-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem 2rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 900px) {
+  .gegevens-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.custom-skill-input {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.custom-skill-input input {
+  flex: 1;
+}
+.custom-skill-btn {
+  background-color: #b80000;
+  color: white;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.custom-skill-btn:hover {
+  background-color: #990000;
+}
+
+.custom-domein-btn {
+  background-color: #b80000;
+  color: white;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.custom-domein-btn:hover {
+  background-color: #990000;
 }
 </style>
