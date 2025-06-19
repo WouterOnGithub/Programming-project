@@ -24,6 +24,11 @@ const formData = reactive({
   gesprekDuur: '',
   overOns: '',
   email: '',
+  website: '',
+  telefoonnummer: '',
+  branche: '',
+  bedrijfsgrootte: '',
+  opgerichtIn: '',
   foto: null,
   fotoUrl: null,
   toestemming: false
@@ -44,6 +49,28 @@ const geselecteerdeZoekprofielen = ref([])
 const selectedOpZoekNaar = ref('')
 const showCustomOpZoekNaar = ref(false)
 const customOpZoekNaar = ref('')
+
+const brancheOpties = [
+  'IT & Software',
+  'Marketing & Communicatie',
+  'Finance & Banking',
+  'Healthcare',
+  'Education',
+  'Retail',
+  'Manufacturing',
+  'Consulting',
+  'Media & Entertainment',
+  'Non-profit',
+  'Overig'
+]
+const bedrijfsgrootteOpties = [
+  '1-10 medewerkers',
+  '11-50 medewerkers',
+  '51-200 medewerkers',
+  '201-500 medewerkers',
+  '501-1000 medewerkers',
+  '1000+ medewerkers'
+]
 
 watch(() => formData.opZoekNaar, async (val) => {
   if (val === 'Anders') {
@@ -126,6 +153,11 @@ async function bevestigGegevens() {
       gesprekDuur: formData.gesprekDuur,
       overOns: formData.overOns,
       email: user.email,
+      website: formData.website,
+      telefoonnummer: formData.telefoonnummer,
+      branche: formData.branche,
+      bedrijfsgrootte: formData.bedrijfsgrootte,
+      opgerichtIn: formData.opgerichtIn,
       foto: fotoUrl,
       toestemming: formData.toestemming
     })
@@ -211,6 +243,42 @@ async function bevestigGegevens() {
           <div class="form-group">
             <label for="linkedin">LinkedIn</label>
             <input id="linkedin" v-model="formData.linkedin" type="url" placeholder="https://linkedin.com/company/jouwbedrijf" />
+          </div>
+
+          <div class="form-group">
+            <label for="contactEmail">Contact e-mail</label>
+            <input id="contactEmail" v-model="formData.email" type="email" placeholder="contact@bedrijf.nl" />
+          </div>
+
+          <div class="form-group">
+            <label for="website">Website</label>
+            <input id="website" v-model="formData.website" type="url" placeholder="https://www.bedrijf.nl" />
+          </div>
+
+          <div class="form-group">
+            <label for="telefoonnummer">Telefoonnummer</label>
+            <input id="telefoonnummer" v-model="formData.telefoonnummer" type="tel" placeholder="+31 20 123 4567" />
+          </div>
+
+          <div class="form-group">
+            <label for="branche">Branche</label>
+            <select id="branche" v-model="formData.branche">
+              <option disabled value="">Selecteer branche</option>
+              <option v-for="opt in brancheOpties" :key="opt" :value="opt">{{ opt }}</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="bedrijfsgrootte">Bedrijfsgrootte</label>
+            <select id="bedrijfsgrootte" v-model="formData.bedrijfsgrootte">
+              <option disabled value="">Selecteer grootte</option>
+              <option v-for="opt in bedrijfsgrootteOpties" :key="opt" :value="opt">{{ opt }}</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="opgerichtIn">Opgericht in</label>
+            <input id="opgerichtIn" v-model="formData.opgerichtIn" type="number" min="1800" :max="new Date().getFullYear()" placeholder="2020" />
           </div>
 
           <div class="form-group">
@@ -337,6 +405,17 @@ input[type='url'],
 input[type='time'],
 select,
 textarea {
+  font-size: 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #e0b4b4;
+  border-radius: 12px;
+  background-color: #fff;
+  font-family: inherit;
+}
+
+input[type='email'],
+input[type='tel'],
+input[type='number'] {
   font-size: 1rem;
   padding: 0.75rem 1rem;
   border: 1px solid #e0b4b4;
