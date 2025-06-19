@@ -42,6 +42,9 @@
             v-for="student in gefilterdeStudenten"
             :key="student.id"
           >
+            <button class="verwijder-kruis" @click="openVerwijderPopup(student.id)" title="Verwijderen">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
             <div class="student-info">
               <div class="avatar">{{ student.afkorting }}</div>
               <div>
@@ -56,7 +59,7 @@
               </button>
               <button class="knop-rood" @click="planAfspraak(student.id)">
                 <Calendar :size="14" />
-                <span>Gesprek</span>
+                <span>Accepteren</span>
               </button>
             </div>
           </div>
@@ -64,6 +67,16 @@
             <div class="emoji">🔍</div>
             <h3>Geen studenten gevonden</h3>
             <p>Probeer een andere zoekterm.</p>
+          </div>
+        </div>
+        <div v-if="showVerwijderPopup" class="popup-overlay">
+          <div class="popup-modal">
+            <h3>Student verwijderen</h3>
+            <p>Weet je zeker dat je deze student wilt verwijderen?</p>
+            <div class="popup-buttons">
+              <button class="popup-cancel" @click="showVerwijderPopup = false">Annuleren</button>
+              <button class="popup-confirm" @click="bevestigVerwijderen">Verwijderen</button>
+            </div>
           </div>
         </div>
       </section>
@@ -119,6 +132,20 @@ const toonProfiel = (id) => {
 
 const planAfspraak = (id) => {
   console.log(`Plan afspraak met student ${id}`)
+}
+
+const showVerwijderPopup = ref(false)
+const teVerwijderenStudentId = ref(null)
+
+const openVerwijderPopup = (id) => {
+  teVerwijderenStudentId.value = id
+  showVerwijderPopup.value = true
+}
+
+const bevestigVerwijderen = () => {
+  matchStudenten.value = matchStudenten.value.filter(student => student.id !== teVerwijderenStudentId.value)
+  showVerwijderPopup.value = false
+  teVerwijderenStudentId.value = null
 }
 
 function handleAvatarClick() {
@@ -443,6 +470,7 @@ if (typeof window !== 'undefined') {
   align-items: flex-start;
   border: 1.5px solid #f3f4f6;
   transition: box-shadow 0.15s, border-color 0.15s;
+  position: relative;
 }
 .student-kaart:hover {
   box-shadow: 0 4px 16px rgba(220,38,38,0.10);
@@ -482,12 +510,15 @@ if (typeof window !== 'undefined') {
   display: flex;
   gap: 0.7rem;
   margin-top: 0.3rem;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
 }
 .knop-grijs {
   background: #f3f4f6;
   color: #222;
   border: none;
-  padding: 0.55rem 1.2rem;
+  padding: 0.5rem 1.1rem;
   border-radius: 1rem;
   display: flex;
   align-items: center;
@@ -508,7 +539,7 @@ if (typeof window !== 'undefined') {
   background: #dc2626;
   color: #fff;
   border: none;
-  padding: 0.55rem 1.2rem;
+  padding: 0.5rem 1.1rem;
   border-radius: 1rem;
   display: flex;
   align-items: center;
@@ -523,6 +554,33 @@ if (typeof window !== 'undefined') {
 }
 .knop-rood:hover {
   background: #b91c1c;
+}
+
+.verwijder-kruis {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: #fff;
+  border: 1.5px solid #c20000;
+  color: #c20000;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border 0.15s;
+  z-index: 2;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+.verwijder-kruis svg {
+  color: #c20000;
+}
+.verwijder-kruis:hover {
+  background: #ffeaea;
+  color: #a10000;
+  border-color: #a10000;
 }
 
 .lijst-hoofding {
@@ -541,5 +599,89 @@ if (typeof window !== 'undefined') {
 .emoji {
   font-size: 3rem;
   margin-bottom: 1rem;
+}
+
+@media (max-width: 600px) {
+  .acties {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: stretch;
+  }
+  .student-kaart {
+    padding: 1.2rem 0.7rem;
+  }
+}
+
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.popup-modal {
+  background: #fff;
+  border-radius: 1rem;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  padding: 2rem 2.5rem 1.5rem 2.5rem;
+  min-width: 320px;
+  max-width: 90vw;
+  text-align: center;
+}
+
+.popup-modal h3 {
+  margin-top: 0;
+  color: #c20000;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.popup-modal p {
+  color: #333;
+  margin: 1.2rem 0 2rem 0;
+}
+
+.popup-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 1.2rem;
+}
+
+.popup-cancel {
+  background: #f3f4f6;
+  color: #222;
+  border: none;
+  border-radius: 0.7rem;
+  padding: 0.7rem 1.5rem;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.popup-cancel:hover {
+  background: #e5e7eb;
+}
+
+.popup-confirm {
+  background: #c20000;
+  color: #fff;
+  border: none;
+  border-radius: 0.7rem;
+  padding: 0.7rem 1.5rem;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.popup-confirm:hover {
+  background: #a10000;
 }
 </style>
