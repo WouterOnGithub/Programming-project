@@ -97,9 +97,11 @@ import { useToast } from 'vue-toastification'
 
 const toast = useToast()
 
-const statsData = ref([])
-const interestedStudents = ref([])
-const recentActivity = ref([])
+const interestedStudents = ref([
+  { id: 1, name: 'Lina V.', study: 'Toegepaste Informatica', campus: 'Campus Kaai' },
+  { id: 2, name: 'Joris D.', study: 'Multimedia & Creatieve Technologie', campus: 'Campus Kanal' },
+  { id: 3, name: 'Anas K.', study: 'Netwerkbeheer', campus: 'Campus Bloemenhof' },
+])
 
 onMounted(() => {
   toast.success('Welkom terug op je bedrijfsdashboard!')
@@ -153,12 +155,6 @@ const statsData = ref([
     icon: 'fas fa-map-marker-alt',
     color: 'text-purple-600',
   },
-])
-
-const interestedStudents = ref([
-  { id: 1, name: 'Lina V.', study: 'Toegepaste Informatica', campus: 'Campus Kaai' },
-  { id: 2, name: 'Joris D.', study: 'Multimedia & Creatieve Technologie', campus: 'Campus Kanal' },
-  { id: 3, name: 'Anas K.', study: 'Netwerkbeheer', campus: 'Campus Bloemenhof' },
 ])
 
 const recentActivity = ref([

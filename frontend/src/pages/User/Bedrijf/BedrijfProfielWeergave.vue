@@ -198,7 +198,7 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
-
+})
 
 const navigation = [
   { name: 'Dashboard', href: '/bedrijf/dashboard', icon: 'fas fa-chart-pie' },
@@ -206,28 +206,6 @@ const navigation = [
   { name: 'Gesprekken', href: '/GesprekkenBd', icon: 'fas fa-calendar' },
   { name: 'Profiel', href: '/bedrijf/profiel', icon: 'fas fa-user' }
 ]
-
-const bedrijf = ref({
-  bedrijfsnaam: 'CoolCompany',
-  locatie: 'Hal 3 – Stand 14',
-  gesitueerdIn: 'Brussel',
-  starttijd: '13:00',
-  eindtijd: '15:30',
-  opZoekNaar: 'IT-studenten',
-  linkedin: 'https://www.linkedin.com/company/coolcompany',
-  gesprekDuur: '20 minuten',
-  overOns: 'Wij zijn een innovatief bedrijf dat jong talent ondersteunt.',
-  email: 'info@coolcompany.com',
-  website: 'https://www.coolcompany.com',
-  telefoonnummer: '+31 20 123 4567',
-  branche: 'ICT',
-  bedrijfsgrootte: '51-200',
-  opgerichtIn: '2020',
-  foto: null,
-  toestemming: true,
-  aangemaaktOp: new Date()
-
-})
 
 function handleAvatarClick() {
   showDropdown.value = !showDropdown.value
@@ -248,6 +226,7 @@ function handleClickOutside(event) {
 if (typeof window !== 'undefined') {
   window.addEventListener('mousedown', handleClickOutside)
 }
+
 </script>
 
 <style scoped>
