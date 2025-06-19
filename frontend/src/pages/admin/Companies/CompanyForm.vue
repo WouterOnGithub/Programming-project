@@ -98,6 +98,25 @@
             >
             <span v-if="errors.linkedin" class="error-message">{{ errors.linkedin }}</span>
           </div>
+
+          <div class="form-group">
+            <label for="starttijd" class="form-label">Starttijd</label>
+            <input
+              type="time"
+              id="starttijd"
+              v-model="form.starttijd"
+              class="form-input"
+            >
+          </div>
+          <div class="form-group">
+            <label for="eindtijd" class="form-label">Eindtijd</label>
+            <input
+              type="time"
+              id="eindtijd"
+              v-model="form.eindtijd"
+              class="form-input"
+            >
+          </div>
         </div>
 
         <!-- What they're looking for -->
@@ -105,17 +124,17 @@
           <h3 class="section-title">Vacature Informatie</h3>
           
           <div class="form-group">
-            <label for="lookingFor" class="form-label">Op zoek naar *</label>
-            <textarea 
-              id="lookingFor"
-              v-model="form.lookingFor" 
-              class="form-textarea"
-              :class="{ 'error': errors.lookingFor }"
-              placeholder="Beschrijf wat voor talent jullie zoeken (bijv. stagiairs, junior developers, marketing medewerkers...)"
-              rows="4"
-              required
-            ></textarea>
-            <span v-if="errors.lookingFor" class="error-message">{{ errors.lookingFor }}</span>
+            <label class="form-label">Op zoek naar *</label>
+            <div class="checkbox-group">
+              <label class="checkbox-item" v-for="opt in opZoekNaarOpties" :key="opt">
+                <input type="checkbox" :value="opt" v-model="form.opZoekNaar">
+                <span class="checkbox-label">{{ opt }}</span>
+              </label>
+            </div>
+            <div v-if="form.opZoekNaar.includes('Anders')" class="custom-skill-input" style="margin-top: 0.5rem;">
+              <input type="text" v-model="customOpZoekNaar" placeholder="Typ je eigen profiel..." class="form-input" style="max-width: 300px; display: inline-block;" />
+              <button type="button" class="btn btn-primary btn-sm" @click="addCustomOpZoekNaar" style="margin-left: 0.5rem;">Toevoegen</button>
+            </div>
           </div>
 
           <div class="form-group">
@@ -137,31 +156,6 @@
                 <input type="checkbox" v-model="form.jobTypes" value="Parttime">
                 <span class="checkbox-label">Parttime</span>
               </label>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label for="requiredSkills" class="form-label">Gewenste vaardigheden</label>
-            <div class="skills-input">
-              <input 
-                type="text" 
-                v-model="skillInput"
-                @keydown.enter.prevent="addSkill"
-                @keydown.comma.prevent="addSkill"
-                class="form-input"
-                placeholder="Voer vaardigheid in en druk op Enter"
-              >
-              <button type="button" @click="addSkill" class="btn btn-outline btn-sm">Toevoegen</button>
-            </div>
-            <div class="skills-list">
-              <span 
-                v-for="(skill, index) in form.requiredSkills" 
-                :key="index"
-                class="skill-tag"
-              >
-                {{ skill }}
-                <button type="button" @click="removeSkill(index)" class="skill-remove">×</button>
-              </span>
             </div>
           </div>
         </div>
@@ -319,12 +313,13 @@ export default {
     const skillInput = ref('')
     const loading = ref(false)
     const errors = ref({})
+    const customOpZoekNaar = ref('')
 
     const form = ref({
         bedrijfsnaam: '',
         gesitueerdIn: '',
         linkedin: '',
-        lookingFor: '',
+        opZoekNaar: [],
         jobTypes: [],
         requiredSkills: [],
         aboutUs: '',
@@ -334,8 +329,19 @@ export default {
         industry: '',
       size: '',
       logo: '',
-      logoPreview: ''
+      logoPreview: '',
+      starttijd: '',
+      eindtijd: ''
     })
+
+    const opZoekNaarOpties = [
+      'IT-studenten',
+      'Marketing profielen',
+      'Boekhouders',
+      'Stagiairs',
+      'Vrijwilligers',
+      'Anders'
+    ]
 
     const validateForm = () => {
       errors.value = {}
@@ -348,11 +354,6 @@ export default {
 
       if (!form.value.gesitueerdIn) {
         errors.value.gesitueerdIn = 'Locatie is verplicht'
-        isValid = false
-      }
-
-      if (!form.value.lookingFor) {
-        errors.value.lookingFor = 'Beschrijf wat je zoekt'
         isValid = false
       }
 
@@ -421,6 +422,16 @@ export default {
             ...data,
             logoPreview: data.logo || ''
           }
+          form.value.opZoekNaar = Array.isArray(form.value.opZoekNaar)
+            ? form.value.opZoekNaar
+            : form.value.opZoekNaar
+              ? [form.value.opZoekNaar]
+              : [];
+          form.value.jobTypes = Array.isArray(form.value.jobTypes)
+            ? form.value.jobTypes
+            : form.value.jobTypes
+              ? [form.value.jobTypes]
+              : [];
         } else {
           router.push('/admin/companies')
         }
@@ -457,6 +468,15 @@ export default {
       }
     }
 
+    function addCustomOpZoekNaar() {
+      const trimmed = customOpZoekNaar.value.trim()
+      if (trimmed && !opZoekNaarOpties.includes(trimmed) && !form.value.opZoekNaar.includes(trimmed)) {
+        opZoekNaarOpties.push(trimmed)
+        form.value.opZoekNaar.push(trimmed)
+      }
+      customOpZoekNaar.value = ''
+    }
+
     onMounted(loadCompany)
 
     return {
@@ -470,7 +490,10 @@ export default {
       removeLogo,
       addSkill,
       removeSkill,
-      submitForm
+      submitForm,
+      opZoekNaarOpties,
+      customOpZoekNaar,
+      addCustomOpZoekNaar
     }
   }
 }
@@ -712,54 +735,6 @@ export default {
   color: #495057;
 }
 
-.skills-input {
-  display: flex;
-  gap: 12px;
-}
-
-.skills-input .form-input {
-  flex: 1;
-}
-
-.skills-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.skill-tag {
-  background: #e3f2fd;
-  color: #1976d2;
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.skill-remove {
-  background: none;
-  border: none;
-  color: #1976d2;
-  cursor: pointer;
-  font-weight: bold;
-  padding: 0;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.skill-remove:hover {
-  background: #1976d2;
-  color: white;
-}
-
 .form-actions {
   display: flex;
   justify-content: flex-end;
@@ -782,10 +757,6 @@ export default {
   .photo-upload {
     flex-direction: column;
     align-items: center;
-  }
-  
-  .skills-input {
-    flex-direction: column;
   }
   
   .form-actions {

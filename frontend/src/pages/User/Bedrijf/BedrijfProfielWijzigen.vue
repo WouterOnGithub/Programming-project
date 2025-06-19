@@ -54,6 +54,20 @@
             </div>
 
             <div class="form-group">
+              <label for="typePositie">Type posities</label>
+              <select class="skills-dropdown" v-model="selectedTypePositie" @change="addTypePositie">
+                <option disabled value="">Selecteer type positie</option>
+                <option v-for="opt in typePositieOpties" :key="opt" :value="opt">{{ opt }}</option>
+              </select>
+              <div class="chip-cloud">
+                <span class="chip" v-for="(type, index) in geselecteerdeTypePosities" :key="index">
+                  {{ type }}
+                  <button type="button" class="chip-delete" @click="removeTypePositie(index)">&times;</button>
+                </span>
+              </div>
+            </div>
+
+            <div class="form-group">
               <label for="gesprekDuur">Elk gesprek duurt *</label>
               <div class="input-wrapper">
                 <select id="gesprekDuur" v-model="gesprekDuur">
@@ -66,6 +80,38 @@
                 </select>
                 <img class="input-icon" :src="potlood" alt="potlood" />
               </div>
+            </div>
+
+            <div class="form-group">
+              <label for="contactEmail">Contact e-mail</label>
+              <input id="contactEmail" v-model="contactEmail" type="email" placeholder="contact@bedrijf.nl" />
+            </div>
+            <div class="form-group">
+              <label for="website">Website</label>
+              <input id="website" v-model="website" type="url" placeholder="https://www.bedrijf.nl" />
+            </div>
+            <div class="form-group">
+              <label for="telefoonnummer">Telefoonnummer</label>
+              <input id="telefoonnummer" v-model="telefoonnummer" type="tel" placeholder="+31 20 123 4567" />
+            </div>
+
+            <div class="form-group">
+              <label for="branche">Branche</label>
+              <select id="branche" v-model="branche" class="skills-dropdown">
+                <option disabled value="">Selecteer branche</option>
+                <option v-for="opt in brancheOpties" :key="opt" :value="opt">{{ opt }}</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="bedrijfsgrootte">Bedrijfsgrootte</label>
+              <select id="bedrijfsgrootte" v-model="bedrijfsgrootte" class="skills-dropdown">
+                <option disabled value="">Selecteer grootte</option>
+                <option v-for="opt in bedrijfsgrootteOpties" :key="opt" :value="opt">{{ opt }}</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="opgerichtIn">Opgericht in</label>
+              <input id="opgerichtIn" v-model="opgerichtIn" type="number" min="1800" :max="new Date().getFullYear()" placeholder="2020" />
             </div>
           </div>
 
@@ -109,6 +155,43 @@ const toestemming = ref(true)
 const foutmelding = ref('')
 const aangepasteZoektermInput = ref(null)
 const router = useRouter()
+const contactEmail = ref('')
+const website = ref('')
+const telefoonnummer = ref('')
+const branche = ref('')
+const bedrijfsgrootte = ref('')
+const opgerichtIn = ref('')
+
+const typePositieOpties = [
+  'Stage',
+  'Studentenjob',
+  'Voltijdse job',
+  'Parttime'
+]
+const geselecteerdeTypePosities = ref([])
+const selectedTypePositie = ref('')
+
+const brancheOpties = [
+  'IT & Software',
+  'Marketing & Communicatie',
+  'Finance & Banking',
+  'Healthcare',
+  'Education',
+  'Retail',
+  'Manufacturing',
+  'Consulting',
+  'Media & Entertainment',
+  'Non-profit',
+  'Overig'
+]
+const bedrijfsgrootteOpties = [
+  '1-10 medewerkers',
+  '11-50 medewerkers',
+  '51-200 medewerkers',
+  '201-500 medewerkers',
+  '501-1000 medewerkers',
+  '1000+ medewerkers'
+]
 
 const navigation = [
   { name: 'Dashboard', href: '/bedrijf/dashboard', icon: 'fas fa-chart-pie' },
@@ -163,6 +246,20 @@ function confirmCustomOpZoekNaar() {
 
 function removeOpZoekNaar(index) {
   geselecteerdeZoekprofielen.value.splice(index, 1)
+}
+
+function addTypePositie() {
+  if (
+    selectedTypePositie.value &&
+    !geselecteerdeTypePosities.value.includes(selectedTypePositie.value)
+  ) {
+    geselecteerdeTypePosities.value.push(selectedTypePositie.value)
+    selectedTypePositie.value = ''
+  }
+}
+
+function removeTypePositie(index) {
+  geselecteerdeTypePosities.value.splice(index, 1)
 }
 
 function bevestigGegevens() {
