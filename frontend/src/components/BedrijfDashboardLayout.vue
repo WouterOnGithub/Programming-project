@@ -25,6 +25,21 @@
       </nav>
     </aside>
     <main class="dashboard-main">
+      <header class="dashboard-header">
+        <div>
+          <h1>Welkom terug, {{ userData.companyName }}!</h1>
+          <p>Hier is je bedrijfsdashboard overzicht</p>
+        </div>
+        <div class="dashboard-header-actions">
+          <div class="dashboard-profile-avatar" id="bedrijf-profile-avatar" @click="handleAvatarClick">
+            {{ userData.companyName[0] }}
+          </div>
+          <div v-if="showDropdown" id="bedrijf-profile-dropdown" class="profile-dropdown">
+            <button class="dropdown-item" @click="goToProfile">Profiel</button>
+            <button class="dropdown-item" @click="handleLogout">Uitloggen</button>
+          </div>
+        </div>
+      </header>
       <slot />
     </main>
   </div>
@@ -59,6 +74,10 @@ function handleClickOutside(event) {
   if (dropdown && !dropdown.contains(event.target) && avatar && !avatar.contains(event.target)) {
     showDropdown.value = false
   }
+}
+function goToProfile() {
+  showDropdown.value = false;
+  router.push('/WeergaveBd');
 }
 onMounted(() => {
   document.addEventListener('mousedown', handleClickOutside)
@@ -145,10 +164,19 @@ onBeforeUnmount(() => {
 .dashboard-header {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   background: #fff;
   border-bottom: 1px solid #e5e7eb;
-  padding: 1.5rem 2rem;
+  padding: 1.5rem 2rem 1.5rem 2rem;
+}
+.dashboard-header h1 {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #c20000;
+}
+.dashboard-header p {
+  color: #6b7280;
+  font-size: 0.95rem;
 }
 .dashboard-header-actions {
   display: flex;

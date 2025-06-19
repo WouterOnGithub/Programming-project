@@ -1,21 +1,6 @@
 <template>
   <BedrijfDashboardLayout>
     <main class="dashboard-main">
-      <header class="dashboard-header same-height">
-        <div class="header-info">
-          <h1>Welkom terug, {{ bedrijfData?.bedrijfName || 'Bedrijf' }}!</h1>
-          <p>Overzicht van je matches</p>
-        </div>
-        <div class="dashboard-header-actions">
-          <div class="dashboard-profile-avatar" id="bedrijf-profile-avatar" @click="handleAvatarClick">
-            {{ bedrijfData.bedrijfName[0] }}
-          </div>
-          <div v-if="showDropdown" id="bedrijf-profile-dropdown" class="profile-dropdown">
-            <button class="dropdown-item" @click="handleLogout">Uitloggen</button>
-          </div>
-        </div>
-      </header>
-
       <section class="pagina">
         <div class="hoofding">
           <div class="hoofding-links">
@@ -28,7 +13,6 @@
             </div>
           </div>
         </div>
-
         <div class="zoekbalk-container">
           <Search class="zoek-icoon" :size="16" />
           <input
@@ -38,7 +22,6 @@
             v-model="zoekterm"
           />
         </div>
-
         <div class="statistieken">
           <div>
             <div class="stat-value">{{ matchStudenten.length }}</div>
@@ -49,13 +32,11 @@
             <div class="stat-label">Resultaten</div>
           </div>
         </div>
-
         <div class="studentenlijst">
           <div class="lijst-hoofding">
             <h2>Overzicht Matchs</h2>
             <p>Klik op een student voor profiel of gesprek</p>
           </div>
-
           <div
             class="student-kaart"
             v-for="student in gefilterdeStudenten"
@@ -79,7 +60,6 @@
               </button>
             </div>
           </div>
-
           <div v-if="gefilterdeStudenten.length === 0" class="geen-resultaten">
             <div class="emoji">🔍</div>
             <h3>Geen studenten gevonden</h3>

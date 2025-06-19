@@ -2,30 +2,6 @@
   <BedrijfDashboardLayout>
     <!-- Main content -->
     <main class="dashboard-main">
-      <header class="dashboard-header">
-        <div>
-          <h1>Welkom terug, {{ userData?.companyName || 'Bedrijf' }}!</h1>
-          <p>Overzicht van geïnteresseerde studenten en geplande afspraken</p>
-          <p class="event-date-note">Career Launch vindt plaats op <strong>24 oktober 2025</strong>.</p>
-        </div>
-        <div class="dashboard-header-actions">
-          <div class="dashboard-search">
-            <i class="fas fa-search"></i>
-            <input type="text" placeholder="Zoeken..." />
-          </div>
-          <button class="dashboard-bell">
-            <i class="fas fa-bell"></i>
-            <span class="dashboard-bell-dot"></span>
-          </button>
-          <div class="dashboard-profile-avatar" id="bedrijf-profile-avatar" @click="handleAvatarClick">
-            {{ userData?.companyName?.[0] || 'B' }}
-          </div>
-          <div v-if="showDropdown" id="bedrijf-profile-dropdown" class="profile-dropdown">
-            <button class="dropdown-item" @click="handleLogout">Uitloggen</button>
-          </div>
-        </div>
-      </header>
-
       <!-- Statistieken -->
       <section class="dashboard-stats">
         <div v-for="(stat, index) in statsData" :key="index" class="stat-card">
@@ -50,7 +26,6 @@
           </div>
         </div>
       </section>
-
       <!-- 2 kolommen: studenten + activiteit -->
       <section class="dashboard-2col">
         <div class="dashboard-card">
@@ -64,42 +39,17 @@
             </li>
           </ul>
         </div>
-
         <div class="dashboard-card">
           <div class="dashboard-card-header">
             <h3>Recente Activiteit</h3>
             <i class="fas fa-chart-line"></i>
           </div>
-          <div class="dashboard-activity">
-            <div v-if="recentActivity.length === 0" class="no-data">
-              Geen recente activiteit
-            </div>
-            <div
-              v-else
-              v-for="(activity, index) in recentActivity"
-              :key="index"
-              class="activity-row"
-            >
-              <div :class="['activity-dot', activity.type]"></div>
-              <div>
-                <p class="activity-action">{{ activity.action }}</p>
-                <p class="activity-time">{{ activity.time }}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Snelle acties -->
-      <section class="dashboard-card dashboard-actions">
-        <h3>Snelle Acties</h3>
-        <div class="dashboard-actions-grid">
-          <button class="dashboard-action-btn bg-primary text-white">
-            <i class="fas fa-calendar-plus"></i> Plan Gesprek
-          </button>
-          <button class="dashboard-action-btn bg-accent">
-            <i class="fas fa-map-marker-alt"></i> Bekijk Standlocatie
-          </button>
+          <ul class="dashboard-activity">
+            <li v-for="activity in recentActivity" :key="activity.id" class="activity-row">
+              <span class="activity-dot" :class="activity.type"></span>
+              <span>{{ activity.text }}</span>
+            </li>
+          </ul>
         </div>
       </section>
     </main>

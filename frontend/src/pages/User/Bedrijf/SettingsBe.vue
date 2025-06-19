@@ -1,28 +1,6 @@
 <template>
   <BedrijfDashboardLayout>
     <main class="dashboard-main">
-      <header class="dashboard-header">
-        <div>
-          <h1>Welkom terug, {{ userData.name || 'Gebruiker' }}!</h1>
-          <p>Hier is je instellingen overzicht</p>
-        </div>
-        <div class="dashboard-header-actions">
-          <div class="dashboard-search">
-            <i class="fas fa-search"></i>
-            <input type="text" placeholder="Zoeken..." />
-          </div>
-          <button class="dashboard-bell">
-            <i class="fas fa-bell"></i>
-            <span class="dashboard-bell-dot"></span>
-          </button>
-          <div class="dashboard-profile-avatar" id="bedrijf-profile-avatar" @click="handleAvatarClick">
-            {{ userData.name[0] }}
-          </div>
-          <div v-if="showDropdown" id="bedrijf-profile-dropdown" class="profile-dropdown">
-            <button class="dropdown-item" @click="handleLogout">Uitloggen</button>
-          </div>
-        </div>
-      </header>
       <section class="dashboard-2col">
         <!-- Kaart: Wachtwoord wijzigen -->
         <div class="dashboard-card">

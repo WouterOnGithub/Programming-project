@@ -1,20 +1,6 @@
 <template>
   <BedrijfDashboardLayout>
     <main class="dashboard-main">
-      <header class="dashboard-header">
-        <div>
-          <h1>Welkom terug, {{ userData.companyName }}!</h1>
-          <p>Profieloverzicht van je bedrijf</p>
-        </div>
-        <div class="dashboard-header-actions">
-          <div class="dashboard-profile-avatar" id="bedrijf-profile-avatar" @click="handleAvatarClick">
-            {{ userData.companyName[0] }}
-          </div>
-          <div v-if="showDropdown" id="bedrijf-profile-dropdown" class="profile-dropdown">
-            <button class="dropdown-item" @click="handleLogout">Uitloggen</button>
-          </div>
-        </div>
-      </header>
       <section class="dashboard-card">
         <div class="hero-banner">
           <div class="hero-photo">

@@ -43,6 +43,7 @@
             {{ userInitial }}
           </div>
           <div v-if="showDropdown" id="profile-dropdown" class="profile-dropdown">
+            <button class="dropdown-item" @click="goToProfile">Profiel</button>
             <button class="dropdown-item" @click="handleLogout">Uitloggen</button>
           </div>
         </div>
@@ -101,6 +102,11 @@ function handleAvatarClick() {
 function handleLogout() {
   // Hier kun je je eigen logout logica toevoegen
   router.push('/')
+}
+
+function goToProfile() {
+  showDropdown.value = false;
+  router.push('/WeergaveSt');
 }
 
 function handleClickOutside(event) {
