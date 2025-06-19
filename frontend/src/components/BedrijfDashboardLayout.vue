@@ -32,7 +32,8 @@
         </div>
         <div class="dashboard-header-actions">
           <div class="dashboard-profile-avatar" id="bedrijf-profile-avatar" @click="handleAvatarClick">
-            {{ userData.companyName[0] }}
+            <img v-if="userFoto" :src="userFoto" alt="Bedrijfslogo" class="avatar-img" />
+            <span v-else>{{ userData.companyName[0] }}</span>
           </div>
           <div v-if="showDropdown" id="bedrijf-profile-dropdown" class="profile-dropdown">
             <button class="dropdown-item" @click="goToProfile">Profiel</button>
@@ -48,13 +49,16 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { getAuth } from 'firebase/auth'
+import { getFirestore, doc, getDoc } from 'firebase/firestore'
+import profielfoto from '/Images/profielfoto.jpg'
 
 const $route = useRoute()
 const router = useRouter()
-const userData = ref({ companyName: 'Cronos' })
+const userData = ref({ companyName: 'Bedrijf' })
+const userFoto = ref(null)
 const navigation = [
   { name: 'Dashboard', href: '/BedrijfDashboard', icon: 'fas fa-chart-pie' },
-  { name: 'Favorieten', href: '/Favorietenbd', icon: 'fas fa-envelope' },
   { name: 'Afspraken', href: '/GesprekkenBd', icon: 'fas fa-calendar' },
   { name: 'Matches', href: '/bedrijfmatch', icon: 'fas fa-users' },
   { name: 'Profiel', href: '/WeergaveBd', icon: 'fas fa-user' },
@@ -79,8 +83,21 @@ function goToProfile() {
   showDropdown.value = false;
   router.push('/WeergaveBd');
 }
-onMounted(() => {
+onMounted(async () => {
   document.addEventListener('mousedown', handleClickOutside)
+  // Haal bedrijfsprofiel op
+  const auth = getAuth();
+  const db = getFirestore();
+  const user = auth.currentUser;
+  if (user) {
+    const docRef = doc(db, 'bedrijf', user.uid);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      userData.value.companyName = data.bedrijfsnaam || 'Bedrijf';
+      userFoto.value = data.foto || null;
+    }
+  }
 })
 onBeforeUnmount(() => {
   document.removeEventListener('mousedown', handleClickOutside)
@@ -187,8 +204,8 @@ onBeforeUnmount(() => {
 .dashboard-profile-avatar {
   width: 2rem;
   height: 2rem;
-  background: #c20000;
-  color: #fff;
+  background: rgba(255,255,255,0.6);
+  color: #c20000;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -197,6 +214,8 @@ onBeforeUnmount(() => {
   font-weight: 600;
   transition: transform 0.18s cubic-bezier(0.4,0,0.2,1), box-shadow 0.18s cubic-bezier(0.4,0,0.2,1);
   cursor: pointer;
+  overflow: hidden;
+  border: 1.5px solid #222;
 }
 .dashboard-profile-avatar:hover {
   transform: scale(1.12);
@@ -229,5 +248,12 @@ onBeforeUnmount(() => {
 }
 .dropdown-item:hover {
   background: #f3f4f6;
+}
+.avatar-img {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
 }
 </style> 

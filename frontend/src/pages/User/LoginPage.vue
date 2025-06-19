@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { auth } from '../../firebase/config'
-import { signInWithEmailAndPassword } from 'firebase/auth'
+import { signInWithEmailAndPassword, getAuth, GoogleAuthProvider, signInWithPopup } from 'firebase/auth'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '../../firebase/config'
 import { useRouter } from 'vue-router'
@@ -89,7 +89,8 @@ const handleGoogleLogin = async () => {
   error.value = '';
   const provider = new GoogleAuthProvider();
   try {
-    const result = await signInWithPopup(auth, provider);
+    const authInstance = getAuth();
+    const result = await signInWithPopup(authInstance, provider);
     const user = result.user;
 
     // Check of profiel al bestaat in Firestore
@@ -97,27 +98,27 @@ const handleGoogleLogin = async () => {
     let route = '/dashboard';
 
     if (isStudent()) {
-      // Controleer in 'student' collectie
       const q = query(collection(db, 'student'), where('authUid', '==', user.uid));
       const querySnapshot = await getDocs(q);
-      if (!querySnapshot.empty) {
-        exists = true;
-      }
+      exists = !querySnapshot.empty;
       route = exists ? '/dashboard' : '/Stinvoer';
     } else if (isBedrijf()) {
-      // Controleer in 'bedrijf' collectie
       const q = query(collection(db, 'bedrijf'), where('authUid', '==', user.uid));
       const querySnapshot = await getDocs(q);
-      if (!querySnapshot.empty) {
-        exists = true;
-      }
+      exists = !querySnapshot.empty;
       route = exists ? '/BedrijfDashboard' : '/InvoerenBd';
     }
 
-    alert(`Welkom ${user.displayName || user.email}!`);
-    router.push(route);
+    if (exists) {
+      showSuccessToast('Succesvol ingelogd!');
+    } else {
+      showSuccessToast('Welkom! Maak je profiel af.');
+    }
+    setTimeout(() => {
+      router.push(route);
+    }, 1000);
   } catch (e) {
-    error.value = e.message;
+    error.value = 'Google login mislukt: ' + (e.message || e);
   }
 }
 

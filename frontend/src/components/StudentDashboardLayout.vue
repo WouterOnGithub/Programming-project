@@ -40,7 +40,8 @@
             <span class="dashboard-bell-dot"></span>
           </button>
           <div class="dashboard-profile-avatar" id="profile-avatar" @click="handleAvatarClick">
-            {{ userInitial }}
+            <img v-if="userFoto" :src="userFoto" alt="Profielfoto" class="avatar-img" />
+            <span v-else>{{ userInitial }}</span>
           </div>
           <div v-if="showDropdown" id="profile-dropdown" class="profile-dropdown">
             <button class="dropdown-item" @click="goToProfile">Profiel</button>
@@ -56,6 +57,9 @@
 <script setup>
 import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { getAuth } from 'firebase/auth'
+import { getFirestore, doc, getDoc } from 'firebase/firestore'
+import profielfoto from '/Images/profielfoto.jpg'
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: 'fas fa-chart-pie' },
@@ -70,8 +74,8 @@ const navigation = [
 const route = useRoute()
 const router = useRouter()
 
-// Dummy user info, in echte app kun je dit uit een store of prop halen
-const userName = computed(() => 'Gebruiker')
+const userName = ref('Gebruiker')
+const userFoto = ref(null)
 const userInitial = computed(() => userName.value[0] || 'G')
 
 const pageSubtitle = computed(() => {
@@ -100,7 +104,6 @@ function handleAvatarClick() {
 }
 
 function handleLogout() {
-  // Hier kun je je eigen logout logica toevoegen
   router.push('/')
 }
 
@@ -117,8 +120,21 @@ function handleClickOutside(event) {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   document.addEventListener('mousedown', handleClickOutside)
+  // Haal studentprofiel op
+  const auth = getAuth();
+  const db = getFirestore();
+  const user = auth.currentUser;
+  if (user) {
+    const docRef = doc(db, 'student', user.uid);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      userName.value = data.voornaam ? `${data.voornaam} ${data.achternaam}` : user.displayName || 'Gebruiker';
+      userFoto.value = data.foto || null;
+    }
+  }
 })
 onBeforeUnmount(() => {
   document.removeEventListener('mousedown', handleClickOutside)
@@ -259,8 +275,8 @@ onBeforeUnmount(() => {
 .dashboard-profile-avatar {
   width: 2rem;
   height: 2rem;
-  background: #c20000;
-  color: #fff;
+  background: rgba(255,255,255,0.6);
+  color: #c20000;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -269,10 +285,19 @@ onBeforeUnmount(() => {
   font-weight: 600;
   transition: transform 0.18s cubic-bezier(0.4,0,0.2,1), box-shadow 0.18s cubic-bezier(0.4,0,0.2,1);
   cursor: pointer;
+  overflow: hidden;
+  border: 1.5px solid #222;
 }
 .dashboard-profile-avatar:hover {
   transform: scale(1.12);
   box-shadow: 0 4px 16px rgba(194,0,0,0.18);
+}
+.avatar-img {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
 }
 .profile-dropdown {
   position: absolute;

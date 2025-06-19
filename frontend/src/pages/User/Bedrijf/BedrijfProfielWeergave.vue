@@ -15,6 +15,7 @@
           </div>
           <router-link to="/WijzigBd" class="wijzig-knop">Wijzig</router-link>
         </div>
+
         <div v-if="loading" class="section-card">Laden...</div>
         <div v-else-if="error" class="section-card" style="color: #b80000;">{{ error }}</div>
         <template v-else>
@@ -80,6 +81,81 @@
             </div>
           </div>
         </template>
+
+        <div class="section-card">
+          <h2>Over ons</h2>
+          <p class="intro-text">{{ bedrijf.overOns }}</p>
+        </div>
+        <div class="section-card">
+          <h2>Informatie</h2>
+          <ul class="info-list">
+            <li><strong>Op zoek naar:</strong> {{ bedrijf.opZoekNaar }}</li>
+            <li><strong>Gesprek duurt:</strong> {{ bedrijf.gesprekDuur }}</li>
+            <li><strong>Aanwezig van:</strong> {{ bedrijf.starttijd }} tot {{ bedrijf.eindtijd }}</li>
+            <li><strong>Locatie stand:</strong> {{ bedrijf.gesitueerdIn }}</li>
+            <li>
+              <strong>LinkedIn:</strong>
+              <a :href="bedrijf.linkedin" target="_blank">Bekijk profiel</a>
+            </li>
+          </ul>
+        </div>
+        <div class="section-card">
+          <h2>Vacature informatie</h2>
+          <ul class="info-list">
+            <li><strong>Op zoek naar:</strong> IT-studenten, Marketing profielen</li>
+            <li><strong>Type posities:</strong> Stage, Studentenjob</li>
+          </ul>
+        </div>
+        <!-- Contactinformatie sectie -->
+        <div class="section-card">
+          <h2>Contactinformatie</h2>
+          <div class="contactinfo-fields">
+            <div class="contactinfo-field">
+              <label for="contact-email"><strong>Contact e-mail</strong></label>
+              <input id="contact-email" type="email" :value="bedrijf.email" readonly />
+            </div>
+            <div class="contactinfo-field">
+              <label for="contact-website"><strong>Website</strong></label>
+              <input id="contact-website" type="text" :value="bedrijf.website" readonly />
+            </div>
+            <div class="contactinfo-field">
+              <label for="contact-telefoon"><strong>Telefoonnummer</strong></label>
+              <input id="contact-telefoon" type="text" :value="bedrijf.telefoonnummer" readonly />
+            </div>
+          </div>
+        </div>
+        <!-- Bedrijfsdetails sectie -->
+        <div class="section-card">
+          <h2>Bedrijfsdetails</h2>
+          <div class="contactinfo-fields">
+            <div class="contactinfo-field">
+              <label for="bedrijf-branche"><strong>Branche</strong></label>
+              <select id="bedrijf-branche" disabled :value="bedrijf.branche">
+                <option>ICT</option>
+                <option>Marketing</option>
+                <option>Consultancy</option>
+                <option>Onderwijs</option>
+                <option>Overheid</option>
+                <option>Anders</option>
+              </select>
+            </div>
+            <div class="contactinfo-field">
+              <label for="bedrijf-grootte"><strong>Bedrijfsgrootte</strong></label>
+              <select id="bedrijf-grootte" disabled :value="bedrijf.bedrijfsgrootte">
+                <option>1-10</option>
+                <option>11-50</option>
+                <option>51-200</option>
+                <option>201-500</option>
+                <option>500+</option>
+              </select>
+            </div>
+            <div class="contactinfo-field">
+              <label for="bedrijf-opgericht"><strong>Opgericht in</strong></label>
+              <input id="bedrijf-opgericht" type="text" :value="bedrijf.opgerichtIn" readonly />
+            </div>
+          </div>
+        </div>
+
       </section>
     </main>
   </BedrijfDashboardLayout>
@@ -122,6 +198,35 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+
+
+const navigation = [
+  { name: 'Dashboard', href: '/bedrijf/dashboard', icon: 'fas fa-chart-pie' },
+  { name: 'Favorieten', href: '/bedrijf/favorieten', icon: 'fas fa-envelope' },
+  { name: 'Gesprekken', href: '/GesprekkenBd', icon: 'fas fa-calendar' },
+  { name: 'Profiel', href: '/bedrijf/profiel', icon: 'fas fa-user' }
+]
+
+const bedrijf = ref({
+  bedrijfsnaam: 'CoolCompany',
+  locatie: 'Hal 3 – Stand 14',
+  gesitueerdIn: 'Brussel',
+  starttijd: '13:00',
+  eindtijd: '15:30',
+  opZoekNaar: 'IT-studenten',
+  linkedin: 'https://www.linkedin.com/company/coolcompany',
+  gesprekDuur: '20 minuten',
+  overOns: 'Wij zijn een innovatief bedrijf dat jong talent ondersteunt.',
+  email: 'info@coolcompany.com',
+  website: 'https://www.coolcompany.com',
+  telefoonnummer: '+31 20 123 4567',
+  branche: 'ICT',
+  bedrijfsgrootte: '51-200',
+  opgerichtIn: '2020',
+  foto: null,
+  toestemming: true,
+  aangemaaktOp: new Date()
+
 })
 
 function handleAvatarClick() {
@@ -477,6 +582,50 @@ if (typeof window !== 'undefined') {
 .wijzig-knop:hover {
   background: #c20000;
   color: #fff;
+}
+
+.contactinfo-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.contactinfo-field label {
+  display: block;
+  font-size: 1.08rem;
+  color: #222;
+  margin-bottom: 0.5rem;
+}
+
+.contactinfo-field input {
+  width: 100%;
+  padding: 0.9rem 1rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 0.7rem;
+  background: #fff;
+  font-size: 1.08rem;
+  color: #444;
+  margin-bottom: 0.2rem;
+  outline: none;
+}
+
+.contactinfo-field select {
+  width: 100%;
+  padding: 0.9rem 1rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 0.7rem;
+  background: #fff;
+  font-size: 1.08rem;
+  color: #444;
+  margin-bottom: 0.2rem;
+  outline: none;
+}
+
+.contactinfo-field select:disabled {
+  background: #fff;
+  color: #444;
+  opacity: 1;
+  cursor: not-allowed;
 }
 </style>
   
