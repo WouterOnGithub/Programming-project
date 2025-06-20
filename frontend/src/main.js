@@ -2,6 +2,9 @@ import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
 
+// Import Firebase configuration to ensure it's initialized
+import './firebase/config'
+
 // ✅ Toast plugin import
 import Toast from 'vue-toastification'
 import 'vue-toastification/dist/index.css'

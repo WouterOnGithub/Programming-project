@@ -22,10 +22,6 @@ import BedrijfMatch from '../pages/User/Bedrijf/BedrijfMatch.vue'
 import SettingsStu from '../pages/User/SettingsStu.vue'
 import SettingsBe from '../pages/User/Bedrijf/SettingsBe.vue'
 import NotFound from '../pages/User/NotFound.vue'
-import { getAuth } from 'firebase/auth'
-import { getFirestore, collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore'
-
-
 
 const userRoutes = [
   { path: '/', name: 'Home', component: HomePage },
@@ -53,9 +49,6 @@ const userRoutes = [
   { path: '/test', name: 'TestPage', component: () => import('../pages/User/TestPage.vue') },
 ]
 
-  
-
- 
 // Combineer alles in één routerconfig
 const routes = [
   ...userRoutes,
@@ -70,8 +63,12 @@ const router = createRouter({
 
 // === Navigation Guard voor rol-gebaseerde toegang ===
 router.beforeEach(async (to, from, next) => {
+  // Import Firebase services inside the guard to ensure they're available
+  const { getAuth } = await import('firebase/auth')
+  const { db } = await import('../firebase/config')
+  const { collection, query, where, getDocs, doc, getDoc } = await import('firebase/firestore')
+  
   const auth = getAuth();
-  const db = getFirestore();
   const user = auth.currentUser;
 
   // Altijd 404 tonen voor niet-bestaande routes
@@ -107,6 +104,9 @@ router.beforeEach(async (to, from, next) => {
     '/dashboard', '/swipe', '/appointments', '/profile', '/WeergaveSt', '/Favorietenst', '/WijzigenSt', '/SettingsStu', '/Stinvoer', '/stmatch', '/InvoerenSt'
   ];
   if (studentOnly.some(p => to.path.startsWith(p))) {
+    if ((to.path === '/Stinvoer' || to.path === '/InvoerenSt') && to.query.fromRegister === '1') {
+      return next();
+    }
     const q = query(collection(db, 'student'), where('authUid', '==', user.uid));
     const snap = await getDocs(q);
     if (!snap.empty) {
@@ -121,6 +121,9 @@ router.beforeEach(async (to, from, next) => {
     '/BedrijfDashboard', '/WijzigBd', '/WeergaveBd', '/GesprekkenBd', '/Favorietenbd', '/InvoerenBd', '/bedrijfmatch', '/SettingsBe'
   ];
   if (bedrijfOnly.some(p => to.path.startsWith(p))) {
+    if (to.path === '/InvoerenBd' && to.query.fromRegister === '1') {
+      return next();
+    }
     const q = query(collection(db, 'bedrijf'), where('authUid', '==', user.uid));
     const snap = await getDocs(q);
     if (!snap.empty) {

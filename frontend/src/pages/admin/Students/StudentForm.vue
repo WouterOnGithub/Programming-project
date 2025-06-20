@@ -70,6 +70,11 @@
             </div>
           </div>
           <div class="form-group">
+            <label for="email" class="form-label">E-mailadres *</label>
+            <input type="email" id="email" v-model="form.email" class="form-input" :class="{ 'error': errors.email }" placeholder="Voer e-mailadres in" required>
+            <span v-if="errors.email" class="error-message">{{ errors.email }}</span>
+          </div>
+          <div class="form-group">
             <label for="leeftijd" class="form-label">Leeftijd *</label>
             <input type="number" id="leeftijd" v-model="form.leeftijd" class="form-input" :class="{ 'error': errors.leeftijd }" placeholder="Voer leeftijd in" min="16" max="100" required>
             <span v-if="errors.leeftijd" class="error-message">{{ errors.leeftijd }}</span>
@@ -243,6 +248,7 @@ export default {
       form: {
         voornaam: '',
         achternaam: '',
+        email: '',
         leeftijd: '',
         studiejaar: '',
         domein: [],
@@ -373,6 +379,9 @@ export default {
       if (!this.form.achternaam.trim()) {
         this.errors.achternaam = 'Achternaam is verplicht';
       }
+      if (!this.form.email.trim()) {
+        this.errors.email = 'E-mailadres is verplicht';
+      }
       if (!this.form.leeftijd || this.form.leeftijd < 16 || this.form.leeftijd > 100) {
         this.errors.leeftijd = 'Voer een geldige leeftijd in (16-100)';
       }
@@ -438,6 +447,11 @@ export default {
           const cvRef = storageRef(storage, `student_cvs/${Date.now()}_${this.form.cvFile.name}`);
           await uploadBytes(cvRef, this.form.cvFile);
           studentData.cvUrl = await getDownloadURL(cvRef);
+        }
+ 
+        // Add email to the student data object
+        if (this.form.email) {
+          studentData.email = this.form.email;
         }
  
         if (this.isEdit) {

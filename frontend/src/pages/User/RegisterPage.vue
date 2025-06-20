@@ -91,7 +91,7 @@ const handleRegister = async () => {
 
       alert(`Bedrijf account aangemaakt!`);
       clearForms();
-      router.push('/InvoerenBd');
+      router.push({ path: '/InvoerenBd', query: { fromRegister: '1' } });
     }
   } catch (e) {
     error.value = e.message;
