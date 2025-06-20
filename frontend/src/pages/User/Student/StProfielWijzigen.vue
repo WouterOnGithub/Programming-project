@@ -168,13 +168,18 @@ StprofielWijizig.vue  RANIA
         <!-- CV -->
         <section class="section-card">
           <h2>CV</h2>
-          <div class="input-wrapper">
+          <div v-if="cv.url" class="cv-info" style="display: flex; flex-direction: column; gap: 0.5rem; align-items: flex-start;">
+            <button type="button" class="download-cv-btn" @click="() => window.open(cv.url, '_blank')">
+              Download huidige CV
+            </button>
+            <button type="button" class="cv-verwijder-knop" @click="verwijderCV">
+              Verwijder huidige CV
+            </button>
+          </div>
+          <div class="input-wrapper" style="margin-top: 1rem;">
             <input type="file" accept=".pdf,.doc,.docx" @change="uploadCV" />
             <img class="input-icon" :src="potlood" alt="potlood" />
-          </div>
-          <div v-if="cv.naam" class="cv-info">
-            <span><strong>Huidige CV:</strong> {{ cv.naam }} ({{ cv.grootte }})</span>
-            <button type="button" class="cv-verwijder-knop" @click="verwijderCV">Verwijder</button>
+            <span style="font-size: 0.95rem; color: #6b7280; margin-top: 0.2rem; display: block;">Upload nieuwe CV (overschrijft de huidige)</span>
           </div>
         </section>
 
@@ -189,121 +194,138 @@ StprofielWijizig.vue  RANIA
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { getAuth } from 'firebase/auth'
+import { getFirestore, collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore'
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'
 import profielfotoDefault from '/Images/profielfoto.jpg'
 import potlood from '/Images/potlood.png'
 import StudentDashboardLayout from '../../../components/StudentDashboardLayout.vue'
 
 const route = useRoute()
 const router = useRouter()
-const voornaam = ref('Jonathan')
-const achternaam = ref('Primo')
-const leeftijd = ref(22)
-const studiejaar = ref('3e jaar')
-const beschikbaarVanaf = ref('2025-09-01')
-const opportuniteit = ref('Stage')
-const linkedin = ref('https://www.linkedin.com/in/jonathan-primo')
-const intro = ref('Hallo, ik ben Jonathan...')
-
-const talenkennis = ref(['Nederlands', 'Engels', 'Frans', 'Andere (Japans)'])
-const andereTaal = ref('')
-const skills = ref(['Teamwork', 'Python', 'Machine Learning', 'Leiderschap'])
-const nieuweSkill = ref('')
-const toestemming = ref(false)
+const profielfotoURL = ref(profielfotoDefault)
+const fileInputKey = ref(0)
 const bevestiging = ref('')
 const foutmelding = ref('')
-const profielfotoURL = ref(profielfotoDefault)
-const fileInputKey = ref(Date.now())
-const cv = ref({ naam: '', grootte: '' })
+const loading = ref(true)
+const error = ref(null)
+const studentDocId = ref(null)
 
-const talenSuggesties = ['Nederlands', 'Engels', 'Frans', 'Duits', 'Spaans']
-const skillsSuggesties = ['JavaScript', 'Vue.js', 'Python', 'SQL', 'Java']
-
-const gefilterdeTaalSuggesties = computed(() => {
-  return andereTaal.value
-    ? talenSuggesties.filter(t =>
-        t.toLowerCase().includes(andereTaal.value.toLowerCase()) &&
-        !talenkennis.value.includes(t)
-      )
-    : []
-})
-
-const gefilterdeSkillSuggesties = computed(() => {
-  return nieuweSkill.value
-    ? skillsSuggesties.filter(s =>
-        s.toLowerCase().includes(nieuweSkill.value.toLowerCase()) &&
-        !skills.value.includes(s)
-      )
-    : []
-})
-
-const possibleTalen = [
-  'Nederlands', 'Engels', 'Frans', 'Duits', 'Spaans',
-  'Chinees', 'Arabisch', 'Russisch', 'Italiaans', 'Portugees'
-]
+// Alle profielvelden
+const voornaam = ref('')
+const achternaam = ref('')
+const leeftijd = ref(null)
+const domein = ref([])
+const selectedDomein = ref('')
+const showCustomDomein = ref(false)
+const customDomein = ref('')
+const studiejaar = ref('')
+const beschikbaarVanaf = ref("")
+const opportuniteit = ref('')
+const linkedin = ref('')
+const intro = ref('')
+const skills = ref([])
+const selectedSkill = ref('')
+const showCustomSkill = ref(false)
+const customSkill = ref('')
+const talenkennis = ref([])
 const selectedTaal = ref('')
 const showCustomTaal = ref(false)
 const customTaal = ref('')
-
-const selectedSkill = ref("");
-const showCustomSkill = ref(false);
-const customSkill = ref("");
+const andereTaal = ref('')
+const toestemming = ref(true)
+const cv = ref({ naam: '', grootte: '', url: '' })
 
 const possibleDomeinen = [
-  'Software Development',
-  'Web Development',
-  'Mobile Development',
-  'Cloud Computing',
-  'DevOps',
+  'Toegepaste Informatica',
+  'Multimedia & Creatieve Technologie',
+  'Netwerkbeheer',
   'Cybersecurity',
-  'Data Science',
-  'Artificial Intelligence',
-  'Machine Learning',
-  'Network Engineering',
-  'System Administration',
-  'Database Management',
-  'UI/UX Design',
-  'Business Intelligence',
-  'IT Project Management',
-  'Quality Assurance',
-  'Embedded Systems',
-  'IoT Development',
-  'Blockchain Development',
-  'Game Development'
-];
-const domein = ref([]);
-const selectedDomein = ref("");
-const showCustomDomein = ref(false);
-const customDomein = ref("");
+  'Andere'
+]
+const possibleTalen = [
+  'Nederlands',
+  'Engels',
+  'Frans',
+  'Duits',
+  'Andere'
+]
 
-// Mock profieldata (voor demo)
-const profiel = {
-  voornaam: 'Jonathan',
-  achternaam: 'Primo',
-  leeftijd: 22,
-  domein: 'Cybersecurity', // of ['Cybersecurity', 'Cloud Computing']
-  studiejaar: '3e jaar',
-  beschikbaarVanaf: '2025-09-01',
-  opportuniteit: 'Stage',
-  linkedin: 'https://www.linkedin.com/in/jonathan-primo',
-  intro: 'Hallo, ik ben Jonathan...'
-  // ... andere velden ...
-}
-
-onMounted(() => {
-  // Zet domein-array correct bij laden van de pagina
-  if (profiel.domein) {
-    domein.value = Array.isArray(profiel.domein) ? profiel.domein : [profiel.domein];
+onMounted(async () => {
+  const db = getFirestore()
+  const auth = getAuth()
+  const user = auth.currentUser
+  if (!user) {
+    error.value = 'Niet ingelogd.'
+    loading.value = false
+    return
   }
-  // Eventueel ook andere velden initialiseren
-  voornaam.value = profiel.voornaam;
-  achternaam.value = profiel.achternaam;
-  leeftijd.value = profiel.leeftijd;
-  studiejaar.value = profiel.studiejaar;
-  beschikbaarVanaf.value = profiel.beschikbaarVanaf;
-  opportuniteit.value = profiel.opportuniteit;
-  linkedin.value = profiel.linkedin;
-  intro.value = profiel.intro;
-});
+  try {
+    const q = query(collection(db, 'student'), where('authUid', '==', user.uid))
+    const snapshot = await getDocs(q)
+    if (!snapshot.empty) {
+      const data = snapshot.docs[0].data()
+      studentDocId.value = snapshot.docs[0].id
+      voornaam.value = data.voornaam || ''
+      achternaam.value = data.achternaam || ''
+      leeftijd.value = data.leeftijd || null
+      domein.value = Array.isArray(data.domein) ? data.domein : [data.domein || '']
+      studiejaar.value = data.studiejaar || ''
+      beschikbaarVanaf.value = data.beschikbaarVanaf || ''
+      opportuniteit.value = data.opportuniteit || ''
+      linkedin.value = data.linkedin || ''
+      intro.value = data.intro || ''
+      skills.value = data.skills || []
+      talenkennis.value = data.talenkennis || []
+      andereTaal.value = data.andereTaal || ''
+      toestemming.value = data.toestemming !== undefined ? data.toestemming : true
+      cv.value = data.cv || { naam: '', grootte: '', url: '' }
+      profielfotoURL.value = data.foto || profielfotoDefault
+    } else {
+      error.value = 'Geen studentenprofiel gevonden.'
+    }
+  } catch (e) {
+    error.value = 'Fout bij ophalen studentenprofiel.'
+  } finally {
+    loading.value = false
+  }
+})
+
+async function bevestigGegevens() {
+  foutmelding.value = ''
+  bevestiging.value = ''
+  if (!studentDocId.value) {
+    foutmelding.value = 'Geen studentenprofiel gevonden.'
+    return
+  }
+  try {
+    const db = getFirestore()
+    const docRef = doc(db, 'student', studentDocId.value)
+    await updateDoc(docRef, {
+      voornaam: voornaam.value,
+      achternaam: achternaam.value,
+      leeftijd: leeftijd.value,
+      domein: domein.value,
+      studiejaar: studiejaar.value,
+      beschikbaarVanaf: beschikbaarVanaf.value,
+      opportuniteit: opportuniteit.value,
+      linkedin: linkedin.value,
+      intro: intro.value,
+      skills: skills.value,
+      talenkennis: talenkennis.value,
+      andereTaal: andereTaal.value,
+      toestemming: toestemming.value,
+      cv: cv.value,
+      foto: profielfotoURL.value
+    })
+    bevestiging.value = 'Profiel succesvol opgeslagen!'
+    setTimeout(() => {
+      router.push('/WeergaveSt')
+    }, 800)
+  } catch (e) {
+    foutmelding.value = 'Fout bij opslaan: ' + e.message
+  }
+}
 
 function wijzigAfbeelding(event) {
   const file = event.target.files[0]
@@ -317,46 +339,38 @@ function wijzigAfbeelding(event) {
   }
 }
 
-function bevestigGegevens() {
-  foutmelding.value = ''
-  bevestiging.value = 'Gegevens succesvol opgeslagen!'
-  setTimeout(() => {
-    router.push('/WeergaveSt');
-  }, 1000);
-}
-
-function voegTaalToe(taal = andereTaal.value) {
-  if (taal && !talenkennis.value.includes(taal)) {
-    talenkennis.value.push(taal)
-    andereTaal.value = ''
-  }
-}
-
-function verwijderTaal(taal) {
-  talenkennis.value = talenkennis.value.filter(t => t !== taal)
-}
-
-function voegSkillToe(skill = nieuweSkill.value) {
-  if (skill && !skills.value.includes(skill)) {
-    skills.value.push(skill)
-    nieuweSkill.value = ''
-  }
-}
-
-function verwijderSkill(index) {
-  skills.value.splice(index, 1)
-}
-
-function uploadCV(event) {
+async function uploadCV(event) {
   const file = event.target.files[0]
-  if (file) {
-    cv.value.naam = file.name
-    cv.value.grootte = Math.round(file.size / 1024) + ' kB'
+  if (!file) return
+  const storage = getStorage()
+  const auth = getAuth()
+  const user = auth.currentUser
+  if (!user) return
+  // Verwijder oude CV uit storage als die er is
+  if (cv.value.url) {
+    try {
+      await deleteObject(storageRef(storage, cv.value.url))
+    } catch (e) {}
+  }
+  const fileRef = storageRef(storage, `student_cv/${user.uid}/${file.name}`)
+  await uploadBytes(fileRef, file)
+  const url = await getDownloadURL(fileRef)
+  cv.value = { naam: file.name, grootte: Math.round(file.size / 1024) + ' kB', url }
+  // Update Firestore direct met de nieuwe CV info
+  if (studentDocId.value) {
+    const db = getFirestore()
+    const docRef = doc(db, 'student', studentDocId.value)
+    await updateDoc(docRef, { cv: cv.value })
   }
 }
 
-function verwijderCV() {
-  cv.value = { naam: '', grootte: '' }
+async function verwijderCV() {
+  if (!cv.value.url) return
+  const storage = getStorage()
+  try {
+    await deleteObject(storageRef(storage, cv.value.url))
+  } catch (e) {}
+  cv.value = { naam: '', grootte: '', url: '' }
 }
 
 function addTaal() {
@@ -926,5 +940,19 @@ textarea {
 }
 .custom-domein-btn:hover {
   background-color: #990000;
+}
+
+.download-cv-btn {
+  background: #b80000;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.6rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.download-cv-btn:hover {
+  background: #990000;
 }
 </style>
