@@ -118,10 +118,6 @@ const navigation = [
   { name: 'Instellingen', href: '/SettingsBe', icon: 'fas fa-cog' }
 ]
 
-
-
-const userData = ref({ companyName: 'Cronos' })
-
 const statsData = ref([
   {
     title: 'Eventdatum',
@@ -161,7 +157,6 @@ const recentActivity = ref([
   { type: 'interview', action: 'Gesprek gepland met L. Vanhoutte', time: '1 dag geleden' },
   { type: 'match', action: 'Nieuwe match met R. De Wilde', time: '2 dagen geleden' },
 ])
-
 
 const showDropdown = ref(false)
 const router = useRouter()

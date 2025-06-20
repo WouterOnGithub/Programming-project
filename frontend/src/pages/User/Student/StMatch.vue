@@ -45,7 +45,7 @@
             <div class="avatar">{{ bedrijf.afkorting }}</div>
             <div>
               <h3>{{ bedrijf.naam }}</h3>
-              <p class="richting">{{ bedrijf.sector }} – {{ bedrijf.locatie }}</p>
+              <p class="richting">{{ Array.isArray(bedrijf.sector) ? bedrijf.sector.join(', ') : bedrijf.sector }} – {{ bedrijf.locatie }}</p>
             </div>
           </div>
           <div class="acties">
@@ -100,7 +100,7 @@ import { ref, computed, onMounted } from 'vue'
 import { Heart, Calendar, User, Search, Building } from 'lucide-vue-next'
 import StudentDashboardLayout from '../../../components/StudentDashboardLayout.vue'
 import { getAuth } from 'firebase/auth'
-import { getFirestore, collection, getDocs, doc, getDoc, addDoc } from 'firebase/firestore'
+import { getFirestore, collection, getDocs, doc, getDoc, addDoc, updateDoc, query, where } from 'firebase/firestore'
 
 const db = getFirestore();
 const auth = getAuth();
@@ -137,11 +137,11 @@ onMounted(async () => {
     });
   }
   if (!studentId) return;
-  // Haal alle swipes met status 'interessant' of 'geaccepteerd'
-  const swipesSnap = await getDocs(collection(db, 'student_swipes'));
+  // Haal alle swipes met status 'interessant' of 'geaccepteerd' uit subcollectie
+  const swipesSnap = await getDocs(collection(db, 'student', studentId, 'swipes'));
   const relevantSwipes = swipesSnap.docs
     .map(docu => ({ id: docu.id, ...docu.data() }))
-    .filter(d => d.studentUid === studentId && (d.status === 'interessant' || d.status === 'geaccepteerd'));
+    .filter(d => (d.status === 'interessant' || d.status === 'geaccepteerd'));
   // Haal bedrijven op
   const bedrijvenSnap = await getDocs(collection(db, 'bedrijf'));
   const bedrijvenMap = {};
@@ -149,10 +149,16 @@ onMounted(async () => {
   // Combineer
   matchBedrijven.value = relevantSwipes.map(swipe => {
     const bedrijf = bedrijvenMap[swipe.bedrijfUid] || {};
+    let sector = '-';
+    if (bedrijf.sector) {
+      sector = Array.isArray(bedrijf.sector) ? bedrijf.sector.join(', ') : bedrijf.sector;
+    } else if (bedrijf.opZoekNaar) {
+      sector = Array.isArray(bedrijf.opZoekNaar) ? bedrijf.opZoekNaar.join(', ') : bedrijf.opZoekNaar;
+    }
     return {
       id: swipe.bedrijfUid,
       naam: bedrijf.bedrijfsnaam || 'Onbekend',
-      sector: bedrijf.sector || bedrijf.opZoekNaar || '-',
+      sector,
       afkorting: (bedrijf.bedrijfsnaam || '??').substring(0,2).toUpperCase(),
       locatie: bedrijf.gesitueerdIn || '-',
       status: swipe.status
@@ -200,10 +206,59 @@ async function bevestigAfspraak() {
     status: 'upcoming',
     aangemaaktOp: new Date()
   })
+  // Update de match-status in student_swipes naar 'gepland'
+  const swipeId = selectedBedrijfId.value;
+  await updateDoc(doc(db, 'student', studentId, 'swipes', swipeId), { status: 'gepland' });
   showTimeModal.value = false
   selectedTimeSlot.value = null
   selectedBedrijfId.value = null
-  // Optioneel: reload matches/afspraken
+  // Herlaad matches zodat de geplande match verdwijnt
+  await reloadMatches();
+}
+
+// Helper: check of een object leeg is
+function isEmpty(obj) {
+  return !obj || Object.keys(obj).length === 0;
+}
+
+async function reloadMatches() {
+  let studentId = auth.currentUser?.uid;
+  if (!studentId) {
+    await new Promise(resolve => {
+      const unsub = auth.onAuthStateChanged(user => {
+        studentId = user?.uid;
+        unsub();
+        resolve();
+      });
+    });
+  }
+  if (!studentId) return;
+  const swipesSnap = await getDocs(collection(db, 'student', studentId, 'swipes'));
+  const relevantSwipes = swipesSnap.docs
+    .map(docu => ({ id: docu.id, ...docu.data() }))
+    .filter(d => (d.status === 'interessant' || d.status === 'geaccepteerd'));
+  const bedrijvenSnap = await getDocs(collection(db, 'bedrijf'));
+  const bedrijvenMap = {};
+  bedrijvenSnap.forEach(docu => { bedrijvenMap[docu.id] = docu.data(); });
+  matchBedrijven.value = relevantSwipes
+    .filter(swipe => bedrijvenMap[swipe.bedrijfUid] && !isEmpty(bedrijvenMap[swipe.bedrijfUid]))
+    .map(swipe => {
+      const bedrijf = bedrijvenMap[swipe.bedrijfUid];
+      let sector = '-';
+      if (bedrijf.sector) {
+        sector = Array.isArray(bedrijf.sector) ? bedrijf.sector.join(', ') : bedrijf.sector;
+      } else if (bedrijf.opZoekNaar) {
+        sector = Array.isArray(bedrijf.opZoekNaar) ? bedrijf.opZoekNaar.join(', ') : bedrijf.opZoekNaar;
+      }
+      return {
+        id: swipe.bedrijfUid,
+        naam: bedrijf.bedrijfsnaam || 'Onbekend',
+        sector,
+        afkorting: (bedrijf.bedrijfsnaam || '??').substring(0,2).toUpperCase(),
+        locatie: bedrijf.gesitueerdIn || '-',
+        status: swipe.status
+      };
+    });
 }
 
 function closeTimeModal() {

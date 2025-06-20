@@ -138,7 +138,6 @@ const error = ref({
 const statsData = ref([]);
 const appointments = ref([]);
 const recentActivity = ref([]);
-const userData = ref(null);
 
 const db = getFirestore();
 const auth = getAuth();
@@ -154,12 +153,6 @@ const fetchDashboardData = async () => {
   }
 
   try {
-    // Get user data
-    const userDoc = await getDoc(doc(db, 'users', userId));
-    if (userDoc.exists()) {
-      userData.value = userDoc.data();
-    }
-
     // Fetch stats
     const [matches, appointmentsCount] = await Promise.all([
       getDocs(query(collection(db, 'matches'), where('studentId', '==', userId))),
