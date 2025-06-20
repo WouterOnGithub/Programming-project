@@ -61,8 +61,8 @@
                   <span><i class="fas fa-map-marker-alt"></i> {{ appointment.location }}</span>
                 </div>
               </div>
-              <div :class="['appointment-status', appointment.status]">
-                {{ appointment.status === 'confirmed' ? 'Bevestigd' : 'In afwachting' }}
+              <div :class="['status-badge', appointment.status]">
+                {{ getStatusText(appointment.status) }}
               </div>
             </div>
           </div>
@@ -153,79 +153,76 @@ const fetchDashboardData = async () => {
   }
 
   try {
-    // Fetch stats
-    const [matches, appointmentsCount] = await Promise.all([
-      getDocs(query(collection(db, 'matches'), where('studentId', '==', userId))),
-      getDocs(query(collection(db, 'appointments'), where('studentId', '==', userId)))
-    ]);
+    // Haal afspraken uit root-collectie 'afspraken'
+    const afsprakenSnap = await getDocs(collection(db, 'afspraken'));
+    const bedrijvenSnap = await getDocs(collection(db, 'bedrijf'));
+    const bedrijvenMap = {};
+    bedrijvenSnap.forEach(docu => { bedrijvenMap[docu.id] = docu.data(); });
+
+    // Filter afspraken voor deze student en status upcoming
+    const upcomingAppointments = afsprakenSnap.docs
+      .map(docu => {
+        const data = docu.data();
+        const bedrijf = bedrijvenMap[data.bedrijfId] || {};
+        return {
+          id: docu.id,
+          ...data,
+          company: bedrijf.bedrijfsnaam || 'Onbekend',
+          location: bedrijf.gesitueerdIn || '-',
+          duration: bedrijf.gesprekDuur || '-',
+          avatar: (bedrijf.bedrijfsnaam || '?')[0],
+          status: data.status || '-',
+          time: data.time || '-',
+          type: data.type || 'Afspraak',
+        };
+      })
+      .filter(a => a.studentUid === userId && a.status === 'upcoming');
+
+    appointments.value = upcomingAppointments;
+    loading.value.appointments = false;
+
+    // Matches ophalen en tellen
+    const matchesSnap = await getDocs(collection(db, 'student', userId, 'swipes'));
+    const matchesCount = matchesSnap.docs.filter(docu => {
+      const d = docu.data();
+      return d.status === 'geaccepteerd' || d.status === 'gepland';
+    });
+
+    // Favorieten ophalen en tellen
+    const favorietenSnap = await getDocs(collection(db, 'student', userId, 'favorieten'));
+    const favorietenCount = favorietenSnap.size;
 
     statsData.value = [
-      { 
-        title: 'Matches', 
-        value: matches.size.toString(), 
-        change: '+25%', 
-        trend: 'up', 
-        icon: 'fas fa-users', 
-        color: 'text-green-600' 
+      {
+        title: 'Matches',
+        value: matchesCount.length.toString(),
+        change: '+0%',
+        trend: 'neutral',
+        icon: 'fas fa-users',
+        color: 'text-green-600',
       },
-      { 
-        title: 'Afspraken', 
-        value: appointmentsCount.size.toString(), 
-        change: '0%', 
-        trend: 'neutral', 
-        icon: 'fas fa-calendar', 
-        color: 'text-purple-600' 
-      }
+      {
+        title: 'Afspraken',
+        value: upcomingAppointments.length.toString(),
+        change: '0%',
+        trend: 'neutral',
+        icon: 'fas fa-calendar',
+        color: 'text-purple-600',
+      },
+      {
+        title: 'Favorieten',
+        value: favorietenCount.toString(),
+        change: '0%',
+        trend: 'neutral',
+        icon: 'fas fa-star',
+        color: 'text-yellow-500',
+      },
     ];
     loading.value.stats = false;
   } catch (err) {
     console.error('Error fetching stats:', err);
     error.value.stats = 'Er is een fout opgetreden bij het ophalen van de statistieken';
     loading.value.stats = false;
-  }
-
-  try {
-    // Fetch appointments
-    const appointmentsQuery = query(
-      collection(db, 'appointments'),
-      where('studentId', '==', userId),
-      orderBy('date', 'asc')
-    );
-    const appointmentsSnapshot = await getDocs(appointmentsQuery);
-    
-    const appointmentsPromises = appointmentsSnapshot.docs.map(async (doc) => {
-      const appointment = doc.data();
-      let companyName = 'Onbekend bedrijf';
-      let location = 'Onbekende locatie';
-
-      try {
-        const companyDoc = await getDoc(doc(db, 'bedrijf', appointment.companyId));
-        if (companyDoc.exists()) {
-          const companyData = companyDoc.data();
-          companyName = companyData.companyName || 'Onbekend bedrijf';
-          location = companyData.location || 'Onbekende locatie';
-        }
-      } catch (err) {
-        console.error('Error fetching company data:', err);
-      }
-      
-      return {
-        id: doc.id,
-        company: companyName,
-        type: appointment.type || 'Afspraak',
-        date: appointment.date ? new Date(appointment.date.toDate()).toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' }) : 'Geen datum',
-        time: appointment.date ? new Date(appointment.date.toDate()).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' }) : 'Geen tijd',
-        location: location,
-        status: appointment.status || 'pending'
-      };
-    });
-
-    appointments.value = await Promise.all(appointmentsPromises);
-    loading.value.appointments = false;
-  } catch (err) {
-    console.error('Error fetching appointments:', err);
-    error.value.appointments = 'Er is een fout opgetreden bij het ophalen van de afspraken';
-    loading.value.appointments = false;
   }
 
   try {
@@ -295,6 +292,14 @@ const formatTimeAgo = (date) => {
   if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} dagen geleden`;
   return date.toLocaleDateString('nl-NL');
 };
+
+function getStatusText(status) {
+  return {
+    upcoming: 'Komend',
+    completed: 'Afgerond',
+    geannuleerd: 'Geannuleerd'
+  }[status] || status;
+}
 
 onMounted(() => {
   fetchDashboardData();
@@ -514,20 +519,28 @@ onMounted(() => {
   font-size: 0.85rem;
   color: #6b7280;
 }
-.appointment-status {
-  padding: 0.3rem 0.8rem;
-  border-radius: 999px;
+.status-badge {
+  display: inline-block;
+  padding: 0.15em 0.7em;
+  border-radius: 0.8em;
   font-size: 0.85rem;
   font-weight: 600;
-  text-align: center;
+  background: #e0fdf1;
+  color: #065f46;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
 }
-.appointment-status.confirmed {
-  background: #dcfce7;
-  color: #166534;
+.status-badge.upcoming {
+  background: #d1fae5;
+  color: #065f46;
 }
-.appointment-status.pending {
-  background: #fef9c3;
-  color: #854d0e;
+.status-badge.completed {
+  background: #dbeafe;
+  color: #1e40af;
+}
+.status-badge.geannuleerd {
+  background: #fee2e2;
+  color: #991b1b;
 }
 .dashboard-activity .activity-row {
   display: flex;

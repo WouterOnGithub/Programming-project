@@ -62,6 +62,7 @@
               <span>Gesprek</span>
             </button>
             <span v-else class="status-wacht">In afwachting van validatie door het bedrijf</span>
+            <button class="verwijder-btn-rond" @click="verwijderMatch(bedrijf.id)">✖</button>
           </div>
         </div>
         <div v-if="gefilterdeBedrijven.length === 0" class="geen-resultaten">
@@ -100,7 +101,7 @@ import { ref, computed, onMounted } from 'vue'
 import { Heart, Calendar, User, Search, Building } from 'lucide-vue-next'
 import StudentDashboardLayout from '../../../components/StudentDashboardLayout.vue'
 import { getAuth } from 'firebase/auth'
-import { getFirestore, collection, getDocs, doc, getDoc, addDoc, updateDoc, query, where } from 'firebase/firestore'
+import { getFirestore, collection, getDocs, doc, getDoc, addDoc, updateDoc, query, where, deleteDoc } from 'firebase/firestore'
 
 const db = getFirestore();
 const auth = getAuth();
@@ -269,6 +270,15 @@ function closeTimeModal() {
 
 function isSlotTaken(slot) {
   return takenSlots.value.includes(slot)
+}
+
+async function verwijderMatch(bedrijfId) {
+  const studentId = auth.currentUser?.uid;
+  if (!studentId) return;
+  // Verwijder swipe uit subcollectie
+  await deleteDoc(doc(db, 'student', studentId, 'swipes', bedrijfId));
+  // Herlaad matches
+  await reloadMatches();
 }
 </script>
 
@@ -536,6 +546,7 @@ function isSlotTaken(slot) {
   align-items: flex-start;
   border: 1.5px solid #f3f4f6;
   transition: box-shadow 0.15s, border-color 0.15s;
+  position: relative;
 }
 .student-kaart:hover {
   box-shadow: 0 4px 16px rgba(220,38,38,0.10);
@@ -724,5 +735,29 @@ function isSlotTaken(slot) {
 
 .btn-cancel-edit:hover {
   background-color: #e5e7eb;
+}
+
+.verwijder-btn-rond {
+  position: absolute;
+  top: 0.7rem;
+  right: 0.7rem;
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid #dc2626;
+  color: #dc2626;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(220,38,38,0.08);
+  transition: background 0.2s, color 0.2s;
+  z-index: 2;
+}
+.verwijder-btn-rond:hover {
+  background: #dc2626;
+  color: #fff;
 }
 </style>
