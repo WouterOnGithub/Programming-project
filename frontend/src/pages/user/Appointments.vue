@@ -15,7 +15,7 @@
           <div v-for="appointment in filteredAppointments" :key="appointment.id" class="appointment-card">
             <div class="appointment-header">
               <div class="company-info">
-                <div class="company-logo">{{ appointment.company ? appointment.company.charAt(0) : '?' }}</div>
+                <div class="company-logo">{{ appointment.avatar }}</div>
                 <div class="company-details">
                   <h3>{{ appointment.company }}</h3>
                   <div class="job-title">{{ appointment.position }}</div>
@@ -27,13 +27,6 @@
             </div>
 
             <div class="appointment-details">
-              <div class="detail-item">
-                <div class="detail-icon">📅</div>
-                <div class="detail-content">
-                  <div class="detail-label">Datum</div>
-                  <div class="detail-text">{{ formatDate(appointment.date) }}</div>
-                </div>
-              </div>
               <div class="detail-item">
                 <div class="detail-icon">⏰</div>
                 <div class="detail-content">
@@ -57,7 +50,7 @@
               </div>
             </div>
 
-            <div v-if="appointment.status !== 'completed'" class="appointment-actions">
+            <div v-if="appointment.status === 'upcoming'" class="appointment-actions">
               <button class="action-btn btn-edit" @click="startEditTime(appointment.id)">🕒 Aanpassen</button>
               <button class="action-btn btn-cancel" @click="cancelAppointment(appointment.id)">❌ Annuleren</button>
             </div>
@@ -112,10 +105,10 @@ const navigation = [
   { name: 'Profiel', href: '/WeergaveSt', icon: 'fas fa-user' },
   { name: 'Instellingen', href: '/settings', icon: 'fas fa-cog' },
 ];
-const userData = ref({ name: 'imad' }); // Dummy data, vervang door echte user info indien nodig
 
 const activeFilter = ref('all');
 const appointments = ref([]);
+const route = useRoute();
 
 onMounted(async () => {
   let studentId = auth.currentUser?.uid;
@@ -130,8 +123,23 @@ onMounted(async () => {
   }
   if (!studentId) return;
   const afsprakenSnap = await getDocs(collection(db, 'afspraken'));
+  const bedrijvenSnap = await getDocs(collection(db, 'bedrijf'));
+  const bedrijvenMap = {};
+  bedrijvenSnap.forEach(docu => { bedrijvenMap[docu.id] = docu.data(); });
+
   appointments.value = afsprakenSnap.docs
-    .map(docu => ({ id: docu.id, ...docu.data() }))
+    .map(docu => {
+      const data = docu.data();
+      const bedrijf = bedrijvenMap[data.bedrijfId] || {};
+      return {
+        id: docu.id,
+        ...data,
+        company: bedrijf.bedrijfsnaam || 'Onbekend',
+        location: bedrijf.gesitueerdIn || '-',
+        duration: bedrijf.gesprekDuur || '-',
+        avatar: (bedrijf.bedrijfsnaam || '?')[0]
+      };
+    })
     .filter(a => a.studentUid === studentId);
 });
 
@@ -146,46 +154,24 @@ const editingAppointmentId = ref(null);
 const showTimeModal = ref(false);
 const selectedTimeSlot = ref(null);
 const editingAppointmentOriginalTime = ref(null);
-const timeSlots = [
-  '10:00 - 10:30',
-  '10:30 - 11:00',
-  '11:00 - 11:30',
-  '11:30 - 12:00',
-  '12:00 - 12:30',
-  '12:30 - 13:00',
-  '13:00 - 13:30',
-  '13:30 - 14:00',
-  '14:00 - 14:30',
-  '14:30 - 15:00',
-  '15:00 - 15:30',
-  '15:30 - 16:00',
-];
+const timeSlots = ref([]);
 
-const route = useRoute();
-const router = useRouter();
-
-function setFilter(filter) {
-  activeFilter.value = filter;
-}
-
-function getStatusText(status) {
-  return {
-    upcoming: 'Komend',
-    completed: 'Afgerond',
-    geannuleerd: 'Geannuleerd'
-  }[status] || status;
-}
-
-function formatDate(dateString) {
-  // Pas aan naar gewenste formaat
-  return dateString;
-}
-
-async function cancelAppointment(id) {
-  const appt = appointments.value.find(a => a.id === id);
-  if (!appt) return;
-  await updateDoc(doc(db, 'afspraken', id), { status: 'geannuleerd' });
-  appt.status = 'geannuleerd';
+function generateTimeSlots(start, end, duurMinuten) {
+  const slots = [];
+  let [h, m] = start.split(':').map(Number);
+  let [eh, em] = end.split(':').map(Number);
+  let startMinutes = h * 60 + m;
+  const endMinutes = eh * 60 + em;
+  while (startMinutes + duurMinuten <= endMinutes) {
+    const fromH = String(Math.floor(startMinutes / 60)).padStart(2, '0');
+    const fromM = String(startMinutes % 60).padStart(2, '0');
+    const toMinutes = startMinutes + duurMinuten;
+    const toH = String(Math.floor(toMinutes / 60)).padStart(2, '0');
+    const toM = String(toMinutes % 60).padStart(2, '0');
+    slots.push(`${fromH}:${fromM} - ${toH}:${toM}`);
+    startMinutes += duurMinuten;
+  }
+  return slots;
 }
 
 function startEditTime(id) {
@@ -194,6 +180,15 @@ function startEditTime(id) {
   const appt = appointments.value.find(a => a.id === id);
   editingAppointmentOriginalTime.value = appt?.time || null;
   selectedTimeSlot.value = appt?.time || null;
+  // Dynamisch tijdslotten genereren
+  const bedrijf = appt;
+  let duur = bedrijf.duration || '10 minuten';
+  let duurMin = parseInt(duur);
+  if (isNaN(duurMin)) duurMin = 10;
+  // Haal starttijd en eindtijd uit de bedrijfsdata, met fallback
+  const start = bedrijf.starttijd || (bedrijf.startTijd ? bedrijf.startTijd : '10:00');
+  const end = bedrijf.eindtijd || (bedrijf.eindTijd ? bedrijf.eindTijd : '16:00');
+  timeSlots.value = generateTimeSlots(start, end, duurMin);
 }
 
 function closeTimeModal() {
@@ -233,6 +228,22 @@ watch(
 );
 
 const isStudent = () => true;
+
+function getStatusText(status) {
+  return {
+    upcoming: 'Komend',
+    completed: 'Afgerond',
+    geannuleerd: 'Geannuleerd'
+  }[status] || status;
+}
+
+function formatDate(dateString) {
+  // Eenvoudige formattering: YYYY-MM-DD naar DD/MM/YYYY
+  if (!dateString) return '';
+  const [year, month, day] = dateString.split('-');
+  if (!year || !month || !day) return dateString;
+  return `${day}/${month}/${year}`;
+}
 </script>
 
 <style scoped>
@@ -643,12 +654,16 @@ const isStudent = () => true;
   display: flex;
   flex-direction: column;
   align-items: center;
+  max-height: 80vh;
+  overflow-y: auto;
 }
 .timeslot-grid {
+  max-height: 350px;
+  overflow-y: auto;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-  margin: 1.5rem 0;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
 }
 .timeslot-btn {
   padding: 0.7rem 1.2rem;

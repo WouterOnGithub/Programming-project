@@ -55,8 +55,8 @@ import profielfoto from '/Images/profielfoto.jpg'
 
 const $route = useRoute()
 const router = useRouter()
-const userData = ref({ companyName: 'Bedrijf' })
 const userFoto = ref(null)
+const userData = ref({ companyName: '' })
 const navigation = [
   { name: 'Dashboard', href: '/BedrijfDashboard', icon: 'fas fa-chart-pie' },
   { name: 'Afspraken', href: '/GesprekkenBd', icon: 'fas fa-calendar' },

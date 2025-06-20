@@ -1,4 +1,5 @@
-// Mock data for companies
+// Verwijder alle mock data en bijbehorende comments.
+
 export const companies = [
   {
     id: 1,

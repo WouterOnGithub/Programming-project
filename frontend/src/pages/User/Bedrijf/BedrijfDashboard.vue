@@ -24,7 +24,35 @@
         </div>
       </section>
 
-      <!-- Main content -->
+      <!-- Add notification center to header -->
+      <div class="dashboard-header-with-notifications">
+        <div class="dashboard-header-content">
+          <h1>Bedrijf Dashboard</h1>
+          <p>Welkom terug op je dashboard</p>
+        </div>
+        <div class="dashboard-header-actions">
+          <!-- Add NotificationCenter here -->
+          <NotificationCenter 
+            v-if="currentUser?.uid" 
+            :companyId="currentUser.uid" 
+            :key="currentUser.uid"
+          />
+          <div v-else style="color: red; font-size: 0.8rem;">
+            No user logged in
+          </div>
+        </div>
+      </div>
+
+      <!-- Verification Status Banner -->
+      <div v-if="verificatieStatus !== 'goedgekeurd'" class="verification-banner">
+        <div v-if="verificatieStatus === 'wachtend op verificatie'" class="status-pending">
+          ⏳ Uw bedrijf wacht op verificatie. U heeft beperkte toegang tot functies.
+        </div>
+        <div v-else-if="verificatieStatus === 'geweigerd'" class="status-rejected">
+          ❌ Uw bedrijf is geweigerd. Reden: {{ afwijzingsreden || 'Geen reden opgegeven' }}
+        </div>
+      </div>
+
       <!-- Statistieken -->
       <section class="dashboard-stats">
         <div v-for="(stat, index) in statsData" :key="index" class="stat-card">
@@ -136,10 +164,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import BedrijfDashboardLayout from '../../../components/BedrijfDashboardLayout.vue'
+import NotificationCenter from '../../../components/NotificationCenter.vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useToast } from 'vue-toastification'
+import { auth, db } from '../../../firebase/config'
+import { doc, onSnapshot } from 'firebase/firestore'
+import { onAuthStateChanged } from 'firebase/auth'
 
 const toast = useToast()
 const route = useRoute()
@@ -149,15 +181,63 @@ const toggleMobileSidebar = () => {
   isMobileSidebarOpen.value = !isMobileSidebarOpen.value
 }
 
+// Add verification status tracking
+const verificatieStatus = ref('wachtend op verificatie')
+const afwijzingsreden = ref('')
+
+// Reactive current user
+const currentUser = ref(null)
+
+// Watch for auth state changes
+onAuthStateChanged(auth, (user) => {
+  console.log('Auth state changed:', user)
+  currentUser.value = user
+  
+  if (user) {
+    console.log('User logged in:', user.uid)
+    setupCompanyListener(user.uid)
+  } else {
+    console.log('No user logged in')
+  }
+})
+
+// Setup company data listener
+const setupCompanyListener = (userId) => {
+  console.log('Setting up company listener for:', userId)
+  
+  const companyRef = doc(db, 'bedrijf', userId)
+  onSnapshot(companyRef, (doc) => {
+    if (doc.exists()) {
+      console.log('Company data received:', doc.data())
+      const data = doc.data()
+      verificatieStatus.value = data.verificatieStatus || 'wachtend op verificatie'
+      afwijzingsreden.value = data.afwijzingsreden || ''
+    } else {
+      console.log('No company document found for:', userId)
+    }
+  }, (error) => {
+    console.error('Error listening to company data:', error)
+  })
+}
+
+onMounted(() => {
+  console.log('BedrijfDashboard mounted')
+  console.log('Initial auth.currentUser:', auth.currentUser)
+  
+  toast.success('Welkom terug op je bedrijfsdashboard!')
+  
+  // Set initial user if already logged in
+  if (auth.currentUser) {
+    currentUser.value = auth.currentUser
+    setupCompanyListener(auth.currentUser.uid)
+  }
+})
+
 const interestedStudents = ref([
   { id: 1, name: 'Lina V.', study: 'Toegepaste Informatica', campus: 'Campus Kaai' },
   { id: 2, name: 'Joris D.', study: 'Multimedia & Creatieve Technologie', campus: 'Campus Kanal' },
   { id: 3, name: 'Anas K.', study: 'Netwerkbeheer', campus: 'Campus Bloemenhof' },
 ])
-
-onMounted(() => {
-  toast.success('Welkom terug op je bedrijfsdashboard!')
-})
 
 const navigation = [
   { name: 'Dashboard', href: '/BedrijfDashboard' },
@@ -211,7 +291,6 @@ const recentActivity = ref([
   { type: 'match', action: 'Nieuwe match met R. De Wilde', time: '2 dagen geleden' },
 ])
 
-
 const showDropdown = ref(false)
 const router = useRouter()
 function handleAvatarClick() {
@@ -235,8 +314,60 @@ if (typeof window !== 'undefined') {
 }
 </script>
 
-
 <style scoped>
+/* Add new styles for notification integration */
+.dashboard-header-with-notifications {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 1.5rem 2rem;
+}
+
+.dashboard-header-content h1 {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #c20000;
+  margin: 0;
+}
+
+.dashboard-header-content p {
+  color: #6b7280;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.dashboard-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Verification status banner styles */
+.verification-banner {
+  margin: 1.5rem 2rem 0 2rem;
+}
+
+.status-pending {
+  background: #fff3cd;
+  color: #856404;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid #ffeaa7;
+  font-weight: 500;
+}
+
+.status-rejected {
+  background: #f8d7da;
+  color: #721c24;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid #f5c6cb;
+  font-weight: 500;
+}
+
+/* Keep all existing styles */
 .dashboard-container {
   display: flex;
   min-height: 100vh;
@@ -349,11 +480,6 @@ if (typeof window !== 'undefined') {
 .dashboard-header p {
   color: #6b7280;
   font-size: 0.95rem;
-}
-.dashboard-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 1.2rem;
 }
 .dashboard-search {
   position: relative;
@@ -487,6 +613,7 @@ if (typeof window !== 'undefined') {
 .text-green-600 { color: #16a34a; }
 .text-purple-600 { color: #7c3aed; }
 .text-orange-600 { color: #ea580c; }
+.text-red-600 { color: #dc2626; }
 .stat-card-bottom {
   display: flex;
   align-items: center;
@@ -584,6 +711,7 @@ if (typeof window !== 'undefined') {
 .activity-dot.view { background: #2563eb; }
 .activity-dot.appointment { background: #7c3aed; }
 .activity-dot.like { background: #ea580c; }
+.activity-dot.interview { background: #7c3aed; }
 .activity-action {
   font-size: 0.95rem;
   font-weight: 500;
@@ -700,7 +828,7 @@ if (typeof window !== 'undefined') {
 @media (max-width: 768px) {
   /* Hide desktop-specific elements */
   :deep(.sidebar-nav),
-  :deep(.dashboard-header) {
+  :deep(.dashboard-header-with-notifications) {
     display: none !important;
   }
 
@@ -971,4 +1099,4 @@ if (typeof window !== 'undefined') {
   }
 }
 </style>
-  
+

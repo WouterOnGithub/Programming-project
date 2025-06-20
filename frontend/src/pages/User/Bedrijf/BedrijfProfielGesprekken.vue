@@ -96,7 +96,6 @@ const navigation = [
   { name: 'Instellingen', href: '/SettingsBe' },
 ]
 
-const userData = ref({ companyName: 'Cronos' })
 const showDropdown = ref(false)
 const router = useRouter()
 

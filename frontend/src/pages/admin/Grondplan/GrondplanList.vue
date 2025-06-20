@@ -318,11 +318,16 @@ export default {
     },
     
     formatDate(date) {
+      if (!date) return '-';
+      // Firestore Timestamp naar JS Date
+      if (date.seconds) {
+        date = new Date(date.seconds * 1000);
+      }
       return new Intl.DateTimeFormat('nl-NL', {
         year: 'numeric',
         month: 'long',
         day: 'numeric'
-      }).format(date)
+      }).format(date);
     },
     
     formatFileSize(bytes) {

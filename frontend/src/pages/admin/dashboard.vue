@@ -61,8 +61,8 @@
               <span class="verification-label">Geverifieerde bedrijven</span>
             </div>
             <div class="verification-item">
-              <span class="verification-number">{{ stats.totalCompanies }}</span>
-              <span class="verification-label">Totaal bedrijven</span>
+              <span class="verification-number">{{ stats.rejectedCompanies || 0 }}</span>
+              <span class="verification-label">Geweigerde bedrijven</span>
             </div>
           </div>
         </div>
@@ -202,7 +202,8 @@ export default {
       totalMatches: 0,
       totalAppointments: 0,
       pendingVerifications: 0,
-      verifiedCompanies: 0
+      verifiedCompanies: 0,
+      rejectedCompanies: 0
     })
     const recentStudents = ref([])
     const recentMatches = ref([])
@@ -242,11 +243,15 @@ export default {
         const companiesRef = collection(db, 'bedrijf')
         unsubscribeCompanies && unsubscribeCompanies()
         unsubscribeCompanies = onSnapshot(companiesRef, (snapshot) => {
-          stats.value.totalCompanies = snapshot.size
-          
-          // Use mock data for verification stats
-          stats.value.pendingVerifications = 0
-          stats.value.verifiedCompanies = Math.max(0, snapshot.size - 0)
+          // Filter bedrijven op status
+          const allCompanies = snapshot.docs.map(doc => doc.data())
+          const verified = allCompanies.filter(c => c.verificatieStatus === 'goedgekeurd')
+          const pending = allCompanies.filter(c => (c.verificatieStatus || 'wachtend op verificatie') === 'wachtend op verificatie')
+
+          stats.value.totalCompanies = verified.length
+          stats.value.verifiedCompanies = verified.length
+          stats.value.pendingVerifications = pending.length
+          stats.value.rejectedCompanies = allCompanies.filter(c => c.verificatieStatus === 'geweigerd').length
         })
 
         // Matches count

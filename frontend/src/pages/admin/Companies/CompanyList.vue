@@ -127,7 +127,7 @@ export default {
   },
   computed: {
     filteredCompanies() {
-      let filtered = this.companies;
+      let filtered = this.companies.filter(company => company.verificatieStatus === 'goedgekeurd');
       if (this.searchQuery) {
         const query = this.searchQuery.toLowerCase();
         filtered = filtered.filter(company =>

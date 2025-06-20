@@ -85,7 +85,6 @@ const navigation = [
   { name: 'Profiel', href: '/profile', icon: 'fas fa-user' },
   { name: 'Instellingen', href: '/SettingsStu', icon: 'fas fa-cog' },
 ];
-const userData = ref({ name: 'imad' }); // Dummy data, vervang door echte user info indien nodig
 
 export default {
   name: 'JobSwiping',
@@ -104,10 +103,10 @@ export default {
     // Haal geswipete en favoriete bedrijven op
     const loadSwipesAndFavorieten = async (studentId) => {
       // Swipes
-      const swipesSnap = await getDocs(collection(db, 'student_swipes'));
+      const swipesSnap = await getDocs(collection(db, 'student', studentId, 'swipes'));
       swipesSnap.forEach(docu => {
         const d = docu.data();
-        if (d.studentUid === studentId && (d.status === 'interessant' || d.status === 'niet_interessant')) {
+        if ((d.status === 'interessant' || d.status === 'niet_interessant')) {
           swipedIds.value.add(d.bedrijfUid);
         }
       });
@@ -179,7 +178,7 @@ export default {
         await new Promise(resolve => onAuthStateChanged(auth, user => { studentId = user?.uid; resolve(); }));
       }
       if (studentId && currentJob.value) {
-        await setDoc(doc(db, 'student_swipes', `${studentId}_${currentJob.value.id}`), {
+        await setDoc(doc(db, 'student', studentId, 'swipes', currentJob.value.id), {
           studentUid: studentId,
           bedrijfUid: currentJob.value.id,
           bedrijfEmail: currentJob.value.email || currentJob.value.emailadres || currentJob.value.emailBedrijf || '',
@@ -197,7 +196,7 @@ export default {
         await new Promise(resolve => onAuthStateChanged(auth, user => { studentId = user?.uid; resolve(); }));
       }
       if (studentId && currentJob.value) {
-        await setDoc(doc(db, 'student_swipes', `${studentId}_${currentJob.value.id}`), {
+        await setDoc(doc(db, 'student', studentId, 'swipes', currentJob.value.id), {
           studentUid: studentId,
           bedrijfUid: currentJob.value.id,
           bedrijfEmail: currentJob.value.email || currentJob.value.emailadres || currentJob.value.emailBedrijf || '',
@@ -231,7 +230,6 @@ export default {
       acceptJob,
       favoriteJob,
       navigation,
-      userData,
       loading,
       error
     };

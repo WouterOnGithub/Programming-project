@@ -67,11 +67,25 @@ const handleLogin = async () => {
     }
 
     if (isStudent()) {
+      const q = query(collection(db, 'student'), where('authUid', '==', user.uid));
+      const querySnapshot = await getDocs(q);
+      if (querySnapshot.empty) {
+        error.value = 'U kunt niet inloggen als student, want u bent geen student.';
+        await auth.signOut();
+        return;
+      }
       showSuccessToast('U bent succesvol ingelogd als student!')
       setTimeout(() => {
         router.push('/dashboard')
       }, 1000)
     } else if (isBedrijf()) {
+      const q = query(collection(db, 'bedrijf'), where('authUid', '==', user.uid));
+      const querySnapshot = await getDocs(q);
+      if (querySnapshot.empty) {
+        error.value = 'U kunt niet inloggen als bedrijf, want u bent geen bedrijf.';
+        await auth.signOut();
+        return;
+      }
       showSuccessToast('U bent succesvol ingelogd als bedrijf!')
       setTimeout(() => {
         router.push('/BedrijfDashboard')
@@ -79,7 +93,6 @@ const handleLogin = async () => {
     }
 
     alert(`Welkom ${user.displayName || user.email}!`);
-    router.push(route);
   } catch (e) {
     error.value = e.message
   }
@@ -100,11 +113,21 @@ const handleGoogleLogin = async () => {
     if (isStudent()) {
       const q = query(collection(db, 'student'), where('authUid', '==', user.uid));
       const querySnapshot = await getDocs(q);
+      if (querySnapshot.empty) {
+        error.value = 'U kunt niet inloggen als student, want u bent geen student.';
+        await auth.signOut();
+        return;
+      }
       exists = !querySnapshot.empty;
       route = exists ? '/dashboard' : '/Stinvoer';
     } else if (isBedrijf()) {
       const q = query(collection(db, 'bedrijf'), where('authUid', '==', user.uid));
       const querySnapshot = await getDocs(q);
+      if (querySnapshot.empty) {
+        error.value = 'U kunt niet inloggen als bedrijf, want u bent geen bedrijf.';
+        await auth.signOut();
+        return;
+      }
       exists = !querySnapshot.empty;
       route = exists ? '/BedrijfDashboard' : '/InvoerenBd';
     }

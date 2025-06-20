@@ -45,7 +45,7 @@
             <div class="avatar">{{ bedrijf.afkorting }}</div>
             <div>
               <h3>{{ bedrijf.naam }}</h3>
-              <p class="richting">{{ bedrijf.sector }} – {{ bedrijf.locatie }}</p>
+              <p class="richting">{{ Array.isArray(bedrijf.sector) ? bedrijf.sector.join(', ') : bedrijf.sector }} – {{ bedrijf.locatie }}</p>
             </div>
           </div>
           <div class="acties">
@@ -62,6 +62,7 @@
               <span>Gesprek</span>
             </button>
             <span v-else class="status-wacht">In afwachting van validatie door het bedrijf</span>
+            <button class="verwijder-btn-rond" @click="verwijderMatch(bedrijf.id)">✖</button>
           </div>
         </div>
         <div v-if="gefilterdeBedrijven.length === 0" class="geen-resultaten">
@@ -100,7 +101,7 @@ import { ref, computed, onMounted } from 'vue'
 import { Heart, Calendar, User, Search, Building } from 'lucide-vue-next'
 import StudentDashboardLayout from '../../../components/StudentDashboardLayout.vue'
 import { getAuth } from 'firebase/auth'
-import { getFirestore, collection, getDocs, doc, getDoc, addDoc } from 'firebase/firestore'
+import { getFirestore, collection, getDocs, doc, getDoc, addDoc, updateDoc, query, where, deleteDoc } from 'firebase/firestore'
 
 const db = getFirestore();
 const auth = getAuth();
@@ -137,11 +138,11 @@ onMounted(async () => {
     });
   }
   if (!studentId) return;
-  // Haal alle swipes met status 'interessant' of 'geaccepteerd'
-  const swipesSnap = await getDocs(collection(db, 'student_swipes'));
+  // Haal alle swipes met status 'interessant' of 'geaccepteerd' uit subcollectie
+  const swipesSnap = await getDocs(collection(db, 'student', studentId, 'swipes'));
   const relevantSwipes = swipesSnap.docs
     .map(docu => ({ id: docu.id, ...docu.data() }))
-    .filter(d => d.studentUid === studentId && (d.status === 'interessant' || d.status === 'geaccepteerd'));
+    .filter(d => (d.status === 'interessant' || d.status === 'geaccepteerd'));
   // Haal bedrijven op
   const bedrijvenSnap = await getDocs(collection(db, 'bedrijf'));
   const bedrijvenMap = {};
@@ -149,10 +150,16 @@ onMounted(async () => {
   // Combineer
   matchBedrijven.value = relevantSwipes.map(swipe => {
     const bedrijf = bedrijvenMap[swipe.bedrijfUid] || {};
+    let sector = '-';
+    if (bedrijf.sector) {
+      sector = Array.isArray(bedrijf.sector) ? bedrijf.sector.join(', ') : bedrijf.sector;
+    } else if (bedrijf.opZoekNaar) {
+      sector = Array.isArray(bedrijf.opZoekNaar) ? bedrijf.opZoekNaar.join(', ') : bedrijf.opZoekNaar;
+    }
     return {
       id: swipe.bedrijfUid,
       naam: bedrijf.bedrijfsnaam || 'Onbekend',
-      sector: bedrijf.sector || bedrijf.opZoekNaar || '-',
+      sector,
       afkorting: (bedrijf.bedrijfsnaam || '??').substring(0,2).toUpperCase(),
       locatie: bedrijf.gesitueerdIn || '-',
       status: swipe.status
@@ -200,10 +207,59 @@ async function bevestigAfspraak() {
     status: 'upcoming',
     aangemaaktOp: new Date()
   })
+  // Update de match-status in student_swipes naar 'gepland'
+  const swipeId = selectedBedrijfId.value;
+  await updateDoc(doc(db, 'student', studentId, 'swipes', swipeId), { status: 'gepland' });
   showTimeModal.value = false
   selectedTimeSlot.value = null
   selectedBedrijfId.value = null
-  // Optioneel: reload matches/afspraken
+  // Herlaad matches zodat de geplande match verdwijnt
+  await reloadMatches();
+}
+
+// Helper: check of een object leeg is
+function isEmpty(obj) {
+  return !obj || Object.keys(obj).length === 0;
+}
+
+async function reloadMatches() {
+  let studentId = auth.currentUser?.uid;
+  if (!studentId) {
+    await new Promise(resolve => {
+      const unsub = auth.onAuthStateChanged(user => {
+        studentId = user?.uid;
+        unsub();
+        resolve();
+      });
+    });
+  }
+  if (!studentId) return;
+  const swipesSnap = await getDocs(collection(db, 'student', studentId, 'swipes'));
+  const relevantSwipes = swipesSnap.docs
+    .map(docu => ({ id: docu.id, ...docu.data() }))
+    .filter(d => (d.status === 'interessant' || d.status === 'geaccepteerd'));
+  const bedrijvenSnap = await getDocs(collection(db, 'bedrijf'));
+  const bedrijvenMap = {};
+  bedrijvenSnap.forEach(docu => { bedrijvenMap[docu.id] = docu.data(); });
+  matchBedrijven.value = relevantSwipes
+    .filter(swipe => bedrijvenMap[swipe.bedrijfUid] && !isEmpty(bedrijvenMap[swipe.bedrijfUid]))
+    .map(swipe => {
+      const bedrijf = bedrijvenMap[swipe.bedrijfUid];
+      let sector = '-';
+      if (bedrijf.sector) {
+        sector = Array.isArray(bedrijf.sector) ? bedrijf.sector.join(', ') : bedrijf.sector;
+      } else if (bedrijf.opZoekNaar) {
+        sector = Array.isArray(bedrijf.opZoekNaar) ? bedrijf.opZoekNaar.join(', ') : bedrijf.opZoekNaar;
+      }
+      return {
+        id: swipe.bedrijfUid,
+        naam: bedrijf.bedrijfsnaam || 'Onbekend',
+        sector,
+        afkorting: (bedrijf.bedrijfsnaam || '??').substring(0,2).toUpperCase(),
+        locatie: bedrijf.gesitueerdIn || '-',
+        status: swipe.status
+      };
+    });
 }
 
 function closeTimeModal() {
@@ -214,6 +270,15 @@ function closeTimeModal() {
 
 function isSlotTaken(slot) {
   return takenSlots.value.includes(slot)
+}
+
+async function verwijderMatch(bedrijfId) {
+  const studentId = auth.currentUser?.uid;
+  if (!studentId) return;
+  // Verwijder swipe uit subcollectie
+  await deleteDoc(doc(db, 'student', studentId, 'swipes', bedrijfId));
+  // Herlaad matches
+  await reloadMatches();
 }
 </script>
 
@@ -481,6 +546,7 @@ function isSlotTaken(slot) {
   align-items: flex-start;
   border: 1.5px solid #f3f4f6;
   transition: box-shadow 0.15s, border-color 0.15s;
+  position: relative;
 }
 .student-kaart:hover {
   box-shadow: 0 4px 16px rgba(220,38,38,0.10);
@@ -669,5 +735,29 @@ function isSlotTaken(slot) {
 
 .btn-cancel-edit:hover {
   background-color: #e5e7eb;
+}
+
+.verwijder-btn-rond {
+  position: absolute;
+  top: 0.7rem;
+  right: 0.7rem;
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid #dc2626;
+  color: #dc2626;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(220,38,38,0.08);
+  transition: background 0.2s, color 0.2s;
+  z-index: 2;
+}
+.verwijder-btn-rond:hover {
+  background: #dc2626;
+  color: #fff;
 }
 </style>

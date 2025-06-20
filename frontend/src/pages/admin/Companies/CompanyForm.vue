@@ -22,7 +22,7 @@
           <h3 class="section-title">Bedrijfslogo</h3>
           <div class="photo-upload">
             <div class="photo-preview">
-              <img v-if="form.logoPreview" :src="form.logoPreview" alt="Bedrijfslogo">
+              <img v-if="form.fotoPreview" :src="form.fotoPreview" alt="Bedrijfslogo">
               <div v-else class="photo-placeholder">
                 <span class="photo-icon">🏢</span>
                 <p>Geen logo geüpload</p>
@@ -42,7 +42,7 @@
                 Upload logo
               </label>
               <button 
-                v-if="form.logoPreview" 
+                v-if="form.fotoPreview" 
                 type="button" 
                 @click="removeLogo" 
                 class="btn btn-danger-outline"
@@ -325,8 +325,8 @@ export default {
         phoneNumber: '',
         industry: '',
       size: '',
-      logo: '',
-      logoPreview: '',
+      foto: '',
+      fotoPreview: '',
       starttijd: '',
       eindtijd: ''
     })
@@ -355,14 +355,14 @@ export default {
       if (!file) return
 
       // Preview
-      form.value.logoPreview = URL.createObjectURL(file)
+      form.value.fotoPreview = URL.createObjectURL(file)
 
       // Upload to Firebase Storage
       try {
         const storage = getStorage()
         const logoRef = storageRef(storage, `company-logos/${Date.now()}-${file.name}`)
         const snapshot = await uploadBytes(logoRef, file)
-        form.value.logo = await getDownloadURL(snapshot.ref)
+        form.value.foto = await getDownloadURL(snapshot.ref)
       } catch (error) {
         console.error('Error uploading logo:', error)
         errors.value.logo = 'Fout bij uploaden logo'
@@ -370,8 +370,8 @@ export default {
     }
 
     const removeLogo = () => {
-      form.value.logo = ''
-      form.value.logoPreview = ''
+      form.value.foto = ''
+      form.value.fotoPreview = ''
       if (logoInput.value) {
         logoInput.value.value = ''
       }
@@ -400,7 +400,7 @@ export default {
           const data = docSnap.data()
           form.value = {
             ...data,
-            logoPreview: data.logo || ''
+            fotoPreview: data.foto || ''
           }
           form.value.opZoekNaar = Array.isArray(form.value.opZoekNaar)
             ? form.value.opZoekNaar
@@ -426,9 +426,16 @@ export default {
 
       loading.value = true
       try {
-        const companyData = {
+        let companyData = {
           ...form.value,
           updatedAt: new Date().toISOString()
+        }
+
+        // Reset status als geweigerd
+        if (isEdit.value && form.value.verificatieStatus === 'geweigerd') {
+          companyData.verificatieStatus = 'wachtend op verificatie'
+          companyData.verificatieDatum = ''
+          companyData.afwijzingsreden = ''
         }
 
         if (isEdit.value) {

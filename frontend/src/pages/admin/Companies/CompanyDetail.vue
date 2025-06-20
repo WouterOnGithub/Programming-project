@@ -6,7 +6,7 @@
         <p class="page-subtitle">Gedetailleerde informatie over het bedrijf</p>
       </div>
       <div class="header-actions">
-        <router-link to="/admin/companies" class="btn btn-secondary">
+        <router-link :to="backLink" class="btn btn-secondary">
           <span class="btn-icon">←</span>
           Terug naar lijst
         </router-link>
@@ -112,7 +112,7 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { db } from '../../../firebase/config'
 import { getDoc, doc } from 'firebase/firestore'
@@ -124,6 +124,12 @@ export default {
     const router = useRouter()
     const company = ref(null)
     const error = ref(null)
+
+    const backLink = computed(() =>
+      route.query.from === 'verification'
+        ? '/admin/companies/verification'
+        : '/admin/companies'
+    )
 
     const loadCompany = async () => {
       try {
@@ -157,7 +163,8 @@ export default {
       company,
       error,
       formatDate,
-      goBack
+      goBack,
+      backLink
     }
   }
 }

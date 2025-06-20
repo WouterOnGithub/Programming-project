@@ -59,7 +59,7 @@
               <div class="avatar">{{ student.afkorting }}</div>
               <div>
                 <h3>{{ student.naam }}</h3>
-                <p class="richting">{{ student.richting }} – {{ student.locatie }}</p>
+                <p class="richting">{{ Array.isArray(student.richting) ? student.richting.join(', ') : student.richting }} – {{ student.locatie }}</p>
               </div>
             </div>
             <div class="acties">
@@ -67,14 +67,11 @@
                 <User :size="14" />
                 <span>Profiel</span>
               </button>
-              <button class="knop-rood" @click="accepteerStudent(student.swipeDocId)">
+              <button class="knop-rood" @click="accepteerStudent(student.swipeDocId, student.id)">
                 <Calendar :size="14" />
                 <span>Accepteren</span>
               </button>
-              <button class="knop-verwijder" @click="weigerStudent(student.swipeDocId)">
-                <span>Weigeren</span>
-              </button>
-              <button class="knop-verwijder" @click="weigerStudent(student.swipeDocId)">
+              <button class="knop-verwijder" @click="weigerStudent(student.swipeDocId, student.id)">
                 <span>Weigeren</span>
               </button>
             </div>
@@ -159,33 +156,38 @@ onMounted(async () => {
   }
   if (!bedrijfId) return;
   console.debug('Ingelogde bedrijfUid:', bedrijfId);
-  // Haal alle swipes op dit bedrijf met status 'interessant'
-  const swipesSnap = await getDocs(collection(db, 'student_swipes'));
-  console.log('Alle swipes:', swipesSnap.docs.map(d => d.data()));
-  let relevanteSwipes = swipesSnap.docs
-    .map(docu => ({ id: docu.id, ...docu.data() }))
-    .filter(d => (d.bedrijfUid === bedrijfId || d.authUid === bedrijfId) && d.status === 'interessant');
-  // Alternatieve zoekmethode: zoek op email als er geen matches zijn
+  // Haal alle studenten op
+  const studentenSnap = await getDocs(collection(db, 'student'));
+  const studentenMap = {};
+  studentenSnap.forEach(docu => { studentenMap[docu.id] = docu.data(); });
+  let relevanteSwipes = [];
+  for (const studentId of Object.keys(studentenMap)) {
+    // Haal swipes uit subcollectie van student
+    const swipesSnap = await getDocs(collection(db, 'student', studentId, 'swipes'));
+    relevanteSwipes.push(...swipesSnap.docs
+      .map(docu => ({ id: docu.id, ...docu.data(), studentUid: studentId }))
+      .filter(d => (d.bedrijfUid === bedrijfId || d.authUid === bedrijfId) && d.status === 'interessant'));
+  }
   if (relevanteSwipes.length === 0 && bedrijfEmail) {
-    relevanteSwipes = swipesSnap.docs
-      .map(docu => ({ id: docu.id, ...docu.data() }))
-      .filter(d => d.bedrijfEmail === bedrijfEmail && d.status === 'interessant');
-    if (relevanteSwipes.length > 0) {
-      console.debug('Matches gevonden via email:', relevanteSwipes);
+    for (const studentId of Object.keys(studentenMap)) {
+      const swipesSnap = await getDocs(collection(db, 'student', studentId, 'swipes'));
+      relevanteSwipes.push(...swipesSnap.docs
+        .map(docu => ({ id: docu.id, ...docu.data(), studentUid: studentId }))
+        .filter(d => d.bedrijfEmail === bedrijfEmail && d.status === 'interessant'));
     }
   }
   console.debug('Relevante swipes:', relevanteSwipes);
   // Haal studenten op
-  const studentenSnap = await getDocs(collection(db, 'student'));
-  const studentenMap = {};
-  studentenSnap.forEach(docu => { studentenMap[docu.id] = docu.data(); });
-  console.debug('StudentenMap:', studentenMap);
   matchStudenten.value = relevanteSwipes.map(swipe => {
     const student = studentenMap[swipe.studentUid] || {};
+    let richting = '-';
+    if (student.domein) {
+      richting = Array.isArray(student.domein) ? student.domein.join(', ') : student.domein;
+    }
     return {
       id: swipe.studentUid,
       naam: (student.voornaam || 'Onbekend') + ' ' + (student.achternaam || ''),
-      richting: student.domein ? (Array.isArray(student.domein) ? student.domein.join(', ') : student.domein) : '-',
+      richting,
       afkorting: ((student.voornaam || '?')[0] + (student.achternaam || '?')[0]).toUpperCase(),
       locatie: student.locatie || '-',
       swipeDocId: swipe.id
@@ -255,6 +257,70 @@ const navigation = [
   { name: 'Profiel', href: '/WeergaveBd' },
   { name: 'Instellingen', href: '/SettingsBe' },
 ]
+
+const accepteerStudent = async (swipeDocId, studentId) => {
+  // Zet status op 'geaccepteerd' in student/{studentId}/swipes
+  const swipeRef = doc(db, 'student', studentId, 'swipes', swipeDocId);
+  await updateDoc(swipeRef, { status: 'geaccepteerd' });
+  // Herlaad matches zodat de student verdwijnt uit de lijst
+  await reloadMatches();
+}
+
+const weigerStudent = async (swipeDocId, studentId) => {
+  const swipeRef = doc(db, 'student', studentId, 'swipes', swipeDocId);
+  await updateDoc(swipeRef, { status: 'geweigerd' });
+  await reloadMatches();
+}
+
+async function reloadMatches() {
+  let bedrijfId = auth.currentUser?.uid;
+  let bedrijfEmail = auth.currentUser?.email;
+  if (!bedrijfId) {
+    await new Promise(resolve => {
+      const unsub = auth.onAuthStateChanged(user => {
+        bedrijfId = user?.uid;
+        bedrijfEmail = user?.email;
+        unsub();
+        resolve();
+      });
+    });
+  }
+  if (!bedrijfId) return;
+  const studentenSnap = await getDocs(collection(db, 'student'));
+  const studentenMap = {};
+  studentenSnap.forEach(docu => { studentenMap[docu.id] = docu.data(); });
+  let relevanteSwipes = [];
+  for (const studentId of Object.keys(studentenMap)) {
+    // Haal swipes uit subcollectie van student
+    const swipesSnap = await getDocs(collection(db, 'student', studentId, 'swipes'));
+    relevanteSwipes.push(...swipesSnap.docs
+      .map(docu => ({ id: docu.id, ...docu.data(), studentUid: studentId }))
+      .filter(d => (d.bedrijfUid === bedrijfId || d.authUid === bedrijfId) && d.status === 'interessant'));
+  }
+  if (relevanteSwipes.length === 0 && bedrijfEmail) {
+    for (const studentId of Object.keys(studentenMap)) {
+      const swipesSnap = await getDocs(collection(db, 'student', studentId, 'swipes'));
+      relevanteSwipes.push(...swipesSnap.docs
+        .map(docu => ({ id: docu.id, ...docu.data(), studentUid: studentId }))
+        .filter(d => d.bedrijfEmail === bedrijfEmail && d.status === 'interessant'));
+    }
+  }
+  matchStudenten.value = relevanteSwipes.map(swipe => {
+    const student = studentenMap[swipe.studentUid] || {};
+    let richting = '-';
+    if (student.domein) {
+      richting = Array.isArray(student.domein) ? student.domein.join(', ') : student.domein;
+    }
+    return {
+      id: swipe.studentUid,
+      naam: (student.voornaam || 'Onbekend') + ' ' + (student.achternaam || ''),
+      richting,
+      afkorting: ((student.voornaam || '?')[0] + (student.achternaam || '?')[0]).toUpperCase(),
+      locatie: student.locatie || '-',
+      swipeDocId: swipe.id
+    };
+  });
+}
 </script>
 
 <style scoped>

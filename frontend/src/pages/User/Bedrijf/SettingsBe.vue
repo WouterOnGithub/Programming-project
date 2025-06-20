@@ -102,7 +102,6 @@ const currentPassword = ref('')
 const newPassword = ref('')
 const message = ref('')
 const passwordError = ref('')
-const userData = ref({ name: 'Gebruiker' })
 const showDropdown = ref(false)
 const isMobileSidebarOpen = ref(false)
 
