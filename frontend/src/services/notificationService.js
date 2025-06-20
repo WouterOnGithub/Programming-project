@@ -1,16 +1,4 @@
 // Notification service for handling company verification notifications
-import { db } from '../firebase/config'
-import { 
-  collection, 
-  onSnapshot, 
-  query, 
-  where, 
-  orderBy, 
-  doc, 
-  updateDoc,
-  addDoc,
-  serverTimestamp 
-} from 'firebase/firestore'
 
 export class NotificationService {
   constructor() {
@@ -18,9 +6,31 @@ export class NotificationService {
   }
 
   /**
+   * Get Firebase services dynamically
+   */
+  async getFirebaseServices() {
+    const { db } = await import('../firebase/config')
+    const { 
+      collection, 
+      onSnapshot, 
+      query, 
+      where, 
+      orderBy, 
+      doc, 
+      updateDoc,
+      addDoc,
+      serverTimestamp 
+    } = await import('firebase/firestore')
+    
+    return { db, collection, onSnapshot, query, where, orderBy, doc, updateDoc, addDoc, serverTimestamp }
+  }
+
+  /**
    * Subscribe to notifications for a specific company
    */
-  subscribeToCompanyNotifications(companyId, callback) {
+  async subscribeToCompanyNotifications(companyId, callback) {
+    const { db, collection, onSnapshot, query, where, orderBy } = await this.getFirebaseServices()
+    
     const notificationsRef = query(
       collection(db, 'notifications'),
       where('companyId', '==', companyId),
@@ -44,6 +54,7 @@ export class NotificationService {
    */
   async markAsRead(notificationId) {
     try {
+      const { db, doc, updateDoc } = await this.getFirebaseServices()
       await updateDoc(doc(db, 'notifications', notificationId), {
         read: true
       })
@@ -58,6 +69,7 @@ export class NotificationService {
    */
   async createApprovalNotification(companyId, companyName) {
     try {
+      const { db, collection, addDoc, serverTimestamp } = await this.getFirebaseServices()
       await addDoc(collection(db, 'notifications'), {
         companyId,
         type: 'verification_approved',
@@ -77,6 +89,7 @@ export class NotificationService {
    */
   async createRejectionNotification(companyId, companyName, reason) {
     try {
+      const { db, collection, addDoc, serverTimestamp } = await this.getFirebaseServices()
       await addDoc(collection(db, 'notifications'), {
         companyId,
         type: 'verification_rejected',

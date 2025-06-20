@@ -1,7 +1,5 @@
 const TEST_MODE = true; // Zet op true om adminroutes altijd door te laten voor testen
 
-import { auth, db } from '../firebase/config';
-import { doc, getDoc } from 'firebase/firestore';
 import { useRouter } from 'vue-router';
  
 const adminRoutes = [
@@ -14,6 +12,11 @@ const adminRoutes = [
         next();
         return;
       }
+      
+      // Import Firebase services inside the guard to ensure they're available
+      const { auth, db } = await import('../firebase/config');
+      const { doc, getDoc } = await import('firebase/firestore');
+      
       const user = auth.currentUser;
       if (!user) {
         next('/login');
