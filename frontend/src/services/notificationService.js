@@ -9,44 +9,65 @@ export class NotificationService {
    * Get Firebase services dynamically
    */
   async getFirebaseServices() {
-    const { db } = await import('../firebase/config')
-    const { 
-      collection, 
-      onSnapshot, 
-      query, 
-      where, 
-      orderBy, 
-      doc, 
-      updateDoc,
-      addDoc,
-      serverTimestamp 
-    } = await import('firebase/firestore')
-    
-    return { db, collection, onSnapshot, query, where, orderBy, doc, updateDoc, addDoc, serverTimestamp }
+    try {
+      const { db } = await import('../firebase/config')
+      const { 
+        collection, 
+        onSnapshot, 
+        query, 
+        where, 
+        orderBy, 
+        doc, 
+        updateDoc,
+        addDoc,
+        serverTimestamp 
+      } = await import('firebase/firestore')
+      
+      return { db, collection, onSnapshot, query, where, orderBy, doc, updateDoc, addDoc, serverTimestamp }
+    } catch (error) {
+      console.error('Error loading Firebase services:', error)
+      throw error
+    }
   }
 
   /**
    * Subscribe to notifications for a specific company
    */
   async subscribeToCompanyNotifications(companyId, callback) {
-    const { db, collection, onSnapshot, query, where, orderBy } = await this.getFirebaseServices()
-    
-    const notificationsRef = query(
-      collection(db, 'notifications'),
-      where('companyId', '==', companyId),
-      orderBy('createdAt', 'desc')
-    )
+    try {
+      if (!companyId) {
+        console.warn('No companyId provided to subscribeToCompanyNotifications')
+        return () => {} // Return empty unsubscribe function
+      }
 
-    const unsubscribe = onSnapshot(notificationsRef, (snapshot) => {
-      const notifications = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }))
-      callback(notifications)
-    })
+      const { db, collection, onSnapshot, query, where, orderBy } = await this.getFirebaseServices()
+      
+      const notificationsRef = query(
+        collection(db, 'notifications'),
+        where('companyId', '==', companyId),
+        orderBy('createdAt', 'desc')
+      )
 
-    this.listeners.set(companyId, unsubscribe)
-    return unsubscribe
+      const unsubscribe = onSnapshot(notificationsRef, (snapshot) => {
+        try {
+          const notifications = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }))
+          callback(notifications)
+        } catch (error) {
+          console.error('Error processing notification snapshot:', error)
+        }
+      }, (error) => {
+        console.error('Error in notification subscription:', error)
+      })
+
+      this.listeners.set(companyId, unsubscribe)
+      return unsubscribe
+    } catch (error) {
+      console.error('Error setting up notification subscription:', error)
+      return () => {} // Return empty unsubscribe function
+    }
   }
 
   /**
@@ -54,6 +75,11 @@ export class NotificationService {
    */
   async markAsRead(notificationId) {
     try {
+      if (!notificationId) {
+        console.warn('No notificationId provided to markAsRead')
+        return
+      }
+
       const { db, doc, updateDoc } = await this.getFirebaseServices()
       await updateDoc(doc(db, 'notifications', notificationId), {
         read: true
@@ -69,6 +95,11 @@ export class NotificationService {
    */
   async createApprovalNotification(companyId, companyName) {
     try {
+      if (!companyId || !companyName) {
+        console.warn('Missing required parameters for createApprovalNotification')
+        return
+      }
+
       const { db, collection, addDoc, serverTimestamp } = await this.getFirebaseServices()
       await addDoc(collection(db, 'notifications'), {
         companyId,
@@ -89,6 +120,11 @@ export class NotificationService {
    */
   async createRejectionNotification(companyId, companyName, reason) {
     try {
+      if (!companyId || !companyName) {
+        console.warn('Missing required parameters for createRejectionNotification')
+        return
+      }
+
       const { db, collection, addDoc, serverTimestamp } = await this.getFirebaseServices()
       await addDoc(collection(db, 'notifications'), {
         companyId,
@@ -108,8 +144,20 @@ export class NotificationService {
    * Cleanup all listeners
    */
   cleanup() {
-    this.listeners.forEach(unsubscribe => unsubscribe())
-    this.listeners.clear()
+    try {
+      this.listeners.forEach((unsubscribe, companyId) => {
+        try {
+          if (unsubscribe && typeof unsubscribe === 'function') {
+            unsubscribe()
+          }
+        } catch (error) {
+          console.error(`Error cleaning up listener for company ${companyId}:`, error)
+        }
+      })
+      this.listeners.clear()
+    } catch (error) {
+      console.error('Error during cleanup:', error)
+    }
   }
 }
 

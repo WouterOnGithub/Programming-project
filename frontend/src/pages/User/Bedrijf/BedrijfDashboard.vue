@@ -2,25 +2,6 @@
   <BedrijfDashboardLayout>
     <!-- Main content -->
     <main class="dashboard-main">
-      <!-- Add notification center to header -->
-      <div class="dashboard-header-with-notifications">
-        <div class="dashboard-header-content">
-          <h1>Bedrijf Dashboard</h1>
-          <p>Welkom terug op je dashboard</p>
-        </div>
-        <div class="dashboard-header-actions">
-          <!-- Add NotificationCenter here -->
-          <NotificationCenter 
-            v-if="currentUser?.uid" 
-            :companyId="currentUser.uid" 
-            :key="currentUser.uid"
-          />
-          <div v-else style="color: red; font-size: 0.8rem;">
-            No user logged in
-          </div>
-        </div>
-      </div>
-
       <!-- Verification Status Banner -->
       <div v-if="verificatieStatus !== 'goedgekeurd'" class="verification-banner">
         <div v-if="verificatieStatus === 'wachtend op verificatie'" class="status-pending">
@@ -121,7 +102,6 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import BedrijfDashboardLayout from '../../../components/BedrijfDashboardLayout.vue'
-import NotificationCenter from '../../../components/NotificationCenter.vue'
 import { useRouter } from 'vue-router'
 import { useToast } from 'vue-toastification'
 import { auth, db } from '../../../firebase/config'
@@ -199,8 +179,6 @@ const navigation = [
   { name: 'Instellingen', href: '/SettingsBe', icon: 'fas fa-cog' }
 ]
 
-
-
 const userData = ref({ companyName: 'Cronos' })
 
 const statsData = ref([
@@ -242,25 +220,6 @@ const recentActivity = ref([
   { type: 'interview', action: 'Gesprek gepland met L. Vanhoutte', time: '1 dag geleden' },
   { type: 'match', action: 'Nieuwe match met R. De Wilde', time: '2 dagen geleden' },
 ])
-
-const showDropdown = ref(false)
-const router = useRouter()
-function handleAvatarClick() {
-  showDropdown.value = !showDropdown.value
-}
-function handleLogout() {
-  router.push('/')
-}
-function handleClickOutside(event) {
-  const dropdown = document.getElementById('bedrijf-profile-dropdown')
-  const avatar = document.getElementById('bedrijf-profile-avatar')
-  if (dropdown && !dropdown.contains(event.target) && avatar && !avatar.contains(event.target)) {
-    showDropdown.value = false
-  }
-}
-if (typeof window !== 'undefined') {
-  window.addEventListener('mousedown', handleClickOutside)
-}
 </script>
 
 <style scoped>

@@ -31,9 +31,14 @@
           <p>Hier is je bedrijfsdashboard overzicht</p>
         </div>
         <div class="dashboard-header-actions">
+          <NotificationCenter 
+            v-if="currentUser?.uid" 
+            :companyId="currentUser.uid" 
+            :key="currentUser.uid"
+          />
           <div class="dashboard-profile-avatar" id="bedrijf-profile-avatar" @click="handleAvatarClick">
             <img v-if="userFoto" :src="userFoto" alt="Bedrijfslogo" class="avatar-img" />
-            <span v-else>{{ userData.companyName[0] }}</span>
+            <span v-else>{{ userData.companyName ? userData.companyName[0] : 'B' }}</span>
           </div>
           <div v-if="showDropdown" id="bedrijf-profile-dropdown" class="profile-dropdown">
             <button class="dropdown-item" @click="goToProfile">Profiel</button>
@@ -49,14 +54,16 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getAuth } from 'firebase/auth'
+import { getAuth, onAuthStateChanged } from 'firebase/auth'
 import { getFirestore, doc, getDoc } from 'firebase/firestore'
+import NotificationCenter from './NotificationCenter.vue'
 import profielfoto from '/Images/profielfoto.jpg'
 
 const $route = useRoute()
 const router = useRouter()
 const userFoto = ref(null)
 const userData = ref({ companyName: '' })
+const currentUser = ref(null)
 const navigation = [
   { name: 'Dashboard', href: '/BedrijfDashboard', icon: 'fas fa-chart-pie' },
   { name: 'Afspraken', href: '/GesprekkenBd', icon: 'fas fa-calendar' },
@@ -81,23 +88,28 @@ function handleClickOutside(event) {
 }
 function goToProfile() {
   showDropdown.value = false;
-  router.push('/WeergaveBd');
+  window.location.href = '/WeergaveBd';
 }
-onMounted(async () => {
-  document.addEventListener('mousedown', handleClickOutside)
-  // Haal bedrijfsprofiel op
+onMounted(() => {
+  setTimeout(() => {
+    document.addEventListener('mousedown', handleClickOutside)
+  }, 100)
+  
   const auth = getAuth();
   const db = getFirestore();
-  const user = auth.currentUser;
-  if (user) {
-    const docRef = doc(db, 'bedrijf', user.uid);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      const data = docSnap.data();
-      userData.value.companyName = data.bedrijfsnaam || 'Bedrijf';
-      userFoto.value = data.foto || null;
+
+  onAuthStateChanged(auth, async (user) => {
+    currentUser.value = user
+    if (user) {
+      const docRef = doc(db, 'bedrijf', user.uid);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        userData.value.companyName = data.bedrijfsnaam || 'Bedrijf';
+        userFoto.value = data.foto || null;
+      }
     }
-  }
+  });
 })
 onBeforeUnmount(() => {
   document.removeEventListener('mousedown', handleClickOutside)
