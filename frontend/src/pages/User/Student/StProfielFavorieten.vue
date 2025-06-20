@@ -114,11 +114,10 @@ onMounted(async () => {
     });
   }
   if (!studentId) return;
-  // Haal favorieten op
-  const favSnap = await getDocs(collection(db, 'student_favorieten'));
+  // Haal favorieten op uit subcollectie
+  const favSnap = await getDocs(collection(db, 'student', studentId, 'favorieten'));
   const favorieten = favSnap.docs
-    .map(docu => ({ id: docu.id, ...docu.data() }))
-    .filter(fav => fav.studentUid === studentId);
+    .map(docu => ({ id: docu.id, ...docu.data() }));
   // Haal bedrijven op
   const bedrijvenSnap = await getDocs(collection(db, 'bedrijf'));
   const bedrijvenMap = {};
@@ -168,7 +167,8 @@ const verwijderFavoriet = async (id) => {
       });
     });
   }
-  await deleteDoc(doc(db, 'student_favorieten', `${studentId}_${id}`));
+  // Verwijder uit subcollectie
+  await deleteDoc(doc(db, 'student', studentId, 'favorieten', id));
   bedrijven.value = bedrijven.value.filter(b => b.id !== id)
   showConfirm.value = false
   favorietToDelete.value = null

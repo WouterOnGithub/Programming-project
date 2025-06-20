@@ -199,6 +199,8 @@ const navigation = [
   { name: 'Instellingen', href: '/SettingsBe', icon: 'fas fa-cog' }
 ]
 
+
+
 const userData = ref({ companyName: 'Cronos' })
 
 const statsData = ref([

@@ -55,7 +55,6 @@ const navigation = [
   { name: 'Profiel', href: '/bedrijf/profiel' },
 ]
 
-const userData = ref({ companyName: 'Cronos' })
 const showDropdown = ref(false)
 const router = useRouter()
 
