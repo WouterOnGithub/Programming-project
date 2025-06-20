@@ -1,84 +1,106 @@
 <template>
   <StudentDashboardLayout>
-    <!-- Alleen de main content van de profielpagina, zonder sidebar/header -->
     <main class="dashboard-main">
-      <section class="hero-banner">
-        <div class="hero-photo">
-          <img :src="profiel.fotoPreview || profielfoto" alt="Profielfoto" />
-        </div>
-        <div class="hero-text">
-          <h1>{{ profiel.voornaam }} {{ profiel.achternaam }}</h1>
-          <p>{{ profiel.domein }} – {{ profiel.studiejaar }}</p>
-        </div>
-        <router-link to="/WijzigenSt" class="wijzig-knop">Wijzig</router-link>
-      </section>
-  
-      <section class="section-card">
-        <h2>Introductie</h2>
-        <p class="intro-text">{{ profiel.intro }}</p>
-      </section>
-  
-      <section class="section-card">
-        <h2>Informatie</h2>
-        <ul class="info-list">
-          <li><strong>Leeftijd:</strong> {{ profiel.leeftijd }}</li>
-          <li><strong>Beschikbaar vanaf:</strong> {{ profiel.beschikbaarVanaf }}</li>
-          <li><strong>Opportuniteit:</strong> {{ profiel.opportuniteit }}</li>
-          <li><strong>LinkedIn:</strong> <a :href="profiel.linkedin" target="_blank">Bekijk profiel</a></li>
-        </ul>
-      </section>
-  
-      <section class="section-card">
-        <h2>Vaardigheden</h2>
-        <div class="chip-cloud">
-          <span class="chip" v-for="skill in profiel.skills" :key="skill">{{ skill }}</span>
-        </div>
-      </section>
-  
-      <section class="section-card">
-        <h2>Talenkennis</h2>
-        <div class="badge-row">
-          <span class="badge" v-for="taal in profiel.talenkennis" :key="taal">
-            {{ taal }}<span v-if="taal === 'Andere'"> ({{ profiel.andereTaal }})</span>
-          </span>
-        </div>
-      </section>
-  
-      <section class="grid-2">
-        <div class="section-card">
-          <h2>CV</h2>
-          <p>
-            <a :href="'/uploads/' + profiel.cv.naam" target="_blank">
-              {{ profiel.cv.naam }} ({{ profiel.cv.grootte }})
-            </a>
-          </p>
-        </div>
-      </section>
+      <section v-if="loading" class="section-card">Laden...</section>
+      <section v-else-if="error" class="section-card" style="color: #b80000;">{{ error }}</section>
+      <template v-else>
+        <!-- Alleen de main content van de profielpagina, zonder sidebar/header -->
+        <section class="hero-banner">
+          <div class="hero-photo">
+            <img :src="profiel?.fotoPreview || profiel?.foto || profielfoto" alt="Profielfoto" />
+          </div>
+          <div class="hero-text">
+            <h1>{{ profiel?.voornaam }} {{ profiel?.achternaam }}</h1>
+            <p>{{ profiel?.domein }} – {{ profiel?.studiejaar }}</p>
+          </div>
+          <router-link to="/WijzigenSt" class="wijzig-knop">Wijzig</router-link>
+        </section>
+    
+        <section class="section-card">
+          <h2>Introductie</h2>
+          <p class="intro-text">{{ profiel?.intro }}</p>
+        </section>
+    
+        <section class="section-card">
+          <h2>Informatie</h2>
+          <ul class="info-list">
+            <li><strong>Leeftijd:</strong> {{ profiel?.leeftijd }}</li>
+            <li><strong>Beschikbaar vanaf:</strong> {{ profiel?.beschikbaarVanaf }}</li>
+            <li><strong>Opportuniteit:</strong> {{ profiel?.opportuniteit }}</li>
+            <li><strong>LinkedIn:</strong> <a :href="profiel?.linkedin" target="_blank">Bekijk profiel</a></li>
+          </ul>
+        </section>
+    
+        <section class="section-card">
+          <h2>Vaardigheden</h2>
+          <div class="chip-cloud">
+            <span class="chip" v-for="skill in profiel?.skills || []" :key="skill">{{ skill }}</span>
+          </div>
+        </section>
+    
+        <section class="section-card">
+          <h2>Talenkennis</h2>
+          <div class="badge-row">
+            <span class="badge" v-for="taal in profiel?.talenkennis || []" :key="taal">
+              {{ taal }}<span v-if="taal === 'Andere'"> ({{ profiel?.andereTaal }})</span>
+            </span>
+          </div>
+        </section>
+    
+        <section class="grid-2">
+          <div class="section-card">
+            <h2>CV</h2>
+            <div v-if="profiel?.cv && (typeof profiel.cv === 'string' || profiel.cv.url || profiel.cv.CVUrl || profiel.cv.cvUrl)">
+              <button type="button" class="download-cv-btn" @click="downloadCV">
+                Download CV
+              </button>
+            </div>
+            <p v-else>
+              Geen CV geüpload
+            </p>
+          </div>
+        </section>
+      </template>
     </main>
   </StudentDashboardLayout>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { getAuth } from 'firebase/auth'
+import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore'
 import profielfoto from '/Images/profielfoto.jpg'
 import StudentDashboardLayout from '../../../components/StudentDashboardLayout.vue'
 
-const profiel = ref({
-  voornaam: 'Jonathan',
-  achternaam: 'Primo',
-  leeftijd: 22,
-  domein: 'Cybersecurity',
-  studiejaar: '3e jaar',
-  beschikbaarVanaf: '2025-09-01',
-  opportuniteit: 'Stage',
-  linkedin: 'https://www.linkedin.com/in/jonathan-primo',
-  intro: `Hallo,\nIk ben Jonathan,\nIk hou van cybersecurity,\nIk ben sociaal en heb al eerder teams geleid,\nAangenaam kennis te maken.`,
-  talenkennis: ['Nederlands', 'Engels', 'Frans', 'Andere'],
-  andereTaal: 'Japans',
-  skills: ['Teamwork', 'Python', 'Machine Learning', 'Leiderschap'],
-  toestemming: true,
-  cv: { naam: 'cv-Jonathan-Primo.pdf', grootte: '84 kB' },
-  fotoPreview: null
+const router = useRouter()
+const profiel = ref(null)
+const loading = ref(true)
+const error = ref(null)
+
+const db = getFirestore()
+const auth = getAuth()
+
+onMounted(async () => {
+  const user = auth.currentUser
+  if (!user) {
+    error.value = 'Niet ingelogd.'
+    loading.value = false
+    return
+  }
+  try {
+    const q = query(collection(db, 'student'), where('authUid', '==', user.uid))
+    const snapshot = await getDocs(q)
+    if (!snapshot.empty) {
+      profiel.value = snapshot.docs[0].data()
+    } else {
+      error.value = 'Geen studentenprofiel gevonden.'
+    }
+  } catch (e) {
+    error.value = 'Fout bij ophalen studentenprofiel.'
+  } finally {
+    loading.value = false
+  }
 })
 
 const navigation = [
@@ -89,6 +111,16 @@ const navigation = [
   { name: 'Profiel', href: '/WeergaveSt', icon: 'fas fa-user' },
   { name: 'Instellingen', href: '/settings', icon: 'fas fa-cog' },
 ]
+
+function downloadCV() {
+  const cv = profiel.value?.cv
+  let url = ''
+  if (typeof cv === 'string') url = cv
+  else if (cv?.url) url = cv.url
+  else if (cv?.CVUrl) url = cv.CVUrl
+  else if (cv?.cvUrl) url = cv.cvUrl
+  if (url) window.open(url, '_blank')
+}
 </script>
 
 <!-- ✅ GLOBAAL (NIET-SCOPED): CSS-variabelen -->
@@ -346,6 +378,22 @@ const navigation = [
 .wijzig-knop:hover {
   background: var(--rood);
   color: #fff;
+}
+
+.download-cv-btn {
+  background: #b80000;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.6rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 0.5rem;
+}
+
+.download-cv-btn:hover {
+  background: #990000;
 }
 </style>
   

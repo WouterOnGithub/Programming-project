@@ -1,76 +1,86 @@
 <template>
   <BedrijfDashboardLayout>
     <main class="main-content">
-      <section class="banner">
-        <router-link to="/WeergaveBd" class="go-back-knop">
-          <span class="go-back-arrow">&#8592;</span> Terug
-        </router-link>
-        <div class="image-wrapper">
-          <img :src="profielfotoURL" alt="Profielfoto bedrijf" class="banner-img" />
-          <label for="foto-upload" class="upload-icon" title="Wijzig profielfoto">
-            <img :src="potlood" alt="Upload icoon" />
-            <input id="foto-upload" type="file" accept="image/*" @change="wijzigAfbeelding" hidden />
-          </label>
-        </div>
-        <div class="banner-text">
-          <h2>{{ bedrijfsnaam || 'Bedrijfsnaam' }}</h2>
-          <p>Werk mee aan de toekomst — pas je bedrijfsprofiel aan.</p>
-        </div>
-      </section>
+      <section v-if="loading" class="section-card">Laden...</section>
+      <section v-else-if="error" class="section-card" style="color: #b80000;">{{ error }}</section>
+      <template v-else>
+        <section class="banner">
+          <router-link to="/WeergaveBd" class="go-back-knop">
+            <span class="go-back-arrow">&#8592;</span> Terug
+          </router-link>
+          <div class="image-wrapper">
+            <img :src="profielfotoURL" alt="Profielfoto bedrijf" class="banner-img" />
+            <label for="foto-upload" class="upload-icon" title="Wijzig profielfoto">
+              <img :src="potlood" alt="Upload icoon" />
+              <input id="foto-upload" type="file" accept="image/*" @change="wijzigAfbeelding" hidden />
+            </label>
+          </div>
+          <div class="banner-text">
+            <h2>{{ bedrijfsdata.bedrijfsnaam || 'Bedrijfsnaam' }}</h2>
+            <p>Werk mee aan de toekomst — pas je bedrijfsprofiel aan.</p>
+          </div>
+        </section>
 
-      <div class="form-container">
-        <form class="form" @submit.prevent="bevestigGegevens">
-          <div class="form-grid">
-            <div class="form-group" v-for="(veld, index) in velden" :key="index">
-              <label :for="veld.id">{{ veld.label }}</label>
-              <div class="input-wrapper">
-                <component
-                  :is="veld.type === 'textarea' ? 'textarea' : 'input'"
-                  :id="veld.id"
-                  :type="veld.type !== 'textarea' ? veld.type : undefined"
-                  :placeholder="veld.placeholder"
-                  v-model="veld.model"
-                />
-                <img class="input-icon" :src="potlood" alt="potlood" />
+        <div class="form-container">
+          <form class="form" @submit.prevent="bevestigGegevens">
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="bedrijfsnaam">Bedrijfsnaam *</label>
+                <input id="bedrijfsnaam" v-model="bedrijfsdata.bedrijfsnaam" type="text" placeholder="Bv. CoolCompany" required />
               </div>
-            </div>
-
-            <div class="form-group">
-              <label for="opZoekNaar">Op zoek naar *</label>
-              <select class="skills-dropdown" v-model="selectedOpZoekNaar" @change="addOpZoekNaar">
-                <option disabled value="">Selecteer een profiel</option>
-                <option v-for="opt in opZoekNaarOpties" :key="opt" :value="opt">{{ opt }}</option>
-              </select>
-              <div v-if="showCustomOpZoekNaar" class="custom-skill-input">
-                <input type="text" v-model="customOpZoekNaar" placeholder="Typ je eigen profiel..." />
-                <button type="button" class="custom-skill-btn" @click="confirmCustomOpZoekNaar">Toevoegen</button>
+              <div class="form-group">
+                <label for="gesitueerdIn">Gesitueerd in *</label>
+                <input id="gesitueerdIn" v-model="bedrijfsdata.gesitueerdIn" type="text" placeholder="Bv. Brussel" required />
               </div>
-              <div class="chip-cloud">
-                <span class="chip" v-for="(profiel, index) in geselecteerdeZoekprofielen" :key="index">
-                  {{ profiel }}
-                  <button type="button" class="chip-delete" @click="removeOpZoekNaar(index)">&times;</button>
-                </span>
+              <div class="form-group">
+                <label for="starttijd">Starttijd *</label>
+                <input id="starttijd" v-model="bedrijfsdata.starttijd" type="time" required />
               </div>
-            </div>
-
-            <div class="form-group">
-              <label for="typePositie">Type posities</label>
-              <select class="skills-dropdown" v-model="selectedTypePositie" @change="addTypePositie">
-                <option disabled value="">Selecteer type positie</option>
-                <option v-for="opt in typePositieOpties" :key="opt" :value="opt">{{ opt }}</option>
-              </select>
-              <div class="chip-cloud">
-                <span class="chip" v-for="(type, index) in geselecteerdeTypePosities" :key="index">
-                  {{ type }}
-                  <button type="button" class="chip-delete" @click="removeTypePositie(index)">&times;</button>
-                </span>
+              <div class="form-group">
+                <label for="eindtijd">Eindtijd *</label>
+                <input id="eindtijd" v-model="bedrijfsdata.eindtijd" type="time" required />
               </div>
-            </div>
-
-            <div class="form-group">
-              <label for="gesprekDuur">Elk gesprek duurt *</label>
-              <div class="input-wrapper">
-                <select id="gesprekDuur" v-model="gesprekDuur">
+              <div class="form-group">
+                <label for="linkedin">LinkedIn</label>
+                <input id="linkedin" v-model="bedrijfsdata.linkedin" type="text" placeholder="https://www.linkedin.com/..." />
+              </div>
+              <div class="form-group">
+                <label for="overOns">Over ons *</label>
+                <textarea id="overOns" v-model="bedrijfsdata.overOns" placeholder="Bv. Wij zijn een innovatief bedrijf..." required></textarea>
+              </div>
+              <div class="form-group">
+                <label for="opZoekNaar">Op zoek naar *</label>
+                <select class="skills-dropdown" v-model="selectedOpZoekNaar" @change="addOpZoekNaar">
+                  <option disabled value="">Selecteer een profiel</option>
+                  <option v-for="opt in opZoekNaarOpties" :key="opt" :value="opt">{{ opt }}</option>
+                </select>
+                <div v-if="showCustomOpZoekNaar" class="custom-skill-input">
+                  <input type="text" v-model="customOpZoekNaar" placeholder="Typ je eigen profiel..." />
+                  <button type="button" class="custom-skill-btn" @click="confirmCustomOpZoekNaar">Toevoegen</button>
+                </div>
+                <div class="chip-cloud">
+                  <span class="chip" v-for="(profiel, index) in bedrijfsdata.opZoekNaar || []" :key="index">
+                    {{ profiel }}
+                    <button type="button" class="chip-delete" @click="removeOpZoekNaar(index)">&times;</button>
+                  </span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="typePositie">Type posities</label>
+                <select class="skills-dropdown" v-model="selectedTypePositie" @change="addTypePositie">
+                  <option disabled value="">Selecteer type positie</option>
+                  <option v-for="opt in typePositieOpties" :key="opt" :value="opt">{{ opt }}</option>
+                </select>
+                <div class="chip-cloud">
+                  <span class="chip" v-for="(type, index) in bedrijfsdata.typePosities || []" :key="index">
+                    {{ type }}
+                    <button type="button" class="chip-delete" @click="removeTypePositie(index)">&times;</button>
+                  </span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="gesprekDuur">Elk gesprek duurt *</label>
+                <select id="gesprekDuur" v-model="bedrijfsdata.gesprekDuur" required>
                   <option disabled value="">Kies duur</option>
                   <option>10 minuten</option>
                   <option>15 minuten</option>
@@ -78,66 +88,65 @@
                   <option>25 minuten</option>
                   <option>30 minuten</option>
                 </select>
-                <img class="input-icon" :src="potlood" alt="potlood" />
+              </div>
+              <div class="form-group">
+                <label for="contactEmail">Contact e-mail</label>
+                <input id="contactEmail" v-model="bedrijfsdata.email" type="email" placeholder="contact@bedrijf.nl" />
+              </div>
+              <div class="form-group">
+                <label for="website">Website</label>
+                <input id="website" v-model="bedrijfsdata.website" type="url" placeholder="https://www.bedrijf.nl" />
+              </div>
+              <div class="form-group">
+                <label for="telefoonnummer">Telefoonnummer</label>
+                <input id="telefoonnummer" v-model="bedrijfsdata.telefoonnummer" type="tel" placeholder="+31 20 123 4567" />
+              </div>
+              <div class="form-group">
+                <label for="branche">Branche</label>
+                <select id="branche" v-model="bedrijfsdata.branche" class="skills-dropdown">
+                  <option disabled value="">Selecteer branche</option>
+                  <option v-for="opt in brancheOpties" :key="opt" :value="opt">{{ opt }}</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="bedrijfsgrootte">Bedrijfsgrootte</label>
+                <select id="bedrijfsgrootte" v-model="bedrijfsdata.bedrijfsgrootte" class="skills-dropdown">
+                  <option disabled value="">Selecteer grootte</option>
+                  <option v-for="opt in bedrijfsgrootteOpties" :key="opt" :value="opt">{{ opt }}</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="opgerichtIn">Opgericht in</label>
+                <input id="opgerichtIn" v-model="bedrijfsdata.opgerichtIn" type="number" min="1800" :max="new Date().getFullYear()" placeholder="2020" />
               </div>
             </div>
 
-            <div class="form-group">
-              <label for="contactEmail">Contact e-mail</label>
-              <input id="contactEmail" v-model="contactEmail" type="email" placeholder="contact@bedrijf.nl" />
-            </div>
-            <div class="form-group">
-              <label for="website">Website</label>
-              <input id="website" v-model="website" type="url" placeholder="https://www.bedrijf.nl" />
-            </div>
-            <div class="form-group">
-              <label for="telefoonnummer">Telefoonnummer</label>
-              <input id="telefoonnummer" v-model="telefoonnummer" type="tel" placeholder="+31 20 123 4567" />
-            </div>
-
-            <div class="form-group">
-              <label for="branche">Branche</label>
-              <select id="branche" v-model="branche" class="skills-dropdown">
-                <option disabled value="">Selecteer branche</option>
-                <option v-for="opt in brancheOpties" :key="opt" :value="opt">{{ opt }}</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="bedrijfsgrootte">Bedrijfsgrootte</label>
-              <select id="bedrijfsgrootte" v-model="bedrijfsgrootte" class="skills-dropdown">
-                <option disabled value="">Selecteer grootte</option>
-                <option v-for="opt in bedrijfsgrootteOpties" :key="opt" :value="opt">{{ opt }}</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="opgerichtIn">Opgericht in</label>
-              <input id="opgerichtIn" v-model="opgerichtIn" type="number" min="1800" :max="new Date().getFullYear()" placeholder="2020" />
-            </div>
-          </div>
-
-          <div v-if="foutmelding" class="error-message">{{ foutmelding }}</div>
-          <button class="submit-knop" type="submit">Gegevens opslaan</button>
-        </form>
-      </div>
-
+            <div v-if="foutmelding" class="error-message">{{ foutmelding }}</div>
+            <button class="submit-knop" type="submit">Gegevens opslaan</button>
+          </form>
+        </div>
+      </template>
     </main>
   </BedrijfDashboardLayout>
 </template>
 
 <script setup>
-import { ref, nextTick, watch } from 'vue'
+import { ref, nextTick, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { getAuth } from 'firebase/auth'
+import { getFirestore, collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore'
 import profielfotoDefault from '/Images/profielfoto.jpg'
 import potlood from '/Images/potlood.png'
 import BedrijfDashboardLayout from '../../../components/BedrijfDashboardLayout.vue'
 
 const profielfotoURL = ref(profielfotoDefault)
-const bedrijfsnaam = ref('CoolCompany')
-const gesitueerdIn = ref('Brussel')
-const starttijd = ref('13:00')
-const eindtijd = ref('15:30')
-const linkedin = ref('https://www.linkedin.com/company/coolcompany')
-const overOns = ref('Wij zijn een innovatief bedrijf dat jong talent ondersteunt.')
+const bedrijfsdata = ref({})
+const bedrijfsDocId = ref(null)
+const loading = ref(true)
+const error = ref(null)
+const foutmelding = ref("")
+const router = useRouter()
+
 const opZoekNaarOpties = [
   'IT-studenten',
   'Marketing profielen',
@@ -146,31 +155,12 @@ const opZoekNaarOpties = [
   'Vrijwilligers',
   'Anders'
 ]
-const geselecteerdeZoekprofielen = ref([])
-const selectedOpZoekNaar = ref('')
-const showCustomOpZoekNaar = ref(false)
-const customOpZoekNaar = ref('')
-const gesprekDuur = ref('20 minuten')
-const toestemming = ref(true)
-const foutmelding = ref('')
-const aangepasteZoektermInput = ref(null)
-const router = useRouter()
-const contactEmail = ref('')
-const website = ref('')
-const telefoonnummer = ref('')
-const branche = ref('')
-const bedrijfsgrootte = ref('')
-const opgerichtIn = ref('')
-
 const typePositieOpties = [
   'Stage',
   'Studentenjob',
   'Voltijdse job',
   'Parttime'
 ]
-const geselecteerdeTypePosities = ref([])
-const selectedTypePositie = ref('')
-
 const brancheOpties = [
   'IT & Software',
   'Marketing & Communicatie',
@@ -193,22 +183,41 @@ const bedrijfsgrootteOpties = [
   '1000+ medewerkers'
 ]
 
-const navigation = [
-  { name: 'Dashboard', href: '/bedrijf/dashboard', icon: 'fas fa-chart-pie' },
-  { name: 'Favorieten', href: '/bedrijf/favorieten', icon: 'fas fa-envelope' },
-  { name: 'Matches', href: '/bedrijfmatch'},
-  { name: 'Gesprekken', href: '/bedrijf/gesprekken', icon: 'fas fa-calendar' },
-  { name: 'Profiel', href: '/bedrijf/profiel', icon: 'fas fa-user' },
-]
+const geselecteerdeZoekprofielen = ref([])
+const selectedOpZoekNaar = ref('')
+const showCustomOpZoekNaar = ref(false)
+const customOpZoekNaar = ref('')
+const gesprekDuur = ref("")
+const toestemming = ref(true)
+const aangepasteZoektermInput = ref(null)
 
-const velden = [
-  { id: 'bedrijfsnaam', label: 'Bedrijfsnaam *', placeholder: 'Bv. CoolCompany', model: bedrijfsnaam, type: 'text', required: true },
-  { id: 'gesitueerdIn', label: 'Gesitueerd in *', placeholder: 'Bv. Brussel', model: gesitueerdIn, type: 'text', required: true },
-  { id: 'starttijd', label: 'Starttijd *', placeholder: '', model: starttijd, type: 'time', required: true },
-  { id: 'eindtijd', label: 'Eindtijd *', placeholder: '', model: eindtijd, type: 'time', required: true },
-  { id: 'linkedin', label: 'LinkedIn', placeholder: 'https://www.linkedin.com/...', model: linkedin, type: 'text', required: false },
-  { id: 'overOns', label: 'Over ons *', placeholder: 'Bv. Wij zijn een innovatief bedrijf...', model: overOns, type: 'textarea', required: true }
-]
+const geselecteerdeTypePosities = ref([])
+
+onMounted(async () => {
+  const db = getFirestore()
+  const auth = getAuth()
+  const user = auth.currentUser
+  if (!user) {
+    error.value = 'Niet ingelogd.'
+    loading.value = false
+    return
+  }
+  try {
+    const q = query(collection(db, 'bedrijf'), where('authUid', '==', user.uid))
+    const snapshot = await getDocs(q)
+    if (!snapshot.empty) {
+      bedrijfsdata.value = snapshot.docs[0].data()
+      bedrijfsDocId.value = snapshot.docs[0].id
+      profielfotoURL.value = bedrijfsdata.value.foto || profielfotoDefault
+    } else {
+      error.value = 'Geen bedrijfsprofiel gevonden.'
+    }
+  } catch (e) {
+    error.value = 'Fout bij ophalen bedrijfsprofiel.'
+  } finally {
+    loading.value = false
+  }
+})
 
 function wijzigAfbeelding(event) {
   const file = event.target.files[0]
@@ -216,6 +225,7 @@ function wijzigAfbeelding(event) {
     const reader = new FileReader()
     reader.onload = () => {
       profielfotoURL.value = reader.result
+      bedrijfsdata.value.foto = reader.result
     }
     reader.readAsDataURL(file)
   }
@@ -262,12 +272,23 @@ function removeTypePositie(index) {
   geselecteerdeTypePosities.value.splice(index, 1)
 }
 
-function bevestigGegevens() {
+async function bevestigGegevens() {
   foutmelding.value = ''
-  alert('Gegevens succesvol opgeslagen!')
-  setTimeout(() => {
-    router.push('/WeergaveBd')
-  }, 800)
+  if (!bedrijfsDocId.value) {
+    foutmelding.value = 'Geen bedrijfsprofiel gevonden.'
+    return
+  }
+  try {
+    const db = getFirestore()
+    const docRef = doc(db, 'bedrijf', bedrijfsDocId.value)
+    await updateDoc(docRef, bedrijfsdata.value)
+    alert('Gegevens succesvol opgeslagen!')
+    setTimeout(() => {
+      router.push('/WeergaveBd')
+    }, 800)
+  } catch (e) {
+    foutmelding.value = 'Fout bij opslaan: ' + e.message
+  }
 }
 </script>
 
@@ -437,8 +458,8 @@ function bevestigGegevens() {
   padding: 2rem 2.5rem;
   border-radius: 12px;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
-  margin: 0 0 2rem 0;
-  max-width: none;
+  margin: 0 auto 2rem auto;
+  max-width: 950px;
 }
 
 .form {
@@ -471,10 +492,10 @@ input,
 select,
 textarea {
   width: 100%;
-  padding: 0.9rem 1rem;
+  padding: 0.5rem 0.75rem;
   padding-right: 2.5rem;
   font-size: 1rem;
-  border-radius: 10px;
+  border-radius: 6px;
   border: 1px solid #ccc;
   background: white;
   font-family: inherit;
@@ -482,8 +503,9 @@ textarea {
 
 textarea {
   resize: vertical;
-  min-height: 120px;
+  min-height: 80px;
   max-height: 180px;
+  overflow-y: auto;
 }
 
 .input-icon {
