@@ -1,6 +1,15 @@
 <template>
   <BedrijfDashboardLayout>
     <main class="dashboard-main">
+      <!-- Mobile-only header -->
+      <header class="mobile-header">
+        <img src="/Images/ehb-logo.png" alt="EhB Logo" class="mobile-logo" />
+        <button @click="toggleMobileSidebar" class="hamburger-menu">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      </header>
       <section class="pagina">
         <div style="color: #b80000; font-weight: bold; margin-bottom: 1rem;">Hier zoekt de pagina naar echte match-data uit Firestore (studenten die interesse hebben in jouw bedrijf).</div>
         <div class="hoofding">
@@ -89,12 +98,35 @@
       </section>
     </main>
   </BedrijfDashboardLayout>
+
+  <!-- Mobile-only sidebar -->
+  <aside class="mobile-sidebar" :class="{ 'is-open': isMobileSidebarOpen }">
+    <div class="mobile-sidebar-header">
+      <button @click="toggleMobileSidebar" class="close-sidebar-btn">
+        <span></span>
+        <span></span>
+      </button>
+      <div class="sidebar-header-content">
+        <img src="/Images/ehb-logo.png" alt="EhB Logo" class="sidebar-header-logo" />
+        <div class="sidebar-header-text">
+          <h3>StudentMatch</h3>
+          <p>Bedrijfsdashboard</p>
+        </div>
+      </div>
+    </div>
+    <nav class="mobile-nav">
+      <router-link v-for="item in navigation" :key="item.name" :to="item.href" class="mobile-nav-link" :class="{ 'active-link': route.path === item.href }">
+        <span>{{ item.name }}</span>
+      </router-link>
+    </nav>
+  </aside>
+  <div v-if="isMobileSidebarOpen" @click="toggleMobileSidebar" class="sidebar-overlay"></div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { Heart, Calendar, User, Search, Building } from 'lucide-vue-next'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import BedrijfDashboardLayout from '../../../components/BedrijfDashboardLayout.vue'
 import { getAuth } from 'firebase/auth'
 import { getFirestore, collection, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore'
@@ -102,8 +134,10 @@ import { getFirestore, collection, getDocs, doc, getDoc, updateDoc } from 'fireb
 const db = getFirestore();
 const auth = getAuth();
 const router = useRouter()
+const route = useRoute()
 const matchStudenten = ref([])
 const zoekterm = ref('')
+const isMobileSidebarOpen = ref(false)
 
 console.log('BedrijfMatch component geladen');
 
@@ -209,6 +243,18 @@ function handleClickOutside(event) {
 if (typeof window !== 'undefined') {
   window.addEventListener('mousedown', handleClickOutside)
 }
+
+const toggleMobileSidebar = () => {
+  isMobileSidebarOpen.value = !isMobileSidebarOpen.value
+}
+
+const navigation = [
+  { name: 'Dashboard', href: '/BedrijfDashboard' },
+  { name: 'Afspraken', href: '/GesprekkenBd' },
+  { name: 'Matches', href: '/bedrijfmatch'},
+  { name: 'Profiel', href: '/WeergaveBd' },
+  { name: 'Instellingen', href: '/SettingsBe' },
+]
 </script>
 
 <style scoped>
@@ -725,5 +771,165 @@ if (typeof window !== 'undefined') {
 
 .popup-confirm:hover {
   background: #a10000;
+}
+
+/* === MOBILE RESPONSIVE STYLES === */
+.mobile-header,
+.mobile-sidebar,
+.sidebar-overlay {
+  display: none;
+}
+@media (max-width: 768px) {
+  :deep(.sidebar-nav),
+  :deep(.dashboard-header) {
+    display: none !important;
+  }
+  .mobile-header {
+    display: flex;
+    background: #fff;
+    padding: 1rem 1.5rem;
+    justify-content: space-between;
+    align-items: center;
+    margin: 1.5rem 1.5rem 0;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  }
+  .mobile-logo {
+    height: 42px;
+  }
+  .hamburger-menu {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 28px;
+    height: 21px;
+    z-index: 1002;
+  }
+  .hamburger-menu span {
+    display: block;
+    width: 100%;
+    height: 3px;
+    background-color: #c20000;
+    border-radius: 2px;
+  }
+  .mobile-sidebar {
+    position: fixed;
+    top: 0;
+    left: -280px;
+    width: 280px;
+    height: 100%;
+    background: #fff;
+    z-index: 1001;
+    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  .mobile-sidebar.is-open {
+    left: 0;
+  }
+  .mobile-sidebar-header {
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  .sidebar-header-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .sidebar-header-logo {
+    height: 36px;
+  }
+  .sidebar-header-text h3 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #111827;
+  }
+  .sidebar-header-text p {
+    font-size: 0.9rem;
+    color: #6b7280;
+  }
+  .close-sidebar-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    position: relative;
+    align-self: flex-end;
+    margin-bottom: 1rem;
+  }
+  .close-sidebar-btn span {
+    display: block;
+    position: absolute;
+    width: 100%;
+    height: 3px;
+    background-color: #c20000;
+    border-radius: 2px;
+    top: 50%;
+    left: 0;
+  }
+  .close-sidebar-btn span:first-child {
+    transform: translateY(-50%) rotate(45deg);
+  }
+  .close-sidebar-btn span:last-child {
+    transform: translateY(-50%) rotate(-45deg);
+  }
+  .mobile-nav {
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .mobile-nav-link {
+    padding: 0.8rem 1.2rem;
+    border-radius: 0.5rem;
+    color: #6b7280;
+    font-weight: 500;
+    text-decoration: none;
+    transition: color 0.2s, background-color 0.2s;
+  }
+  .mobile-nav-link:hover {
+    color: #c20000;
+    background-color: #f3f4f6;
+  }
+  .mobile-nav-link.active-link {
+    background: #f3f4f6;
+    color: #c20000;
+    font-weight: 600;
+  }
+  .sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+  }
+  .dashboard-main {
+    padding: 0;
+    background-color: #f8f9fa;
+  }
+  .pagina {
+    padding: 1.5rem;
+  }
+  .studentenlijst {
+    grid-template-columns: 1fr;
+  }
+}
+@media (min-width: 769px) {
+  .mobile-header,
+  .mobile-sidebar,
+  .sidebar-overlay {
+    display: none !important;
+  }
 }
 </style>

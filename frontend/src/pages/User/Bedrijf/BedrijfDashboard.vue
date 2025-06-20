@@ -163,7 +163,7 @@ const navigation = [
   { name: 'Dashboard', href: '/BedrijfDashboard' },
   { name: 'Afspraken', href: '/GesprekkenBd' },
   { name: 'Matches', href: '/bedrijfmatch'},
-  { name: 'Profiel', href: '/bedrijf/profiel' },
+  { name: 'Profiel', href: '/WeergaveBd' },
   { name: 'Instellingen', href: '/SettingsBe' },
 ]
 
@@ -221,7 +221,7 @@ function handleLogout() {
   router.push('/')
 }
 function goToProfile() {
-    router.push('/bedrijf/profiel');
+    router.push('/WeergaveBd');
 }
 function handleClickOutside(event) {
   const dropdown = document.getElementById('mobile-profile-dropdown')
