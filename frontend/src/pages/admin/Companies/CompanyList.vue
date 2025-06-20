@@ -60,7 +60,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="company in filteredCompanies" :key="company.id">
+          <tr v-for="company in filteredCompanies" :key="company.id" @click="viewCompany(company.id)" class="clickable-row">
             <td>
               <div class="logo-circle">
                 <img v-if="company.foto" :src="company.foto" :alt="company.bedrijfsnaam" />
@@ -69,8 +69,18 @@
             </td>
             <td>{{ company.bedrijfsnaam }}</td>
             <td>{{ company.locatie }}</td>
-            <td>{{ company.opZoekNaar }}</td>
             <td>
+              <div class="looking-for-tags">
+                <span v-if="Array.isArray(company.opZoekNaar)" v-for="item in company.opZoekNaar" :key="item" class="looking-for-tag">
+                  {{ item }}
+                </span>
+                <span v-else-if="company.opZoekNaar" class="looking-for-tag">
+                  {{ company.opZoekNaar }}
+                </span>
+                <span v-else class="no-data">-</span>
+              </div>
+            </td>
+            <td @click.stop>
               <div class="actions-cell">
                 <router-link :to="`/admin/companies/${company.id}`" class="action-btn view" title="Bekijken">👁️</router-link>
                 <router-link :to="`/admin/companies/${company.id}/edit`" class="action-btn edit" title="Bewerken">✏️</router-link>
@@ -284,13 +294,13 @@ export default {
   border-bottom: 1px solid #e0e0e0;
 }
 
-.company-row {
-  border-bottom: 1px solid #f0f0f0;
+.companies-table tr {
+  height: 56px;
   transition: background-color 0.2s ease;
 }
 
-.companies-table tr {
-  height: 56px;
+.companies-table tr:hover {
+  background-color: #f8f9fa;
 }
 
 .companies-table td.actions,
@@ -299,10 +309,6 @@ export default {
   padding-top: 0;
   padding-bottom: 0;
   height: 56px;
-}
-
-.company-row:hover {
-  background-color: #f8f9fa;
 }
 
 .companies-table td {
@@ -390,6 +396,30 @@ export default {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.looking-for-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: 200px;
+}
+
+.looking-for-tag {
+  background: #f8f9fa;
+  color: #6c757d;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+  border: 1px solid #e9ecef;
+}
+
+.no-data {
+  color: #999;
+  font-style: italic;
+  font-size: 0.875rem;
 }
 
 .actions {
@@ -496,6 +526,14 @@ export default {
 .actions-cell {
   display: flex;
   gap: 0.3rem;
+}
+
+.clickable-row {
+  cursor: pointer;
+}
+
+.clickable-row:hover {
+  background-color: #f8f9fa;
 }
 </style>
 

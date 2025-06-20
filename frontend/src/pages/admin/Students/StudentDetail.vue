@@ -41,7 +41,6 @@
             </div>
             <div class="profile-info">
               <h2 class="student-name">{{ student.voornaam }} {{ student.achternaam }}</h2>
-              <span class="status-badge active">Actief</span>
             </div>
           </div>
         </div>
@@ -76,20 +75,23 @@
         <!-- Skills -->
         <div class="detail-card">
           <h3 class="card-title">Vaardigheden</h3>
-          <div class="skills-list">
-            <span v-for="skill in student.skills" :key="skill" class="skill-tag">
-              {{ skill }}
-            </span>
-          </div>
-        </div>
-
-        <!-- Languages -->
-        <div class="detail-card">
-          <h3 class="card-title">Talenkennis</h3>
-          <div class="skills-list">
-            <span v-for="taal in student.talenkennis" :key="taal" class="skill-tag">
-              {{ taal }}
-            </span>
+          <div class="skills-section">
+            <div class="skills-subsection">
+              <h4 class="subsection-title">Technische Vaardigheden</h4>
+              <div class="skills-list">
+                <span v-for="skill in student.skills" :key="skill" class="skill-tag">
+                  {{ skill }}
+                </span>
+              </div>
+            </div>
+            <div class="skills-subsection">
+              <h4 class="subsection-title">Talenkennis</h4>
+              <div class="skills-list">
+                <span v-for="taal in student.talenkennis" :key="taal" class="skill-tag language-tag">
+                  {{ taal }}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -291,9 +293,9 @@ export default {
 
 .detail-card.profile-card {
   grid-column: 1 / -1;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
+  background: #f8f9fa;
+  color: #1a1a1a;
+  border: 1px solid #e9ecef;
 }
 
 .card-title {
@@ -338,18 +340,6 @@ export default {
   margin: 0 0 8px 0;
 }
 
-.status-badge {
-  display: inline-block;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 0.875rem;
-  font-weight: 600;
-}
-
-.status-badge.active {
-  background: rgba(255, 255, 255, 0.2);
-}
-
 .info-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -367,6 +357,25 @@ export default {
   color: #666;
 }
 
+.skills-section {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.skills-subsection {
+  flex: 1;
+}
+
+.subsection-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #495057;
+  margin: 0 0 12px 0;
+  border-bottom: 2px solid #e9ecef;
+  padding-bottom: 8px;
+}
+
 .skills-list {
   display: flex;
   flex-wrap: wrap;
@@ -378,6 +387,12 @@ export default {
   padding: 4px 12px;
   border-radius: 20px;
   font-size: 0.875rem;
+}
+
+.language-tag {
+  background: #d1ecf1;
+  color: #0c5460;
+  border: 1px solid #bee5eb;
 }
 
 .languages-text,

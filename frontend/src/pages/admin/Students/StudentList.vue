@@ -341,14 +341,15 @@ export default {
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: #007bff;
-  color: white;
+  background: #f8f9fa;
+  color: #6c757d;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 600;
   overflow: hidden;
   flex-shrink: 0;
+  border: 1px solid #e9ecef;
 }
 
 .student-photo img {

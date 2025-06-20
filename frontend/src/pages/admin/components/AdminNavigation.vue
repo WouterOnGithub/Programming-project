@@ -27,10 +27,21 @@
         <router-link 
           to="/admin/companies" 
           class="nav-link"
-          :class="{ active: $route.path.startsWith('/admin/companies') }"
+          :class="{ active: $route.path.startsWith('/admin/companies') && !$route.path.includes('/verification') }"
         >
           <span class="nav-icon">🏢</span>
           <span class="nav-text">Bedrijven</span>
+        </router-link>
+      </li>
+      
+      <li class="nav-item">
+        <router-link 
+          to="/admin/companies/verification" 
+          class="nav-link"
+          :class="{ active: $route.path.includes('/verification') }"
+        >
+          <span class="nav-icon">✅</span>
+          <span class="nav-text">Bedrijfsverificatie</span>
         </router-link>
       </li>
       
