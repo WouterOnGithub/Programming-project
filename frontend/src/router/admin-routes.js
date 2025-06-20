@@ -54,25 +54,20 @@ const adminRoutes = [
         props: true
       },
       {
-        path: 'students/new',
-        name: 'AdminStudentNew',
-        component: () => import('../pages/admin/Students/StudentForm.vue')
-      },
-      {
         path: 'students/:id/edit',
         name: 'AdminStudentEdit',
         component: () => import('../pages/admin/Students/StudentForm.vue'),
         props: true
       },
       {
+        path: 'students/new',
+        name: 'AdminStudentNew',
+        component: () => import('../pages/admin/Students/StudentForm.vue')
+      },
+      {
         path: 'companies',
         name: 'AdminCompanies',
         component: () => import('../pages/admin/Companies/CompanyList.vue')
-      },
-      {
-        path: 'companies/new',
-        name: 'AdminCompanyNew',
-        component: () => import('../pages/admin/Companies/CompanyForm.vue')
       },
       {
         path: 'companies/:id/edit',
@@ -85,6 +80,16 @@ const adminRoutes = [
         name: 'AdminCompanyDetail',
         component: () => import('../pages/admin/Companies/CompanyDetail.vue'),
         props: true
+      },
+{
+  path: 'companies/verification',
+  name: 'AdminCompanyVerification',
+  component: () => import('../pages/admin/Companies/CompanyVerification.vue')
+},
+      {
+        path: 'companies/new',
+        name: 'AdminCompanyNew',
+        component: () => import('../pages/admin/Companies/CompanyForm.vue')
       },
       {
         path: 'grondplan',
