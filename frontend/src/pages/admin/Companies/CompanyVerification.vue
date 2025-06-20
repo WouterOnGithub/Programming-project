@@ -74,7 +74,7 @@
             </td>
             <td>
               <div class="actions-cell" @click.stop>
-                <router-link :to="`/admin/companies/${company.id}`" class="action-btn view" title="Bekijken">
+                <router-link :to="{ name: 'AdminCompanyDetail', params: { id: company.id }, query: { from: 'verification' } }" class="action-btn view" title="Bekijken">
                   👁️
                 </router-link>
                 <button 
@@ -424,7 +424,7 @@ export default {
 
     const router = useRouter()
     const goToCompany = (id) => {
-      router.push(`/admin/companies/${id}`)
+      router.push({ name: 'AdminCompanyDetail', params: { id }, query: { from: 'verification' } })
     }
 
     // Lifecycle

@@ -36,7 +36,7 @@
         <div class="detail-card profile-card">
           <div class="profile-header">
             <div class="profile-avatar">
-              <img v-if="student.photo" :src="student.photo" :alt="student.voornaam">
+              <img v-if="student.photoUrl" :src="student.photoUrl" :alt="student.voornaam">
               <span v-else>{{ student.voornaam?.charAt(0) }}{{ student.achternaam?.charAt(0) }}</span>
             </div>
             <div class="profile-info">
