@@ -722,7 +722,7 @@ if (typeof window !== 'undefined') {
   }
 
   .mobile-logo {
-    height: 32px;
+    height: 42px;
   }
 
   .hamburger-menu {
