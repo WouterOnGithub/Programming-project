@@ -1,8 +1,8 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
 import { getAuth, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import { getAnalytics } from "firebase/analytics";
+import { getAnalytics, isSupported } from "firebase/analytics";
 import { getStorage } from "firebase/storage";
 
 // Your web app's Firebase configuration
@@ -25,8 +25,9 @@ const db = getFirestore(app);
 // Initialize Auth
 const auth = getAuth(app);
 
-// Initialize Analytics
-const analytics = getAnalytics(app);
+// Initialize Analytics conditionally (only if supported)
+let analytics = null;
+isSupported().then(yes => yes ? analytics = getAnalytics(app) : null);
 
 // Initialize Storage
 const storage = getStorage(app);
