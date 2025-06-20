@@ -10,7 +10,14 @@
         </div>
         <div class="dashboard-header-actions">
           <!-- Add NotificationCenter here -->
-          <NotificationCenter :companyId="currentUser?.uid" />
+          <NotificationCenter 
+            v-if="currentUser?.uid" 
+            :companyId="currentUser.uid" 
+            :key="currentUser.uid"
+          />
+          <div v-else style="color: red; font-size: 0.8rem;">
+            No user logged in
+          </div>
         </div>
       </div>
 
@@ -112,13 +119,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import BedrijfDashboardLayout from '../../../components/BedrijfDashboardLayout.vue'
 import NotificationCenter from '../../../components/NotificationCenter.vue'
 import { useRouter } from 'vue-router'
 import { useToast } from 'vue-toastification'
 import { auth, db } from '../../../firebase/config'
 import { doc, onSnapshot } from 'firebase/firestore'
+import { onAuthStateChanged } from 'firebase/auth'
 
 const toast = useToast()
 
@@ -126,25 +134,51 @@ const toast = useToast()
 const verificatieStatus = ref('wachtend op verificatie')
 const afwijzingsreden = ref('')
 
-// Computed property for current user
-const currentUser = computed(() => {
-  return auth.currentUser
+// Reactive current user
+const currentUser = ref(null)
+
+// Watch for auth state changes
+onAuthStateChanged(auth, (user) => {
+  console.log('Auth state changed:', user)
+  currentUser.value = user
+  
+  if (user) {
+    console.log('User logged in:', user.uid)
+    setupCompanyListener(user.uid)
+  } else {
+    console.log('No user logged in')
+  }
 })
 
-// Watch for company verification status changes
+// Setup company data listener
+const setupCompanyListener = (userId) => {
+  console.log('Setting up company listener for:', userId)
+  
+  const companyRef = doc(db, 'bedrijf', userId)
+  onSnapshot(companyRef, (doc) => {
+    if (doc.exists()) {
+      console.log('Company data received:', doc.data())
+      const data = doc.data()
+      verificatieStatus.value = data.verificatieStatus || 'wachtend op verificatie'
+      afwijzingsreden.value = data.afwijzingsreden || ''
+    } else {
+      console.log('No company document found for:', userId)
+    }
+  }, (error) => {
+    console.error('Error listening to company data:', error)
+  })
+}
+
 onMounted(() => {
+  console.log('BedrijfDashboard mounted')
+  console.log('Initial auth.currentUser:', auth.currentUser)
+  
   toast.success('Welkom terug op je bedrijfsdashboard!')
   
-  // Listen for verification status changes
+  // Set initial user if already logged in
   if (auth.currentUser) {
-    const companyRef = doc(db, 'bedrijf', auth.currentUser.uid)
-    onSnapshot(companyRef, (doc) => {
-      if (doc.exists()) {
-        const data = doc.data()
-        verificatieStatus.value = data.verificatieStatus || 'wachtend op verificatie'
-        afwijzingsreden.value = data.afwijzingsreden || ''
-      }
-    })
+    currentUser.value = auth.currentUser
+    setupCompanyListener(auth.currentUser.uid)
   }
 })
 

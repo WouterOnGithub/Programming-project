@@ -2,7 +2,7 @@
 import { ref, reactive, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { getAuth } from 'firebase/auth'
-import { getFirestore, collection, addDoc } from 'firebase/firestore'
+import { getFirestore, collection, addDoc, doc, setDoc } from 'firebase/firestore'
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
 import profielfoto from '/Images/profielfoto.jpg'
 import { useToast } from 'vue-toastification'
@@ -122,12 +122,10 @@ async function bevestigGegevens() {
     !formData.starttijd ||
     !formData.eindtijd ||
     geselecteerdeZoekprofielen.value.length === 0 ||
-    geselecteerdeZoekprofielen.value.length === 0 ||
     !formData.gesprekDuur ||
     !formData.overOns ||
     !formData.toestemming
   ) {
-    foutmelding.value = 'Vul alle verplichte velden in en geef toestemming.'
     foutmelding.value = 'Vul alle verplichte velden in en geef toestemming.'
     toast.error('Vul alle verplichte velden in en geef toestemming.')
     return
@@ -144,15 +142,14 @@ async function bevestigGegevens() {
       fotoUrl = await getDownloadURL(fotoRef)
     }
 
-    await addDoc(collection(db, 'bedrijf'), {
-      authUid: user.uid,
+    // GEWIJZIGD: setDoc in plaats van addDoc, met user.uid als document ID
+    await setDoc(doc(db, 'bedrijf', user.uid), {
       authUid: user.uid,
       aangemaaktOp: new Date(),
       bedrijfsnaam: formData.bedrijfsnaam,
       gesitueerdIn: formData.gesitueerdIn,
       starttijd: formData.starttijd,
       eindtijd: formData.eindtijd,
-      opZoekNaar: geselecteerdeZoekprofielen.value,
       opZoekNaar: geselecteerdeZoekprofielen.value,
       linkedin: formData.linkedin,
       gesprekDuur: formData.gesprekDuur,
@@ -164,10 +161,12 @@ async function bevestigGegevens() {
       bedrijfsgrootte: formData.bedrijfsgrootte,
       opgerichtIn: formData.opgerichtIn,
       foto: fotoUrl,
-      toestemming: formData.toestemming
+      toestemming: formData.toestemming,
+      // NIEUW: Verificatie velden voor notification systeem
+      verificatieStatus: 'wachtend op verificatie',
+      afwijzingsreden: null
     })
 
-    foutmelding.value = ''
     foutmelding.value = ''
     toast.success('Bedrijfsprofiel succesvol opgeslagen!')
     setTimeout(() => {
@@ -176,7 +175,6 @@ async function bevestigGegevens() {
 
   } catch (error) {
     console.error('Fout bij opslaan:', error)
-    foutmelding.value = 'Fout bij opslaan van je gegevens.'
     foutmelding.value = 'Fout bij opslaan van je gegevens.'
     toast.error('Fout bij opslaan van je gegevens.')
   }
@@ -581,3 +579,4 @@ textarea {
   background-color: #990000;
 }
 </style>
+
