@@ -62,12 +62,6 @@
                 <Calendar :size="14" />
                 <span>Accepteren</span>
               </button>
-              <button class="knop-verwijder" @click="weigerStudent(student.swipeDocId)">
-                <span>Weigeren</span>
-              </button>
-              <button class="knop-verwijder" @click="weigerStudent(student.swipeDocId)">
-                <span>Weigeren</span>
-              </button>
             </div>
           </div>
           <div v-if="gefilterdeStudenten.length === 0" class="geen-resultaten">
