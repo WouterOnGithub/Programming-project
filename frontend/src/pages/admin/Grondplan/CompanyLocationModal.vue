@@ -31,6 +31,40 @@
             </small>
           </div>
           
+          <!-- Lokaal Selection -->
+          <div class="form-group" v-if="lokalen && lokalen.length > 0">
+            <label for="lokaal-select">Lokaal (optioneel):</label>
+            <select 
+              id="lokaal-select"
+              v-model="selectedLokaalId" 
+              class="form-select"
+            >
+              <option value="">Vrije plaatsing (geen lokaal)</option>
+              <option 
+                v-for="lokaal in availableLokalen" 
+                :key="lokaal.id" 
+                :value="lokaal.id"
+              >
+                {{ lokaal.naam }} ({{ getBedrijvenInLokaal(lokaal.id).length }} bedrijven)
+              </option>
+            </select>
+            <small class="form-note">
+              Selecteer een lokaal om het bedrijf in een specifiek lokaal te plaatsen
+            </small>
+          </div>
+          
+          <!-- Selected Lokaal Info -->
+          <div v-if="selectedLokaal" class="selected-lokaal-info">
+            <div class="lokaal-preview">
+              <div class="lokaal-color" :style="{ backgroundColor: selectedLokaal.kleur }"></div>
+              <div class="lokaal-details">
+                <h4>{{ selectedLokaal.naam }}</h4>
+                <p v-if="selectedLokaal.beschrijving">{{ selectedLokaal.beschrijving }}</p>
+                <small>{{ selectedLokaal.breedte }}% × {{ selectedLokaal.hoogte }}% - {{ getBedrijvenInLokaal(selectedLokaal.id).length }} bedrijven</small>
+              </div>
+            </div>
+          </div>
+          
           <div class="form-group">
             <label>Positie:</label>
             <div class="position-info">
@@ -64,7 +98,7 @@
               </div>
             </div>
             <small class="form-note">
-              Coördinaten worden automatisch ingesteld bij dubbelklikken op de kaart
+              {{ selectedLokaal ? 'Positie binnen het geselecteerde lokaal' : 'Coördinaten worden automatisch ingesteld bij dubbelklikken op de kaart' }}
             </small>
           </div>
           
@@ -127,7 +161,6 @@
 
 <script>
 import { ref, computed, watch, onMounted } from 'vue'
-// Companies will be passed as props from parent component
 
 export default {
   name: 'CompanyLocationModal',
@@ -151,11 +184,20 @@ export default {
     placedMarkers: {
       type: Array,
       default: () => []
+    },
+    lokalen: {
+      type: Array,
+      default: () => []
+    },
+    selectedLokaal: {
+      type: Object,
+      default: null
     }
   },
   emits: ['close', 'save', 'delete'],
   setup(props, { emit }) {
     const selectedCompanyId = ref('')
+    const selectedLokaalId = ref('')
     const saving = ref(false)
     const deleting = ref(false)
     
@@ -170,6 +212,11 @@ export default {
     const selectedCompany = computed(() => {
       if (!selectedCompanyId.value) return null
       return props.companies.find(c => c.id === selectedCompanyId.value)
+    })
+    
+    const selectedLokaal = computed(() => {
+      if (!selectedLokaalId.value) return null
+      return props.lokalen.find(l => l.id === selectedLokaalId.value)
     })
     
     const availableCompanies = computed(() => {
@@ -189,6 +236,14 @@ export default {
       });
     })
     
+    const availableLokalen = computed(() => {
+      return props.lokalen || []
+    })
+    
+    const getBedrijvenInLokaal = (lokaalId) => {
+      return props.placedMarkers.filter(marker => marker.lokaalId === lokaalId)
+    }
+    
     const closeModal = () => {
       emit('close')
     }
@@ -204,7 +259,8 @@ export default {
           x: locationData.value.x,
           y: locationData.value.y,
           notes: locationData.value.notes.trim(),
-          grondplanId: props.floor
+          grondplanId: props.floor,
+          lokaalId: selectedLokaalId.value || null
         }
         
         emit('save', locationToSave)
@@ -239,6 +295,7 @@ export default {
     onMounted(() => {
       if (props.existingMarker) {
         selectedCompanyId.value = props.existingMarker.companyId
+        selectedLokaalId.value = props.existingMarker.lokaalId || ''
         locationData.value = {
           x: props.existingMarker.x,
           y: props.existingMarker.y,
@@ -249,6 +306,11 @@ export default {
           x: props.location.x,
           y: props.location.y,
           notes: ''
+        }
+        
+        // If a lokaal was pre-selected, set it
+        if (props.selectedLokaal) {
+          selectedLokaalId.value = props.selectedLokaal.id
         }
       }
     })
@@ -261,14 +323,25 @@ export default {
       }
     }, { deep: true })
     
+    // Watch for selectedLokaal prop changes
+    watch(() => props.selectedLokaal, (newLokaal) => {
+      if (!isEditing.value && newLokaal) {
+        selectedLokaalId.value = newLokaal.id
+      }
+    })
+    
     return {
       selectedCompanyId,
+      selectedLokaalId,
       saving,
       deleting,
       locationData,
       isEditing,
       selectedCompany,
+      selectedLokaal,
       availableCompanies,
+      availableLokalen,
+      getBedrijvenInLokaal,
       closeModal,
       saveLocation,
       deleteLocation
@@ -418,6 +491,45 @@ export default {
 
 .position-field input {
   padding-right: 40px;
+}
+
+.selected-lokaal-info {
+  margin-bottom: 16px;
+  padding: 16px;
+  background: #f0f8ff;
+  border: 1px solid #b3d9ff;
+  border-radius: 8px;
+}
+
+.lokaal-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.lokaal-color {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+}
+
+.lokaal-details h4 {
+  margin: 0 0 4px 0;
+  color: #333;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.lokaal-details p {
+  margin: 0 0 4px 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.lokaal-details small {
+  color: #999;
+  font-size: 0.8rem;
 }
 
 .selected-company-preview {
@@ -587,6 +699,11 @@ export default {
   .company-logo {
     width: 60px;
     height: 60px;
+  }
+  
+  .lokaal-preview {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 

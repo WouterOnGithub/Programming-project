@@ -13,6 +13,9 @@
           <span class="btn-icon">+</span>
           Nieuwe grondplan uploaden
         </button>
+        <button @click="openLokaalModal" class="btn btn-secondary" style="margin-left: 1rem;">
+          Lokaal toevoegen
+            </button>
       </div>
     </div>
 
@@ -33,7 +36,7 @@
             </button>
           </div>
         </div>
-
+        
         <div v-else class="grondplan-view">
           <div class="grondplan-title">
             <h2>{{ currentGrondplan.name }}</h2>
@@ -45,6 +48,15 @@
                   :class="{ 'active': editMode }"
                 >
                   {{ editMode ? 'Bewerkmodus Actief' : 'Bewerkmodus' }}
+                </button>
+                <button 
+                  @click="toggleLocationEditMode" 
+                  class="mode-btn"
+                  :class="{ 'active': locationEditMode }"
+                  style="margin-left: 0.5rem;"
+                  title="Klik om lokalen te bewerken of nieuwe toe te voegen"
+                >
+                  {{ locationEditMode ? 'Locatiemodus Actief' : 'Bewerk locatie' }}
                 </button>
               </div>
 
@@ -137,7 +149,7 @@
         </div>
       </div>
     </div>
-    
+
     <!-- Company Selection Modal -->
     <company-location-modal
       v-if="showCompanyModal"
@@ -252,6 +264,16 @@
         </div>
       </div>
     </div>
+
+    <LokaalModal
+      v-if="showLokaalModal"
+      :location="selectedLocationForLokaal"
+      :grondplanId="currentGrondplanId || ''"
+      :existingLokaal="editingLokaal"
+      @close="closeLokaalModal"
+      @save="handleSaveLokaal"
+      @delete="handleDeleteLokaal"
+    />
   </div>
 </template>
 
@@ -263,6 +285,7 @@ import { collection, getDocs, addDoc, updateDoc, doc, getDoc, query, where, dele
 import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'
 import CompanyLocationModal from './CompanyLocationModal.vue'
 import CompanySearch from './CompanySearch.vue'
+import LokaalModal from './LokaalModal.vue'
 
 // Import LeafletJS
 import L from 'leaflet'
@@ -280,7 +303,8 @@ export default {
   name: 'GrondplanList',
   components: {
     CompanyLocationModal,
-    CompanySearch
+    CompanySearch,
+    LokaalModal
   },
   setup() {
     const router = useRouter()
@@ -294,11 +318,14 @@ export default {
     const map = ref(null)
     const imageOverlay = ref(null)
     const markersLayer = ref(null)
+    const lokalenLayer = ref(null)
     const companyMarkers = ref([])
     const showCompanyModal = ref(false)
     const selectedLocation = reactive({ x: 0, y: 0 })
     const editingMarker = ref(null)
     const editMode = ref(false)
+    const locationEditMode = ref(false)
+    const selectedLocationForLokaal = reactive({ x: 50, y: 50 })
     const showUploadModal = ref(false)
     const uploading = ref(false)
     const showDeleteModal = ref(false)
@@ -317,6 +344,9 @@ export default {
     const showInstructions = ref(false)
     const isFadingOut = ref(false)
     let instructionTimeout = null
+    const showLokaalModal = ref(false)
+    const lokalen = ref([])
+    const editingLokaal = ref(null)
     
     // Map bounds for coordinate conversion
     const mapBounds = ref([[0, 0], [100, 100]])
@@ -373,10 +403,14 @@ export default {
         })
         
         markersLayer.value = L.layerGroup().addTo(map.value)
+        lokalenLayer.value = L.layerGroup().addTo(map.value)
         
         if (editMode.value) {
           map.value.on('dblclick', handleMapDoubleClick)
         }
+        
+        // Add click event listener for location editing
+        map.value.on('click', handleMapClick)
         
         map.value.setView([50, 50], 0)
         
@@ -423,6 +457,7 @@ export default {
           })
           
           loadCompanyMarkersOnMap()
+          drawLokalenOnMap()
         }
         
         img.src = currentGrondplan.value.imageUrl
@@ -666,6 +701,7 @@ export default {
         if (grondplanDoc.exists()) {
           currentGrondplan.value = { id: grondplanDoc.id, ...grondplanDoc.data() }
           await loadCompanyMarkers()
+          await loadLokalenData()
           
           loading.value = false
           
@@ -721,6 +757,141 @@ export default {
         allCompanyLocations.value = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
       } catch (error) {
         console.error('Error loading all company locations:', error)
+      }
+    }
+    
+    const loadLokalenData = async () => {
+      if (!currentGrondplanId.value) return
+      lokalen.value = []
+      try {
+        const q = query(collection(db, 'lokalen'), where('grondplanId', '==', currentGrondplanId.value))
+        const querySnapshot = await getDocs(q)
+        const loadedLokalen = []
+        querySnapshot.forEach((doc) => {
+          loadedLokalen.push({ id: doc.id, ...doc.data() })
+        })
+        lokalen.value = loadedLokalen
+        console.log(`${lokalen.value.length} lokaaldata geladen.`)
+      } catch (error) {
+        console.error("Fout bij het laden van lokaaldata:", error)
+      }
+    }
+
+    const drawLokalenOnMap = () => {
+      if (!lokalenLayer.value) return
+      lokalenLayer.value.clearLayers()
+
+      lokalen.value.forEach(lokaalData => {
+        drawLokaal(lokaalData)
+      })
+      console.log('Lokalen getekend op de kaart.')
+    }
+
+    const drawLokaal = (lokaalData) => {
+      if (!map.value || !percentToLatLng) return
+      
+      const topLeft = percentToLatLng(lokaalData.x, lokaalData.y)
+      const bottomRight = percentToLatLng(lokaalData.x + lokaalData.breedte, lokaalData.y + lokaalData.hoogte)
+      const bounds = L.latLngBounds(topLeft, bottomRight)
+      
+      const rectangle = L.rectangle(bounds, {
+        color: lokaalData.kleur,
+        weight: 2,
+        fillColor: lokaalData.kleur,
+        fillOpacity: 0.3
+      }).addTo(lokalenLayer.value)
+      
+      let wasDragged = false
+      
+      rectangle.on('mousedown', (e) => {
+        if (!locationEditMode.value) return
+        
+        L.DomEvent.stopPropagation(e)
+        map.value.dragging.disable()
+        wasDragged = false
+        
+        const startLatLng = e.latlng
+        const startBounds = rectangle.getBounds()
+        
+        const onMouseMove = (moveEvent) => {
+          wasDragged = true
+          const latLngDiff = {
+            lat: moveEvent.latlng.lat - startLatLng.lat,
+            lng: moveEvent.latlng.lng - startLatLng.lng
+          }
+          const newBounds = L.latLngBounds(
+            [startBounds.getSouth() + latLngDiff.lat, startBounds.getWest() + latLngDiff.lng],
+            [startBounds.getNorth() + latLngDiff.lat, startBounds.getEast() + latLngDiff.lng]
+          )
+          rectangle.setBounds(newBounds)
+        }
+        
+        const onMouseUp = () => {
+          map.value.dragging.enable()
+          map.value.off('mousemove', onMouseMove)
+          map.value.off('mouseup', onMouseUp)
+          
+          if (wasDragged) {
+            const newBounds = rectangle.getBounds()
+            const newTopLeft = newBounds.getNorthWest()
+            const newPercent = latLngToPercent(newTopLeft.lat, newTopLeft.lng)
+            
+            const updatedData = {
+              ...lokaalData,
+              x: newPercent.x,
+              y: newPercent.y,
+            }
+            updateLokaalPosition(updatedData)
+          } else {
+            // This was a click, not a drag
+            editingLokaal.value = lokaalData
+            showLokaalModal.value = true
+          }
+        }
+        
+        map.value.on('mousemove', onMouseMove)
+        map.value.on('mouseup', onMouseUp)
+      })
+      
+      rectangle.bindTooltip(lokaalData.naam, {
+        permanent: true,
+        direction: 'center',
+        className: 'lokaal-label'
+      })
+    }
+    
+    const updateLokaalPosition = async (lokaalData) => {
+      try {
+        const lokaalRef = doc(db, 'lokalen', lokaalData.id)
+        await updateDoc(lokaalRef, {
+          x: lokaalData.x,
+          y: lokaalData.y,
+          updatedAt: new Date()
+        })
+        console.log(`Lokaal ${lokaalData.id} positie bijgewerkt.`)
+        
+        // Update local data array to prevent needing a full reload
+        const index = lokalen.value.findIndex(l => l.id === lokaalData.id)
+        if (index !== -1) {
+          lokalen.value[index].x = lokaalData.x
+          lokalen.value[index].y = lokaalData.y
+        }
+      } catch (error) {
+        console.error('Fout bij bijwerken lokaalpositie:', error)
+        alert('Fout bij het bijwerken van de lokaalpositie.')
+      }
+    }
+
+    const handleDeleteLokaal = async (lokaalId) => {
+      if (!confirm('Weet je zeker dat je dit lokaal wilt verwijderen?')) return
+      try {
+        await deleteDoc(doc(db, 'lokalen', lokaalId))
+        closeLokaalModal()
+        await loadLokalenData()
+        drawLokalenOnMap()
+      } catch (error) {
+        console.error('Fout bij verwijderen lokaal:', error)
+        alert('Er is een fout opgetreden bij het verwijderen van het lokaal.')
       }
     }
     
@@ -860,8 +1031,8 @@ export default {
     
     const uploadGrondplan = async () => {
       if (!selectedFile.value) return
-
-      uploading.value = true
+      
+        uploading.value = true
       try {
         const file = selectedFile.value
         const fileSize = formatFileSize(file.size)
@@ -933,7 +1104,7 @@ export default {
     const confirmDeleteGrondplan = async () => {
       if (!currentGrondplan.value) return
       
-      deleting.value = true
+        deleting.value = true
       try {
         // Delete from Firestore
         await deleteDoc(doc(db, 'grondplannen', currentGrondplan.value.id))
@@ -1069,7 +1240,7 @@ export default {
 
       await initializePage();
     });
-
+    
     onBeforeUnmount(() => {
       if (map.value) {
         map.value.remove()
@@ -1079,6 +1250,64 @@ export default {
       delete window.editMarker
     })
     
+    const openLokaalModal = () => { 
+      // Als we niet in locationEditMode zijn, gebruik default locatie
+      if (!locationEditMode.value) {
+        showLokaalModal.value = true 
+      }
+    }
+    const closeLokaalModal = () => { 
+      showLokaalModal.value = false
+      editingLokaal.value = null
+    }
+    
+    const toggleLocationEditMode = () => {
+      locationEditMode.value = !locationEditMode.value
+    }
+    
+    const handleMapClick = (e) => {
+      // Prioritize lokaal editing over company editing if both are active
+      if (locationEditMode.value) {
+        // This is a click on the map, not on an existing lokaal, so we want to create a new one.
+        const { lat, lng } = e.latlng
+        const percent = latLngToPercent(lat, lng)
+
+        selectedLocationForLokaal.x = Math.max(0, Math.min(100, x.toFixed(4)))
+        selectedLocationForLokaal.y = Math.max(0, Math.min(100, y.toFixed(4)))
+        
+        editingLokaal.value = null // Ensure we are creating a new lokaal
+        showLokaalModal.value = true // Open the modal
+        return // Stop further execution
+      }
+
+      if (editMode.value) {
+        handleMapDoubleClick(e)
+      }
+    }
+    
+    const handleSaveLokaal = async (lokaalData) => {
+      try {
+        if (lokaalData.id) {
+          const lokaalRef = doc(db, 'lokalen', lokaalData.id)
+          const dataToUpdate = { ...lokaalData }
+          delete dataToUpdate.id
+          await updateDoc(lokaalRef, { ...dataToUpdate, updatedAt: new Date() })
+        } else {
+          await addDoc(collection(db, 'lokalen'), {
+            ...lokaalData,
+            createdAt: new Date(),
+          })
+        }
+        
+        closeLokaalModal()
+        await loadLokalenData()
+        drawLokalenOnMap()
+      } catch (error) {
+        console.error('Fout bij opslaan lokaal:', error)
+        alert('Er is een fout opgetreden bij het opslaan van het lokaal.')
+      }
+    }
+
     return {
       // State
       grondplannen,
@@ -1092,6 +1321,8 @@ export default {
       selectedLocation,
       editingMarker,
       editMode,
+      locationEditMode,
+      selectedLocationForLokaal,
       showUploadModal,
       uploading,
       showDeleteModal,
@@ -1104,6 +1335,9 @@ export default {
       allCompanyLocations,
       showInstructions,
       isFadingOut,
+      showLokaalModal,
+      lokalen,
+      editingLokaal,
       
       // Methods
       selectGrondplan,
@@ -1125,7 +1359,14 @@ export default {
       closeDeleteModal,
       confirmDeleteGrondplan,
       formatFileSize,
-      toggleSidebar
+      toggleSidebar,
+      openLokaalModal,
+      closeLokaalModal,
+      toggleLocationEditMode,
+      handleMapClick,
+      handleSaveLokaal,
+      handleDeleteLokaal,
+      updateLokaalPosition
     }
   }
 }
@@ -2035,6 +2276,16 @@ export default {
 .grondplan-view {
   min-width: 0;
   min-height: 0;
+}
+
+.lokaal-label {
+  background-color: transparent;
+  border: none;
+  box-shadow: none;
+  color: #000;
+  font-weight: bold;
+  font-size: 14px;
+  text-shadow: 1px 1px 2px #fff, -1px -1px 2px #fff, 1px -1px 2px #fff, -1px 1px 2px #fff;
 }
 </style>
 
