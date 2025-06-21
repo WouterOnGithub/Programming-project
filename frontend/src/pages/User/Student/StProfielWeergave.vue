@@ -7,42 +7,44 @@
         <!-- Alleen de main content van de profielpagina, zonder sidebar/header -->
         <section class="hero-banner">
           <div class="hero-photo">
-            <img :src="profiel?.fotoPreview || profiel?.foto || profielfoto" alt="Profielfoto" />
+            <img :src="student?.fotoUrl || profielfoto" alt="Profielfoto" />
           </div>
           <div class="hero-text">
-            <h1>{{ profiel?.voornaam }} {{ profiel?.achternaam }}</h1>
-            <p>{{ profiel?.domein }} – {{ profiel?.studiejaar }}</p>
+            <h1>{{ student?.voornaam }} {{ student?.achternaam }}</h1>
+            <p v-if="student?.domein" class="domein">
+              {{ Array.isArray(student.domein) ? student.domein.join(', ') : student.domein }} - {{ student.studiejaar }}
+            </p>
           </div>
           <router-link to="/WijzigenSt" class="wijzig-knop">Wijzig</router-link>
         </section>
     
         <section class="section-card">
           <h2>Introductie</h2>
-          <p class="intro-text">{{ profiel?.intro }}</p>
+          <p class="intro-text">{{ student.intro }}</p>
         </section>
     
         <section class="section-card">
           <h2>Informatie</h2>
           <ul class="info-list">
-            <li><strong>Leeftijd:</strong> {{ profiel?.leeftijd }}</li>
-            <li><strong>Beschikbaar vanaf:</strong> {{ profiel?.beschikbaarVanaf }}</li>
-            <li><strong>Opportuniteit:</strong> {{ profiel?.opportuniteit }}</li>
-            <li><strong>LinkedIn:</strong> <a :href="profiel?.linkedin" target="_blank">Bekijk profiel</a></li>
+            <li><strong>Leeftijd:</strong> {{ student?.leeftijd }}</li>
+            <li><strong>Beschikbaar vanaf:</strong> {{ student?.beschikbaarVanaf }}</li>
+            <li><strong>Opportuniteit:</strong> {{ student?.opportuniteit }}</li>
+            <li><strong>LinkedIn:</strong> <a :href="student?.linkedin" target="_blank">Bekijk profiel</a></li>
           </ul>
         </section>
     
         <section class="section-card">
           <h2>Vaardigheden</h2>
           <div class="chip-cloud">
-            <span class="chip" v-for="skill in profiel?.skills || []" :key="skill">{{ skill }}</span>
+            <span class="chip" v-for="skill in student?.skills || []" :key="skill">{{ skill }}</span>
           </div>
         </section>
     
         <section class="section-card">
           <h2>Talenkennis</h2>
           <div class="badge-row">
-            <span class="badge" v-for="taal in profiel?.talenkennis || []" :key="taal">
-              {{ taal }}<span v-if="taal === 'Andere'"> ({{ profiel?.andereTaal }})</span>
+            <span class="badge" v-for="taal in student?.talenkennis || []" :key="taal">
+              {{ taal }}<span v-if="taal === 'Andere'"> ({{ student?.andereTaal }})</span>
             </span>
           </div>
         </section>
@@ -50,7 +52,7 @@
         <section class="grid-2">
           <div class="section-card">
             <h2>CV</h2>
-            <div v-if="profiel?.cv && (typeof profiel.cv === 'string' || profiel.cv.url || profiel.cv.CVUrl || profiel.cv.cvUrl)">
+            <div v-if="student?.cv && (typeof student.cv === 'string' || student.cv.url || student.cv.CVUrl || student.cv.cvUrl)">
               <button type="button" class="download-cv-btn" @click="downloadCV">
                 Download CV
               </button>
@@ -74,7 +76,7 @@ import profielfoto from '/Images/profielfoto.jpg'
 import StudentDashboardLayout from '../../../components/StudentDashboardLayout.vue'
 
 const router = useRouter()
-const profiel = ref(null)
+const student = ref(null)
 const loading = ref(true)
 const error = ref(null)
 
@@ -92,12 +94,12 @@ onMounted(async () => {
     const q = query(collection(db, 'student'), where('authUid', '==', user.uid))
     const snapshot = await getDocs(q)
     if (!snapshot.empty) {
-      profiel.value = snapshot.docs[0].data()
+      student.value = snapshot.docs[0].data()
     } else {
-      error.value = 'Geen studentenprofiel gevonden.'
+      error.value = 'Geen studentprofiel gevonden.'
     }
   } catch (e) {
-    error.value = 'Fout bij ophalen studentenprofiel.'
+    error.value = 'Fout bij ophalen studentprofiel.'
   } finally {
     loading.value = false
   }
@@ -113,7 +115,7 @@ const navigation = [
 ]
 
 function downloadCV() {
-  const cv = profiel.value?.cv
+  const cv = student.value?.cv
   let url = ''
   if (typeof cv === 'string') url = cv
   else if (cv?.url) url = cv.url
@@ -317,6 +319,10 @@ function downloadCV() {
 }
 
 .intro-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #374151;
+  line-height: 1.6;
   background: #fff3f3;
   padding: 1rem;
   border-left: 4px solid var(--rood);
@@ -394,6 +400,17 @@ function downloadCV() {
 
 .download-cv-btn:hover {
   background: #990000;
+}
+
+.header-info .domein {
+  margin: 0.25rem 0 0.5rem;
+  font-style: italic;
+  opacity: 0.9;
+}
+
+.linkedin-link a {
+  color: white;
+  text-decoration: underline;
 }
 </style>
   

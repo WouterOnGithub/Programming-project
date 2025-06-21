@@ -304,10 +304,10 @@ const fetchLocatieGegevens = async (bedrijfId) => {
       locatieGegevens.value = locationData
       if (locatieStat) {
         locatieStat.value = `Stand ${locationData.standId || 'Onbekend'}`
-        locatieStat.isLink = true
-        locatieStat.path = '/bedrijf/grondplan'
+        locatieStat.isLink = false
+        locatieStat.path = null
         locatieStat.color = 'text-purple-600'
-        locatieStat.change = 'Bekijk op plattegrond'
+        locatieStat.change = ''
       }
     } else {
       locatieGegevens.value = null

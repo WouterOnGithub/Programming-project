@@ -55,7 +55,7 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getAuth, onAuthStateChanged } from 'firebase/auth'
-import { getFirestore, doc, getDoc } from 'firebase/firestore'
+import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore'
 import NotificationCenter from './NotificationCenter.vue'
 import profielfoto from '/Images/profielfoto.jpg'
 
@@ -101,10 +101,11 @@ onMounted(() => {
   onAuthStateChanged(auth, async (user) => {
     currentUser.value = user
     if (user) {
-      const docRef = doc(db, 'bedrijf', user.uid);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        const data = docSnap.data();
+      const q = query(collection(db, 'bedrijf'), where('authUid', '==', user.uid));
+      const snapshot = await getDocs(q);
+
+      if (!snapshot.empty) {
+        const data = snapshot.docs[0].data();
         userData.value.companyName = data.bedrijfsnaam || 'Bedrijf';
         userFoto.value = data.foto || null;
       }

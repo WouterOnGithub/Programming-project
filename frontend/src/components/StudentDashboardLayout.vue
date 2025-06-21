@@ -132,7 +132,7 @@ onMounted(async () => {
     if (docSnap.exists()) {
       const data = docSnap.data();
       userName.value = data.voornaam ? `${data.voornaam} ${data.achternaam}` : user.displayName || 'Gebruiker';
-      userFoto.value = data.foto || null;
+      userFoto.value = data.fotoUrl || null;
     }
   }
 })

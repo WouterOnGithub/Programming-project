@@ -51,7 +51,7 @@
               <div class="avatar">{{ bedrijf.afkorting }}</div>
               <div>
                 <h3>{{ bedrijf.naam }}</h3>
-                <p class="richting">{{ bedrijf.sector }} – {{ bedrijf.locatie }}</p>
+                <p class="richting">{{ Array.isArray(bedrijf.sector) ? bedrijf.sector.join(', ') : bedrijf.sector }} – {{ bedrijf.locatie }}</p>
               </div>
             </div>
             <div class="acties">

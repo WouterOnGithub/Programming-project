@@ -24,7 +24,7 @@
           <div class="section-card">
             <h2>Informatie</h2>
             <ul class="info-list">
-              <li><strong>Op zoek naar:</strong> {{ bedrijf?.opZoekNaar?.join ? bedrijf.opZoekNaar.join(', ') : bedrijf.opZoekNaar }}</li>
+              <li><strong>Op zoek naar:</strong> {{ Array.isArray(bedrijf?.opZoekNaar) ? bedrijf.opZoekNaar.join(', ') : bedrijf?.opZoekNaar }}</li>
               <li><strong>Gesprek duurt:</strong> {{ bedrijf?.gesprekDuur }}</li>
               <li><strong>Aanwezig van:</strong> {{ bedrijf?.starttijd }} tot {{ bedrijf?.eindtijd }}</li>
               <li><strong>Locatie stand:</strong> {{ bedrijf?.gesitueerdIn }}</li>
