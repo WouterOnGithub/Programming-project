@@ -7,8 +7,7 @@
           <img src="/Images/ehb-logo.png" alt="EHB logo" class="ehb-logo-img" />
         </div>
         <div>
-          <h1 class="sidebar-title">StudentMatch</h1>
-          <p class="sidebar-subtitle">Studentdashboard</p>
+          <h1 class="sidebar-title">Studentdashboard</h1>
         </div>
       </div>
       <nav class="sidebar-menu">
@@ -27,23 +26,20 @@
     <main class="dashboard-main">
       <header class="dashboard-header">
         <div>
-          <h1>Welkom {{ userName }}</h1>
+          <h1>Welkom {{ userData.name }}</h1>
           <p>{{ pageSubtitle }}</p>
         </div>
         <div class="dashboard-header-actions">
-          <div class="dashboard-search">
-            <i class="fas fa-search"></i>
-            <input type="text" placeholder="Zoeken..." />
+          <NotificationCenter 
+            v-if="currentUser?.uid" 
+            :companyId="currentUser.uid" 
+            :key="currentUser.uid"
+          />
+          <div class="dashboard-profile-avatar" id="student-profile-avatar" @click="handleAvatarClick">
+            <img v-if="userFoto" :src="userFoto" alt="studenten foto" class="avatar-img" />
+            <span v-else>{{ userData.companyName ? userData.companyName[0] : 'B' }}</span>
           </div>
-          <button class="dashboard-bell">
-            <i class="fas fa-bell"></i>
-            <span class="dashboard-bell-dot"></span>
-          </button>
-          <div class="dashboard-profile-avatar" id="profile-avatar" @click="handleAvatarClick">
-            <img v-if="userFoto" :src="userFoto" alt="Profielfoto" class="avatar-img" />
-            <span v-else>{{ userInitial }}</span>
-          </div>
-          <div v-if="showDropdown" id="profile-dropdown" class="profile-dropdown">
+          <div v-if="showDropdown" id="student-profile-dropdown" class="profile-dropdown">
             <button class="dropdown-item" @click="goToProfile">Profiel</button>
             <button class="dropdown-item" @click="handleLogout">Uitloggen</button>
           </div>
@@ -55,11 +51,26 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getAuth } from 'firebase/auth'
-import { getFirestore, doc, getDoc } from 'firebase/firestore'
-import profielfoto from '/Images/profielfoto.jpg'
+import { getAuth, onAuthStateChanged } from 'firebase/auth'
+import {
+  getFirestore,
+  collection,
+  query,
+  where,
+  getDocs
+} from 'firebase/firestore'
+
+import NotificationCenter from './NotificationCenter.vue'
+
+const $route = useRoute()
+const router = useRouter()
+
+const userFoto = ref(null)
+const userData = ref({ name: '' })
+const currentUser = ref(null)
+const showDropdown = ref(false)
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: 'fas fa-chart-pie' },
@@ -69,17 +80,10 @@ const navigation = [
   { name: 'Matches', href: '/stmatch', icon: 'fas fa-users' },
   { name: 'Profiel', href: '/WeergaveSt', icon: 'fas fa-user' },
   { name: 'Instellingen', href: '/SettingsStu', icon: 'fas fa-cog' },
-];
-
-const route = useRoute()
-const router = useRouter()
-
-const userName = ref('Gebruiker')
-const userFoto = ref(null)
-const userInitial = computed(() => userName.value[0] || 'G')
+]
 
 const pageSubtitle = computed(() => {
-  switch (route.path) {
+  switch ($route.path) {
     case '/dashboard':
       return 'Hier is je dashboard overzicht'
     case '/swipe':
@@ -88,6 +92,8 @@ const pageSubtitle = computed(() => {
       return 'Hier is je afspraken overzicht'
     case '/Favorietenst':
       return 'Overzicht van favoriete bedrijven'
+    case '/stmatch':
+      return 'Hier is een overzicht van uw matchs'
     case '/WeergaveSt':
       return 'Profieloverzicht'
     case '/SettingsStu':
@@ -97,8 +103,6 @@ const pageSubtitle = computed(() => {
   }
 })
 
-const showDropdown = ref(false)
-
 function handleAvatarClick() {
   showDropdown.value = !showDropdown.value
 }
@@ -107,35 +111,47 @@ function handleLogout() {
   router.push('/')
 }
 
-function goToProfile() {
-  showDropdown.value = false;
-  router.push('/WeergaveSt');
-}
-
 function handleClickOutside(event) {
-  const dropdown = document.getElementById('profile-dropdown')
-  const avatar = document.getElementById('profile-avatar')
-  if (dropdown && !dropdown.contains(event.target) && avatar && !avatar.contains(event.target)) {
+  const dropdown = document.getElementById('student-profile-dropdown')
+  const avatar = document.getElementById('student-profile-avatar')
+
+  if (
+    dropdown && !dropdown.contains(event.target) &&
+    avatar && !avatar.contains(event.target)
+  ) {
     showDropdown.value = false
   }
 }
 
-onMounted(async () => {
-  document.addEventListener('mousedown', handleClickOutside)
-  // Haal studentprofiel op
-  const auth = getAuth();
-  const db = getFirestore();
-  const user = auth.currentUser;
-  if (user) {
-    const docRef = doc(db, 'student', user.uid);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      const data = docSnap.data();
-      userName.value = data.voornaam ? `${data.voornaam} ${data.achternaam}` : user.displayName || 'Gebruiker';
-      userFoto.value = data.fotoUrl || null;
+function goToProfile() {
+  showDropdown.value = false
+  router.push('/WeergaveSt')
+}
+
+onMounted(() => {
+  setTimeout(() => {
+    document.addEventListener('mousedown', handleClickOutside)
+  }, 100)
+
+  const auth = getAuth()
+  const db = getFirestore()
+
+  onAuthStateChanged(auth, async (user) => {
+    currentUser.value = user
+
+    if (user) {
+      const q = query(collection(db, 'student'), where('authUid', '==', user.uid))
+      const snapshot = await getDocs(q)
+
+      if (!snapshot.empty) {
+        const data = snapshot.docs[0].data()
+        userData.value.name = data.voornaam || 'Student'
+        userFoto.value = data.foto || null
+      }
     }
-  }
+  })
 })
+
 onBeforeUnmount(() => {
   document.removeEventListener('mousedown', handleClickOutside)
 })
@@ -181,10 +197,7 @@ onBeforeUnmount(() => {
   font-weight: 600;
   color: #111827;
 }
-.sidebar-subtitle {
-  font-size: 0.8rem;
-  color: #6b7280;
-}
+
 .sidebar-menu {
   flex: 1;
   padding: 1rem 0.5rem;
@@ -235,26 +248,7 @@ onBeforeUnmount(() => {
   gap: 1.2rem;
   position: relative;
 }
-.dashboard-search {
-  position: relative;
-  display: flex;
-  align-items: center;
-  background: #f3f4f6;
-  border-radius: 0.5rem;
-  padding: 0.2rem 0.7rem;
-}
-.dashboard-search i {
-  color: #6b7280;
-  margin-right: 0.5rem;
-}
-.dashboard-search input {
-  border: none;
-  background: transparent;
-  outline: none;
-  font-size: 0.95rem;
-  color: #111827;
-  width: 8rem;
-}
+
 .dashboard-bell {
   background: #f3f4f6;
   border: none;
