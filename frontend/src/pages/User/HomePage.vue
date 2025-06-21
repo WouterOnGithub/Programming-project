@@ -73,243 +73,594 @@
         </div>
       </div>
     </section>
+    
  
     <!-- Companies -->
-    <section class="companies">
+       <section class="companies">
       <div class="container">
-        <h3>Deelnemende bedrijven:</h3>
-        <div class="carousel-search-bar">
-          <input
-            v-model="companySearch"
-            type="text"
-            placeholder="Zoek bedrijf..."
-            class="carousel-search-input"
-          />
-          <span class="carousel-search-icon">
-            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <circle cx="11" cy="11" r="8"/>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-            </svg>
-          </span>
+        <!-- Titel en ondertitel -->
+        <div class="companies-header">
+          <h2 class="section-title">Deelnemende bedrijven</h2>
+          <p class="section-subtitle">
+            Ontdek de innovatieve bedrijven die deelnemen aan Career Launch 2026
+          </p>
         </div>
-        <button class="toggle-companies-btn" @click="showAllCompanies = !showAllCompanies">
-          {{ showAllCompanies ? 'Verberg bedrijven' : 'Toon alle bedrijven' }}
-        </button>
-        <div v-if="showAllCompanies" class="all-companies-grid">
-          <div class="company-card" v-for="company in filteredCompanies" :key="company.id">
-            <div class="company-logo">
-              <img :src="company.logo" :alt="company.name" class="company-logo-img" />
+
+        <!-- Zoekveld + toggle -->
+        <div class="companies-controls">
+          <div class="search-with-toggle">
+            <div class="search-container">
+              <input
+                v-model="companySearch"
+                type="text"
+                placeholder="Zoek bedrijf..."
+                class="search-input"
+                aria-label="Zoek naar een bedrijf"
+              />
+              <span class="search-icon">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+              </span>
             </div>
-            <span class="company-name">{{ company.name }}</span>
+
+            <div class="view-toggle" role="group" aria-label="Wissel tussen carousel en grid-weergave">
+              <button
+                class="toggle-btn"
+                :class="{ active: !showAllCompanies }"
+                @click="showAllCompanies = false"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <rect x="3" y="6" width="18" height="4" rx="2" />
+                  <rect x="3" y="14" width="18" height="4" rx="2" />
+                </svg>
+                Carousel
+              </button>
+              <button
+                class="toggle-btn"
+                :class="{ active: showAllCompanies }"
+                @click="showAllCompanies = true"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <rect x="3" y="3" width="7" height="7" rx="1" />
+                  <rect x="14" y="3" width="7" height="7" rx="1" />
+                  <rect x="3" y="14" width="7" height="7" rx="1" />
+                  <rect x="14" y="14" width="7" height="7" rx="1" />
+                </svg>
+                Grid
+              </button>
+            </div>
           </div>
         </div>
-        <div v-else class="carousel-container">
-          <div class="carousel-wrapper">
-            <div class="companies-carousel" ref="carousel">
-              <div class="company-card" v-for="company in filteredCompanies" :key="company.id">
-                <div class="company-logo">
-                  <img :src="company.logo" :alt="company.name" class="company-logo-img" />
-                </div>
-                <span class="company-name">{{ company.name }}</span>
-              </div>
-            </div>
-          </div>
-          <button class="carousel-btn carousel-btn-prev" @click="prevSlide" :disabled="currentSlide === 0">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="15,18 9,12 15,6"></polyline>
-            </svg>
-          </button>
-          <button class="carousel-btn carousel-btn-next" @click="nextSlide" :disabled="currentSlide >= maxSlide">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="9,18 15,12 9,6"></polyline>
-            </svg>
-          </button>
-          <div class="carousel-dots">
-            <button 
-              v-for="(dot, index) in Math.ceil(companies.length / slidesToShow)" 
-              :key="index"
-              class="carousel-dot" 
-              :class="{ active: currentSlide >= index * slidesToShow && currentSlide < (index + 1) * slidesToShow }"
-              @click="goToSlide(index * slidesToShow)"
-            ></button>
-          </div>
+
+       <!-- Carousel weergave -->
+<div v-if="!showAllCompanies" class="carousel-section">
+  <div class="carousel-main-container">
+    <div class="carousel-container">
+      <button
+        class="carousel-nav carousel-nav-prev"
+        @click="prevSlide"
+        :disabled="currentSlide === 0"
+        :class="{ disabled: currentSlide === 0 }"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="15,18 9,12 15,6"></polyline>
+        </svg>
+      </button>
+
+      <div class="carousel-wrapper">
+        <div class="carousel-track" ref="carousel" :style="carouselStyle">
+      <a
+        class="company-card-carousel"
+        v-for="company in filteredCompanies"
+        :key="company.id"
+        :href="company.linkedin"
+        target="_blank"
+        rel="noopener"
+      >
+        <div class="company-logo-container">
+          <img :src="company.foto" :alt="company.naam" class="company-logo" />
+        </div>
+        <div class="company-details">
+          <h3 class="company-name">{{ company.naam }}</h3>
+        </div>
+      </a>
+
         </div>
       </div>
-    </section>
 
-    <!-- Back to Top Button -->
-    <button class="back-to-top" @click="scrollToTop" aria-label="Terug naar boven">
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="12" fill="#c20000"/><path d="M8 14l4-4 4 4" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </button>
+      <button
+        class="carousel-nav carousel-nav-next"
+        @click="nextSlide"
+        :disabled="currentSlide >= maxSlide"
+        :class="{ disabled: currentSlide >= maxSlide }"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="9,18 15,12 9,6"></polyline>
+        </svg>
+      </button>
+    </div>
+
+    <div class="carousel-indicators" v-if="filteredCompanies.length > slidesToShow">
+      <button
+        v-for="(page, index) in totalPages"
+        :key="index"
+        class="carousel-dot"
+        :class="{ active: currentPage === index + 1 }"
+        @click="goToSlide(index)"
+      ></button>
+    </div>
+
+    <div class="carousel-info">
+      <span class="carousel-counter">
+        Pagina {{ currentPage }} van {{ totalPages }}
+      </span>
+    </div>
+  </div>
+</div>
+
+<!-- Grid weergave -->
+<div v-else class="carousel-section">
+  <div class="carousel-main-container">
+    <div class="all-companies-grid">
+      <a
+        class="company-card"
+        v-for="company in filteredCompanies"
+        :key="company.id"
+        :href="company.linkedin"
+        target="_blank"
+        rel="noopener"
+      >
+        <div class="company-logo company-logo--grid">
+          <img :src="company.foto" :alt="company.naam" class="company-logo-img" />
+        </div>
+        <span class="company-name">{{ company.naam }}</span>
+      </a>
+    </div>
+  </div>
+</div>
+
+      </div>
+    </section>
   </div>
 </template>
- 
+
 <script>
+import { onMounted, ref, computed } from 'vue'
 import Navbar from '../../components/Navbar.vue'
 import '../../css/Home.css'
+import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore'
+
 export default {
   name: 'Homepage',
-  components: { Navbar},
-  data() {
-    return {
-      isMenuOpen: false,
-      currentSlide: 0,
-      slidesToShow: 3,
-      companySearch: '',
-      showAllCompanies: false,
-      showBackToTop: false,
-      companies: [
-        { id: 1, name: 'Accenture', logo: '/Images/accenture-logo.png' },
-        { id: 2, name: 'Cegeka', logo: '/Images/cegeka-logo.jpg' },
-        { id: 3, name: 'Proximus', logo: '/Images/proximus-logo.png' },
-        { id: 4, name: 'Cronos', logo: '/Images/cronos-logo.png' },
-        { id: 5, name: 'Telenet', logo: '/Images/telenet-logo.png' }
-      ]
-    }
-  },
-  computed: {
-    maxSlide() {
-      return Math.max(0, this.filteredCompanies.length - this.slidesToShow)
-    },
-    filteredCompanies() {
-      if (!this.companySearch) return this.companies
-      return this.companies.filter(company =>
-        company.name.toLowerCase().includes(this.companySearch.toLowerCase())
-      )
-    }
-  },
-  methods: {
-    goToRegister() {
-      this.$router.push('/register')
-    },
-    toggleMenu() {
-      this.isMenuOpen = !this.isMenuOpen
-    },
-    setActiveSection(section) {
-      this.activeSection = section
-      this.isMenuOpen = false
-    },
-    nextSlide() {
-      if (this.currentSlide < this.maxSlide) {
-        this.currentSlide++
-        this.updateCarousel()
+  components: { Navbar },
+  setup() {
+    const db = getFirestore()
+    const bedrijven = ref([])
+    const loading = ref(true)
+    const error = ref(null)
+    const showAllCompanies = ref(false)
+    const companySearch = ref('')
+    const currentSlide = ref(0)
+    const slidesToShow = ref(5)
+
+    const fetchBedrijven = async () => {
+      try {
+        const bedrijvenRef = collection(db, 'bedrijf')
+        const q = query(bedrijvenRef, where('verificatieStatus', '==', 'goedgekeurd'))
+        const snapshot = await getDocs(q)
+
+        bedrijven.value = snapshot.docs.map(doc => ({
+          id: doc.id,
+          naam: doc.data().bedrijfsnaam,
+          foto: doc.data().foto,
+          linkedin: doc.data().linkedin
+        }))
+      } catch (err) {
+        error.value = 'Fout bij ophalen van bedrijven.'
+        console.error(err)
+      } finally {
+        loading.value = false
       }
-    },
-    prevSlide() {
-      if (this.currentSlide > 0) {
-        this.currentSlide--
-        this.updateCarousel()
-      }
-    },
-    goToSlide(index) {
-      this.currentSlide = index
-      this.updateCarousel()
-    },
-    updateCarousel() {
-      const carousel = this.$refs.carousel
-      if (carousel) {
-        const cardWidth = carousel.querySelector('.company-card').offsetWidth
-        const gap = 32 // 2rem gap
-        const translateX = -(this.currentSlide * (cardWidth + gap))
-        carousel.style.transform = `translateX(${translateX}px)`
-      }
-    },
-    handleResize() {
-      const width = window.innerWidth
-      if (width < 768) {
-        this.slidesToShow = 1
-      } else if (width < 1024) {
-        this.slidesToShow = 2
-      } else {
-        this.slidesToShow = 3
-      }
-      this.currentSlide = Math.min(this.currentSlide, this.maxSlide)
-      this.$nextTick(() => {
-        this.updateCarousel()
-      })
-    },
-    scrollToTop() {
-      window.scrollTo({ top: 0, behavior: 'smooth' })
-    },
-    handleScroll() {
-      this.showBackToTop = window.scrollY > 300
-    }
-  },
-  mounted() {
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-      anchor.addEventListener('click', function (e) {
-        e.preventDefault()
-        const target = document.querySelector(this.getAttribute('href'))
-        if (target) {
-          target.scrollIntoView({ behavior: 'smooth', block: 'start' })
-        }
-      })
-    })
-    
-    // Initialize carousel
-    this.handleResize()
-    window.addEventListener('resize', this.handleResize)
-    
-    // Touch support for mobile
-    let startX = 0
-    let isDragging = false
-    
-    const carousel = this.$refs.carousel
-    if (carousel) {
-      carousel.addEventListener('touchstart', (e) => {
-        startX = e.touches[0].clientX
-        isDragging = true
-      })
-      
-      carousel.addEventListener('touchmove', (e) => {
-        if (!isDragging) return
-        e.preventDefault()
-      })
-      
-      carousel.addEventListener('touchend', (e) => {
-        if (!isDragging) return
-        isDragging = false
-        
-        const endX = e.changedTouches[0].clientX
-        const diff = startX - endX
-        
-        if (Math.abs(diff) > 50) {
-          if (diff > 0) {
-            this.nextSlide()
-          } else {
-            this.prevSlide()
-          }
-        }
-      })
     }
 
-    // Back to top scroll event
-    window.addEventListener('scroll', this.handleScroll)
-  },
-  beforeUnmount() {
-    window.removeEventListener('resize', this.handleResize)
-    window.removeEventListener('scroll', this.handleScroll)
+    const filteredCompanies = computed(() => {
+      return bedrijven.value.filter(c =>
+        c.naam.toLowerCase().includes(companySearch.value.toLowerCase())
+      )
+    })
+
+    const maxSlide = computed(() => Math.max(0, filteredCompanies.value.length - slidesToShow.value))
+    const carouselStyle = computed(() => ({
+      transform: `translateX(-${currentSlide.value * (100 / slidesToShow.value)}%)`,
+      transition: 'transform 0.4s ease'
+    }))
+    const totalPages = computed(() =>
+      Math.ceil(filteredCompanies.value.length / slidesToShow.value)
+    )
+    const currentPage = computed(() =>
+      Math.floor(currentSlide.value / slidesToShow.value) + 1
+    )
+
+    const nextSlide = () => {
+      if (currentSlide.value < maxSlide.value) {
+        currentSlide.value = Math.min(currentSlide.value + slidesToShow.value, maxSlide.value)
+      }
+    }
+
+    const prevSlide = () => {
+      if (currentSlide.value > 0) {
+        currentSlide.value = Math.max(currentSlide.value - slidesToShow.value, 0)
+      }
+    }
+
+    const goToSlide = (index) => {
+      currentSlide.value = Math.min(index * slidesToShow.value, maxSlide.value)
+    }
+
+    onMounted(() => {
+      fetchBedrijven()
+    })
+
+    return {
+      showAllCompanies,
+      bedrijven,
+      filteredCompanies,
+      companySearch,
+      currentSlide,
+      slidesToShow,
+      carouselStyle,
+      maxSlide,
+      totalPages,
+      currentPage,
+      nextSlide,
+      prevSlide,
+      goToSlide,
+      loading,
+      error
+    }
   }
 }
 </script>
- 
+
+
+
 <style scoped>
-.back-to-top {
-  position: fixed;
-  right: 2rem;
-  bottom: 2rem;
-  z-index: 1000;
-  background: transparent;
-  border: none;
-  outline: none;
-  cursor: pointer;
-  opacity: 1;
-  pointer-events: auto;
-  transition: opacity 0.3s;
+/***** Bedrijven Header *****/
+.companies-header {
+  text-align: center;
+  margin-bottom: 3rem;
 }
-.back-to-top svg {
+
+.section-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 1rem;
+}
+
+.section-subtitle {
+  font-size: 1.125rem;
+  color: #64748b;
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+/***** Zoek en toggle *****/
+.search-with-toggle {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2rem;
+}
+
+
+.search-container {
+  position: relative;
+  max-width: 350px;
+  width: 100%;
+}
+
+
+.search-input {
+  width: 100%;
+  padding: 0.875rem 1rem 0.875rem 3rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 1rem;
+  background: white;
+  transition: all 0.3s ease;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #c20000;
+  box-shadow: 0 0 0 3px rgba(194, 0, 0, 0.1);
+}
+
+.search-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.view-toggle {
+  display: flex;
+  background: white;
+  border-radius: 12px;
+  padding: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #64748b;
+  transition: all 0.2s ease;
+}
+
+.toggle-btn.active {
+  background: #c20000;
+  color: white;
+}
+
+.toggle-btn:hover:not(.active) {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+/***** Carousel *****/
+.carousel-section {
+  padding: 3rem 0 2rem;
+  overflow: visible;
+}
+
+.carousel-main-container {
+  background: white;
+  border-radius: 20px;
+  padding: 3rem 2rem 2rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  position: relative;
+  overflow: visible;
+}
+
+.carousel-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.carousel-wrapper {
+  overflow: hidden;
+  flex: 1;
+  margin: 0 3rem;
+  position: relative;
+  padding-top: 1rem;
+}
+
+.carousel-track {
+  display: flex;
+  transition: transform 0.4s ease;
+  will-change: transform;
+}
+
+.company-card-carousel {
+  flex: 0 0 calc(100% / 5);
+  padding: 0 0.75rem;
+  text-decoration: none;
+  box-sizing: border-box;
   display: block;
-  box-shadow: 0 4px 16px rgba(194,0,0,0.18);
+}
+
+.company-logo-container {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 1.2rem;
+  margin: 0.5rem 0 1rem;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid transparent;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.company-card-carousel:hover .company-logo-container {
+  background: white;
+  border-color: #c20000;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(194, 0, 0, 0.12);
+}
+
+.company-logo-carousel {
+  max-width: 100%;
+  max-height: 80px;
+  object-fit: contain;
+}
+
+.company-details {
+  text-align: center;
+}
+
+.company-name {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 0.5rem;
+}
+
+.carousel-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: white;
   border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, background 0.3s ease;
+}
+
+.carousel-nav-prev {
+  left: 0;
+}
+
+.carousel-nav-next {
+  right: 0;
+}
+
+.carousel-nav:hover:not(.disabled) {
+  background: #c20000;
+  color: white;
+  transform: translateY(-50%) scale(1.05);
+}
+
+.carousel-nav.disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.carousel-indicators {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+
+.carousel-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #cbd5e1;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.3s ease;
+}
+
+.carousel-dot.active {
+  background: #c20000;
+  transform: scale(1.2);
+}
+
+.carousel-dot:hover {
+  background: #94a3b8;
+}
+
+.carousel-info {
+  text-align: center;
+  margin-top: 1rem;
+}
+
+.carousel-counter {
+  font-size: 0.875rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/***** Grid view *****/
+.all-companies-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.company-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
+  text-align: center;
+  transition: transform 0.2s ease;
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.company-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+}
+
+.company-logo--grid {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f8fafc;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  aspect-ratio: 1;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.company-logo-img {
+  max-height: 60px;
+  max-width: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+/***** Responsive tweaks *****/
+@media (max-width: 992px) {
+  .company-card-carousel {
+    flex: 0 0 calc(100% / 3);
+  }
+}
+
+@media (max-width: 768px) {
+  .company-card-carousel {
+    flex: 0 0 calc(100% / 2);
+  }
+
+  .carousel-nav {
+    width: 40px;
+    height: 40px;
+  }
+
+  .carousel-wrapper {
+    margin: 0 1.5rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .company-card-carousel {
+    flex: 0 0 100%;
+  }
+
+  .carousel-main-container {
+    padding: 1rem;
+    border-radius: 16px;
+  }
+
+  .carousel-wrapper {
+    margin: 0 1rem;
+  }
+
+  .search-with-toggle {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 </style>
