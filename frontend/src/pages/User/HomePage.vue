@@ -158,6 +158,7 @@
         :href="company.linkedin"
         target="_blank"
         rel="noopener"
+        :style="{ flex: `0 0 ${100 / slidesToShow}%` }"
       >
         <div class="company-logo-container">
           <img :src="company.foto" :alt="company.naam" class="company-logo" />
@@ -182,17 +183,10 @@
       </button>
     </div>
 
-    <div class="carousel-indicators" v-if="filteredCompanies.length > slidesToShow">
-      <button
-        v-for="(page, index) in totalPages"
-        :key="index"
-        class="carousel-dot"
-        :class="{ active: currentPage === index + 1 }"
-        @click="goToSlide(index)"
-      ></button>
-    </div>
-
     <div class="carousel-info">
+      <div class="progress-bar-container" v-if="filteredCompanies.length > slidesToShow">
+        <div class="progress-bar" :style="{ width: progressBarWidth + '%' }"></div>
+      </div>
       <span class="carousel-counter">
         Pagina {{ currentPage }} van {{ totalPages }}
       </span>
@@ -227,7 +221,7 @@
 </template>
 
 <script>
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, ref, computed, onUnmounted, watch } from 'vue'
 import Navbar from '../../components/Navbar.vue'
 import '../../css/Home.css'
 import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore'
@@ -244,6 +238,19 @@ export default {
     const companySearch = ref('')
     const currentSlide = ref(0)
     const slidesToShow = ref(5)
+
+    const handleResize = () => {
+      const width = window.innerWidth
+      if (width < 576) {
+        slidesToShow.value = 1
+      } else if (width < 768) {
+        slidesToShow.value = 2
+      } else if (width < 992) {
+        slidesToShow.value = 3
+      } else {
+        slidesToShow.value = 5
+      }
+    }
 
     const fetchBedrijven = async () => {
       try {
@@ -282,16 +289,28 @@ export default {
     const currentPage = computed(() =>
       Math.floor(currentSlide.value / slidesToShow.value) + 1
     )
+    const progressBarWidth = computed(() => {
+        if (totalPages.value <= 1) return 100;
+        return (currentPage.value / totalPages.value) * 100;
+    });
 
     const nextSlide = () => {
       if (currentSlide.value < maxSlide.value) {
-        currentSlide.value = Math.min(currentSlide.value + slidesToShow.value, maxSlide.value)
+        if (slidesToShow.value > 2) {
+            currentSlide.value = Math.min(currentSlide.value + slidesToShow.value, maxSlide.value)
+        } else {
+            currentSlide.value++
+        }
       }
     }
 
     const prevSlide = () => {
       if (currentSlide.value > 0) {
-        currentSlide.value = Math.max(currentSlide.value - slidesToShow.value, 0)
+        if (slidesToShow.value > 2) {
+            currentSlide.value = Math.max(currentSlide.value - slidesToShow.value, 0)
+        } else {
+            currentSlide.value--
+        }
       }
     }
 
@@ -304,8 +323,20 @@ export default {
       window.location.href = '/register'
     }
 
+    watch(slidesToShow, () => {
+      if (currentSlide.value > maxSlide.value) {
+        currentSlide.value = maxSlide.value
+      }
+    })
+
     onMounted(() => {
       fetchBedrijven()
+      handleResize()
+      window.addEventListener('resize', handleResize)
+    })
+
+    onUnmounted(() => {
+      window.removeEventListener('resize', handleResize)
     })
 
     return {
@@ -319,6 +350,7 @@ export default {
       maxSlide,
       totalPages,
       currentPage,
+      progressBarWidth,
       nextSlide,
       prevSlide,
       goToSlide,
@@ -466,7 +498,6 @@ export default {
 }
 
 .company-card-carousel {
-  flex: 0 0 calc(100% / 5);
   padding: 0 0.75rem;
   text-decoration: none;
   box-sizing: border-box;
@@ -546,34 +577,25 @@ export default {
   cursor: not-allowed;
 }
 
-.carousel-indicators {
-  display: flex;
-  justify-content: center;
-  gap: 0.5rem;
+.carousel-info {
+  text-align: center;
   margin-top: 1.5rem;
 }
 
-.carousel-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: #cbd5e1;
-  cursor: pointer;
-  transition: background 0.3s ease, transform 0.3s ease;
+.progress-bar-container {
+  height: 4px;
+  background: #e2e8f0;
+  border-radius: 2px;
+  margin: 0 auto 0.75rem;
+  width: 100%;
+  max-width: 200px;
 }
 
-.carousel-dot.active {
+.progress-bar {
+  height: 100%;
   background: #c20000;
-  transform: scale(1.2);
-}
-
-.carousel-dot:hover {
-  background: #94a3b8;
-}
-
-.carousel-info {
-  text-align: center;
-  margin-top: 1rem;
+  border-radius: 2px;
+  transition: width 0.4s ease;
 }
 
 .carousel-counter {
