@@ -710,6 +710,26 @@ async function reloadMatches() {
   background: #b91c1c;
 }
 
+.knop-verwijder {
+  background: #e5e7eb;
+  color: #374151;
+  border: none;
+  padding: 0.5rem 1.1rem;
+  border-radius: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: background 0.15s, color 0.15s;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.knop-verwijder:hover {
+  background: #d1d5db;
+}
+
 .verwijder-kruis {
   position: absolute;
   top: 12px;

@@ -2,7 +2,7 @@
 import { reactive, ref } from 'vue';
 import { auth, db, GoogleAuthProvider, signInWithPopup } from '../../firebase/config';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { collection, doc, setDoc, query, where, getDocs } from 'firebase/firestore';
+import { collection, doc, setDoc, query, where, getDocs, getDoc } from 'firebase/firestore';
 import { useRouter } from 'vue-router';
 import '../../css/register.css'
 import Navbar from '../../components/Navbar.vue'
@@ -63,6 +63,14 @@ const handleRegister = async () => {
         studentData.email,
         studentData.password
       );
+      const user = userCredential.user;
+
+      // Maak een document aan in de 'student' collectie
+      await setDoc(doc(db, 'student', user.uid), {
+        email: user.email,
+        authUid: user.uid,
+        createdAt: new Date() // Gebruik new Date() i.p.v. serverTimestamp
+      });
 
       alert(`Student account aangemaakt!`);
       clearForms();
@@ -88,6 +96,15 @@ const handleRegister = async () => {
         companyData.email,
         companyData.password
       );
+      const user = userCredential.user;
+
+      // Maak een document aan in de 'bedrijf' collectie
+      await setDoc(doc(db, 'bedrijf', user.uid), {
+        email: user.email,
+        authUid: user.uid,
+        createdAt: new Date(),
+        verificatieStatus: 'wachtend op verificatie'
+      });
 
       alert(`Bedrijf account aangemaakt!`);
       clearForms();
@@ -111,18 +128,35 @@ const handleGoogleRegister = async () => {
 
     if (isStudent()) {
       // Controleer in 'student' collectie
-      const q = query(collection(db, 'student'), where('authUid', '==', user.uid));
-      const querySnapshot = await getDocs(q);
-      if (!querySnapshot.empty) {
+      const studentDocRef = doc(db, 'student', user.uid);
+      const studentDocSnap = await getDoc(studentDocRef);
+      if (studentDocSnap.exists()) {
         exists = true;
+      } else {
+        // Maak student document aan als het niet bestaat
+        await setDoc(studentDocRef, {
+          email: user.email,
+          authUid: user.uid,
+          createdAt: new Date(),
+          naam: user.displayName || user.email.split('@')[0]
+        });
       }
       route = exists ? '/dashboard' : '/Stinvoer';
     } else if (isBedrijf()) {
       // Controleer in 'bedrijf' collectie
-      const q = query(collection(db, 'bedrijf'), where('authUid', '==', user.uid));
-      const querySnapshot = await getDocs(q);
-      if (!querySnapshot.empty) {
+      const bedrijfDocRef = doc(db, 'bedrijf', user.uid);
+      const bedrijfDocSnap = await getDoc(bedrijfDocRef);
+      if (bedrijfDocSnap.exists()) {
         exists = true;
+      } else {
+        // Maak bedrijf document aan als het niet bestaat
+        await setDoc(bedrijfDocRef, {
+          email: user.email,
+          authUid: user.uid,
+          bedrijfsnaam: user.displayName || user.email.split('@')[0],
+          createdAt: new Date(),
+          verificatieStatus: 'wachtend op verificatie'
+        });
       }
       route = exists ? '/BedrijfDashboard' : '/InvoerenBd';
     }

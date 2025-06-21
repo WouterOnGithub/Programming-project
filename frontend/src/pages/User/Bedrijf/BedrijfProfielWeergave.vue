@@ -11,81 +11,57 @@
         </button>
       </header>
       <section class="dashboard-card">
-        <div class="hero-banner">
-          <div class="hero-photo">
-            <img :src="bedrijf?.foto || profielfoto" alt="Bedrijfslogo" />
+        <div v-if="loading">Laden...</div>
+        <div v-else-if="error" style="color: #b80000;">{{ error }}</div>
+        <div v-else-if="bedrijf">
+          <div class="hero-banner">
+            <div class="hero-photo">
+              <img :src="bedrijf.foto || profielfoto" alt="Bedrijfslogo" />
+            </div>
+            <div class="hero-text">
+              <h1>{{ bedrijf.bedrijfsnaam || 'Bedrijfsnaam' }}</h1>
+              <p>{{ bedrijf.gesitueerdIn || '-' }}</p>
+            </div>
+            <router-link to="/WijzigBd" class="wijzig-knop">Wijzig</router-link>
           </div>
-          <div class="hero-text">
-            <h1>{{ bedrijf?.bedrijfsnaam || 'Bedrijfsnaam' }}</h1>
-            <p>{{ bedrijf?.gesitueerdIn }}</p>
-          </div>
-          <router-link to="/WijzigBd" class="wijzig-knop">Wijzig</router-link>
-        </div>
-
-        <div v-if="loading" class="section-card">Laden...</div>
-        <div v-else-if="error" class="section-card" style="color: #b80000;">{{ error }}</div>
-        <template v-else>
           <div class="section-card">
             <h2>Over ons</h2>
-            <p class="intro-text">{{ bedrijf?.overOns }}</p>
+            <p class="intro-text">{{ bedrijf.overOns || 'Geen informatie beschikbaar.' }}</p>
           </div>
           <div class="section-card">
             <h2>Informatie</h2>
             <ul class="info-list">
-              <li><strong>Op zoek naar:</strong> {{ bedrijf?.opZoekNaar?.join ? bedrijf.opZoekNaar.join(', ') : bedrijf.opZoekNaar }}</li>
-              <li><strong>Gesprek duurt:</strong> {{ bedrijf?.gesprekDuur }}</li>
-              <li><strong>Aanwezig van:</strong> {{ bedrijf?.starttijd }} tot {{ bedrijf?.eindtijd }}</li>
-              <li><strong>Locatie stand:</strong> {{ bedrijf?.gesitueerdIn }}</li>
+              <li><strong>Op zoek naar:</strong> {{ Array.isArray(bedrijf.opZoekNaar) ? bedrijf.opZoekNaar.join(', ') : bedrijf.opZoekNaar || '-' }}</li>
+              <li><strong>Gesprek duurt:</strong> {{ bedrijf.gesprekDuur || '-' }}</li>
+              <li><strong>Aanwezig van:</strong> {{ bedrijf.starttijd || '-' }} tot {{ bedrijf.eindtijd || '-' }}</li>
+              <li><strong>Locatie stand:</strong> {{ bedrijf.gesitueerdIn || '-' }}</li>
               <li>
                 <strong>LinkedIn:</strong>
-                <a :href="bedrijf?.linkedin" target="_blank">Bekijk profiel</a>
+                <a v-if="bedrijf.linkedin" :href="bedrijf.linkedin" target="_blank">Bekijk profiel</a>
+                <span v-else>-</span>
               </li>
             </ul>
           </div>
           <div class="section-card">
-            <h2>Vacature informatie</h2>
+            <h2>Contactinformatie</h2>
             <ul class="info-list">
-              <li><strong>Op zoek naar:</strong> IT-studenten, Marketing profielen</li>
-              <li><strong>Type posities:</strong> Stage, Studentenjob</li>
+              <li><strong>E-mail:</strong> {{ bedrijf.email || '-' }}</li>
+              <li><strong>Website:</strong> {{ bedrijf.website || '-' }}</li>
+              <li><strong>Telefoonnummer:</strong> {{ bedrijf.telefoonnummer || '-' }}</li>
             </ul>
           </div>
-          <!-- Contactinformatie sectie -->
-          <div class="section-card">
-            <h2>Contactinformatie</h2>
-            <div class="contactinfo-fields">
-              <div class="contactinfo-field">
-                <label for="contact-email"><strong>Contact e-mail</strong></label>
-                <input id="contact-email" type="email" :value="bedrijf?.email" readonly />
-              </div>
-              <div class="contactinfo-field">
-                <label for="contact-website"><strong>Website</strong></label>
-                <input id="contact-website" type="text" :value="bedrijf?.website" readonly />
-              </div>
-              <div class="contactinfo-field">
-                <label for="contact-telefoon"><strong>Telefoonnummer</strong></label>
-                <input id="contact-telefoon" type="text" :value="bedrijf?.telefoonnummer" readonly />
-              </div>
-            </div>
-          </div>
-          <!-- Bedrijfsdetails sectie -->
           <div class="section-card">
             <h2>Bedrijfsdetails</h2>
-            <div class="contactinfo-fields">
-              <div class="contactinfo-field">
-                <label for="bedrijf-branche"><strong>Branche</strong></label>
-                <input id="bedrijf-branche" type="text" :value="bedrijf?.branche" readonly />
-              </div>
-              <div class="contactinfo-field">
-                <label for="bedrijf-grootte"><strong>Bedrijfsgrootte</strong></label>
-                <input id="bedrijf-grootte" type="text" :value="bedrijf?.bedrijfsgrootte" readonly />
-              </div>
-              <div class="contactinfo-field">
-                <label for="bedrijf-opgericht"><strong>Opgericht in</strong></label>
-                <input id="bedrijf-opgericht" type="text" :value="bedrijf?.opgerichtIn" readonly />
-              </div>
-            </div>
+            <ul class="info-list">
+              <li><strong>Branche:</strong> {{ bedrijf.branche || '-' }}</li>
+              <li><strong>Bedrijfsgrootte:</strong> {{ bedrijf.bedrijfsgrootte || '-' }}</li>
+              <li><strong>Opgericht in:</strong> {{ bedrijf.opgerichtIn || '-' }}</li>
+            </ul>
           </div>
-        </template>
+        </div>
+        <div v-else>
+          Geen bedrijfsgegevens gevonden.
+        </div>
       </section>
     </main>
   </BedrijfDashboardLayout>

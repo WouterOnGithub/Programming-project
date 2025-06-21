@@ -42,7 +42,10 @@
           :key="bedrijf.id"
         >
           <div class="student-info">
-            <div class="avatar">{{ bedrijf.afkorting }}</div>
+            <div class="avatar">
+              <img v-if="bedrijf.logoUrl" :src="bedrijf.logoUrl" alt="Bedrijfslogo" class="bedrijfslogo-img"/>
+              <span v-else>{{ bedrijf.afkorting }}</span>
+            </div>
             <div>
               <h3>{{ bedrijf.naam }}</h3>
               <p class="richting">{{ Array.isArray(bedrijf.sector) ? bedrijf.sector.join(', ') : bedrijf.sector }} – {{ bedrijf.locatie }}</p>
@@ -62,7 +65,7 @@
               <span>Gesprek</span>
             </button>
             <span v-else class="status-wacht">In afwachting van validatie door het bedrijf</span>
-            <button class="verwijder-btn-rond" @click="verwijderMatch(bedrijf.id)">✖</button>
+            <button class="verwijder-btn-rond" @click="openConfirmModal(bedrijf)">✖</button>
           </div>
         </div>
         <div v-if="gefilterdeBedrijven.length === 0" class="geen-resultaten">
@@ -80,8 +83,8 @@
               v-for="slot in timeSlots"
               :key="slot"
               :disabled="isSlotTaken(slot)"
-              :class="['timeslot-btn', { taken: isSlotTaken(slot), selected: selectedTimeSlot === slot }]"
-              @click="selectTimeSlot(slot)"
+              :class="['timeslot-btn', { 'pauze': slot === 'Pauze', taken: isSlotTaken(slot) && slot !== 'Pauze', selected: selectedTimeSlot === slot }]"
+              @click="slot !== 'Pauze' && selectTimeSlot(slot)"
             >
               {{ slot }}
             </button>
@@ -94,37 +97,39 @@
       </div>
     </section>
   </StudentDashboardLayout>
+
+  <!-- Confirmation Modal -->
+  <div v-if="showConfirm" class="modal-overlay" @click="showConfirm = false">
+    <div class="modal" @click.stop>
+      <p>Weet je zeker dat je deze match wilt verwijderen?</p>
+      <div class="modal-actions">
+        <button class="knop-ja" @click="confirmUnmatch">Ja</button>
+        <button class="knop-nee" @click="showConfirm = false">Nee</button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { Heart, Calendar, User, Search, Building } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
 import StudentDashboardLayout from '../../../components/StudentDashboardLayout.vue'
 import { getAuth } from 'firebase/auth'
 import { getFirestore, collection, getDocs, doc, getDoc, addDoc, updateDoc, query, where, deleteDoc } from 'firebase/firestore'
 
 const db = getFirestore();
 const auth = getAuth();
+const router = useRouter();
 const matchBedrijven = ref([])
 const zoekterm = ref('')
 const showTimeModal = ref(false)
 const selectedTimeSlot = ref(null)
-const timeSlots = [
-  '10:00 - 10:30',
-  '10:30 - 11:00',
-  '11:00 - 11:30',
-  '11:30 - 12:00',
-  '12:00 - 12:30',
-  '12:30 - 13:00',
-  '13:00 - 13:30',
-  '13:30 - 14:00',
-  '14:00 - 14:30',
-  '14:30 - 15:00',
-  '15:00 - 15:30',
-  '15:30 - 16:00',
-]
+const timeSlots = ref([])
 const takenSlots = ref([])
 const selectedBedrijfId = ref(null)
+const showConfirm = ref(false)
+const matchToDelete = ref(null)
 
 onMounted(async () => {
   let studentId = auth.currentUser?.uid;
@@ -162,7 +167,8 @@ onMounted(async () => {
       sector,
       afkorting: (bedrijf.bedrijfsnaam || '??').substring(0,2).toUpperCase(),
       locatie: bedrijf.gesitueerdIn || '-',
-      status: swipe.status
+      status: swipe.status,
+      logoUrl: bedrijf.foto
     };
   });
 });
@@ -176,20 +182,103 @@ const gefilterdeBedrijven = computed(() =>
 )
 
 const toonProfiel = (id) => {
-  console.log(`Bekijk profiel van bedrijf ${id}`)
+  router.push({ name: 'BedrijfProfielVoorStudent', params: { id: id } })
+}
+
+function generateTimeSlots(startTime, endTime, durationString) {
+  const slots = [];
+  const duration = parseInt(durationString.match(/\d+/)[0], 10);
+
+  const lunchStart = 12;
+  const lunchEnd = 13;
+
+  // Hulpfunctie om tijd-string naar Date object om te zetten
+  const parseTime = (timeStr) => {
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    const date = new Date();
+    date.setHours(hours, minutes, 0, 0);
+    return date;
+  };
+
+  let currentTime = parseTime(startTime);
+  const endDateTime = parseTime(endTime);
+
+  // Afronden van de starttijd op het volgende kwartier gebaseerd op de duur
+  const startMinutes = currentTime.getMinutes();
+  const remainder = startMinutes % duration;
+  if (remainder !== 0) {
+    currentTime.setMinutes(startMinutes + (duration - remainder));
+  }
+
+  let pauzeToegevoegd = false;
+
+  while (currentTime < endDateTime) {
+    const slotStart = new Date(currentTime);
+    const slotEnd = new Date(currentTime.getTime() + duration * 60000);
+
+    const slotStartHour = slotStart.getHours();
+
+    // Check voor lunchpauze
+    if (slotStartHour >= lunchStart && slotStartHour < lunchEnd) {
+      if (!pauzeToegevoegd) {
+        slots.push('Pauze');
+        pauzeToegevoegd = true;
+      }
+      currentTime.setMinutes(currentTime.getMinutes() + duration);
+      continue;
+    }
+    
+    if (slotEnd > endDateTime) {
+      break; // Voorkom dat een slot over de eindtijd gaat
+    }
+
+    const formatTime = (date) => date.toTimeString().substring(0, 5);
+    slots.push(`${formatTime(slotStart)} - ${formatTime(slotEnd)}`);
+    
+    currentTime = slotEnd;
+  }
+
+  return slots;
 }
 
 const planAfspraak = async (id) => {
-  selectedBedrijfId.value = id
-  selectedTimeSlot.value = null
-  // Haal reeds geboekte tijdsloten op voor dit bedrijf
-  const afsprakenSnap = await getDocs(collection(db, 'afspraken'))
-  takenSlots.value = afsprakenSnap.docs
-    .map(docu => docu.data())
-    .filter(a => a.bedrijfId === id)
-    .map(a => a.time)
-  showTimeModal.value = true
-}
+  selectedBedrijfId.value = id;
+  selectedTimeSlot.value = null;
+
+  try {
+    // 1. Haal bedrijfsdata op voor tijden en duur
+    const bedrijfDocRef = doc(db, 'bedrijf', id);
+    const bedrijfDoc = await getDoc(bedrijfDocRef);
+
+    if (!bedrijfDoc.exists()) {
+      console.error("Bedrijf niet gevonden");
+      return;
+    }
+    const bedrijfData = bedrijfDoc.data();
+    const { starttijd, eindtijd, gesprekDuur } = bedrijfData;
+
+    if (!starttijd || !eindtijd || !gesprekDuur) {
+        console.error("Tijd of duur niet ingesteld voor dit bedrijf.");
+        // Fallback naar standaard tijden?
+        timeSlots.value = ['Geen tijden beschikbaar'];
+        showTimeModal.value = true;
+        return;
+    }
+
+    // 2. Genereer de tijdsloten
+    timeSlots.value = generateTimeSlots(starttijd, eindtijd, gesprekDuur);
+
+    // 3. Haal reeds geboekte tijdsloten op
+    const afsprakenSnap = await getDocs(
+      query(collection(db, 'afspraken'), where('bedrijfId', '==', id))
+    );
+    takenSlots.value = afsprakenSnap.docs.map(docu => docu.data().time);
+
+    showTimeModal.value = true;
+  } catch (error) {
+    console.error("Fout bij voorbereiden afspraak:", error);
+  }
+};
 
 function selectTimeSlot(slot) {
   selectedTimeSlot.value = slot
@@ -257,7 +346,8 @@ async function reloadMatches() {
         sector,
         afkorting: (bedrijf.bedrijfsnaam || '??').substring(0,2).toUpperCase(),
         locatie: bedrijf.gesitueerdIn || '-',
-        status: swipe.status
+        status: swipe.status,
+        logoUrl: bedrijf.foto
       };
     });
 }
@@ -269,7 +359,8 @@ function closeTimeModal() {
 }
 
 function isSlotTaken(slot) {
-  return takenSlots.value.includes(slot)
+  if (slot === 'Pauze') return true;
+  return takenSlots.value.includes(slot);
 }
 
 async function verwijderMatch(bedrijfId) {
@@ -280,6 +371,48 @@ async function verwijderMatch(bedrijfId) {
   // Herlaad matches
   await reloadMatches();
 }
+
+const openConfirmModal = (match) => {
+  matchToDelete.value = match;
+  showConfirm.value = true;
+};
+
+const confirmUnmatch = async () => {
+  if (!matchToDelete.value) return;
+
+  const studentId = auth.currentUser?.uid;
+  // Het 'id' van het match-object is de bedrijfId
+  const bedrijfId = matchToDelete.value.id; 
+
+  if (!studentId || !bedrijfId) {
+    console.error("Fout: student- of bedrijf-ID ontbreekt.");
+    return;
+  }
+
+  try {
+    // Verwijder de swipe van de student. Dit maakt dat het bedrijf weer in de swipe-lijst komt.
+    const studentSwipeRef = doc(db, 'student', studentId, 'swipes', bedrijfId);
+    await deleteDoc(studentSwipeRef);
+
+    // Verwijder de swipe van het bedrijf op de student, als die bestaat
+    // (niet strikt noodzakelijk voor de UI van de student, maar wel voor een schone database)
+    const companySwipeRef = doc(db, 'bedrijf', bedrijfId, 'swipes', studentId);
+    await deleteDoc(companySwipeRef).catch(e => console.log("Bedrijfsswipe niet gevonden, mogelijk was er nog geen match."));
+    
+    // Update de UI door de match uit de lokale lijst te filteren
+    matchBedrijven.value = matchBedrijven.value.filter(m => m.id !== bedrijfId);
+
+  } catch (err) {
+    console.error("Fout bij het verwijderen van de match: ", err);
+  } finally {
+    showConfirm.value = false;
+    matchToDelete.value = null;
+  }
+};
+
+const goToProfile = (bedrijfId) => {
+  // Logic to navigate to company profile
+};
 </script>
 
 <style scoped>
@@ -558,12 +691,13 @@ async function verwijderMatch(bedrijfId) {
   align-items: center;
   gap: 1.2rem;
   margin-bottom: 1rem;
+  width: 100%;
 }
 .avatar {
   background: #c20000;
   color: white;
-  width: 3.2rem;
-  height: 3.2rem;
+  width: 3.5rem;
+  height: 3.5rem;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -571,6 +705,13 @@ async function verwijderMatch(bedrijfId) {
   font-weight: bold;
   font-size: 1.2rem;
   box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.bedrijfslogo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .student-info h3 {
   margin: 0;
@@ -706,6 +847,13 @@ async function verwijderMatch(bedrijfId) {
   cursor: not-allowed;
 }
 
+.timeslot-btn.pauze {
+  background-color: #e5e7eb;
+  color: #6b7280;
+  cursor: not-allowed;
+  font-style: italic;
+}
+
 .modal-actions {
   display: flex;
   justify-content: space-between;
@@ -759,5 +907,58 @@ async function verwijderMatch(bedrijfId) {
 .verwijder-btn-rond:hover {
   background: #dc2626;
   color: #fff;
+}
+
+/* Modal styles - copied from StProfielFavorieten */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+.modal {
+  background-color: white;
+  padding: 2rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  text-align: center;
+}
+.modal p {
+  margin-bottom: 1.5rem;
+  font-size: 1.1rem;
+  color: #374151;
+}
+.modal-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+.knop-ja, .knop-nee {
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.knop-ja {
+  background: #c20000;
+  color: white;
+}
+.knop-ja:hover {
+  background: #a50000;
+}
+.knop-nee {
+  background: #e5e7eb;
+  color: #374151;
+}
+.knop-nee:hover {
+  background: #d1d5db;
 }
 </style>

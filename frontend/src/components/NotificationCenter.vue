@@ -85,12 +85,22 @@ export default {
     }
 
     const loadNotifications = () => {
-      unsubscribe = notificationService.subscribeToCompanyNotifications(
-        props.companyId,
-        (newNotifications) => {
-          notifications.value = newNotifications.slice(0, 10) // Show only latest 10
+      try {
+        if (!props.companyId) {
+          console.warn('No companyId provided to NotificationCenter')
+          return
         }
-      )
+
+        unsubscribe = notificationService.subscribeToCompanyNotifications(
+          props.companyId,
+          (newNotifications) => {
+            notifications.value = newNotifications.slice(0, 10) // Show only latest 10
+          }
+        )
+      } catch (error) {
+        console.error('Error loading notifications:', error)
+        unsubscribe = null
+      }
     }
 
     const markAsRead = async (notificationId) => {
@@ -115,20 +125,25 @@ export default {
     const formatTime = (timestamp) => {
       if (!timestamp) return ''
       
-      const date = timestamp.seconds ? new Date(timestamp.seconds * 1000) : new Date(timestamp)
-      const now = new Date()
-      const diffInMinutes = Math.floor((now - date) / (1000 * 60))
-      
-      if (diffInMinutes < 1) return 'Nu'
-      if (diffInMinutes < 60) return `${diffInMinutes}m geleden`
-      
-      const diffInHours = Math.floor(diffInMinutes / 60)
-      if (diffInHours < 24) return `${diffInHours}u geleden`
-      
-      const diffInDays = Math.floor(diffInHours / 24)
-      if (diffInDays < 7) return `${diffInDays}d geleden`
-      
-      return date.toLocaleDateString('nl-NL')
+      try {
+        const date = timestamp.seconds ? new Date(timestamp.seconds * 1000) : new Date(timestamp)
+        const now = new Date()
+        const diffInMinutes = Math.floor((now - date) / (1000 * 60))
+        
+        if (diffInMinutes < 1) return 'Nu'
+        if (diffInMinutes < 60) return `${diffInMinutes}m geleden`
+        
+        const diffInHours = Math.floor(diffInMinutes / 60)
+        if (diffInHours < 24) return `${diffInHours}u geleden`
+        
+        const diffInDays = Math.floor(diffInHours / 24)
+        if (diffInDays < 7) return `${diffInDays}d geleden`
+        
+        return date.toLocaleDateString('nl-NL')
+      } catch (error) {
+        console.error('Error formatting time:', error)
+        return ''
+      }
     }
 
     const showAllNotifications = () => {
@@ -142,9 +157,14 @@ export default {
     })
 
     onUnmounted(() => {
-      if (unsubscribe) {
-        unsubscribe()
+      try {
+        if (unsubscribe && typeof unsubscribe === 'function') {
+          unsubscribe()
+        }
+      } catch (error) {
+        console.error('Error during unsubscribe:', error)
       }
+      unsubscribe = null
     })
 
     return {

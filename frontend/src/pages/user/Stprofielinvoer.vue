@@ -1,37 +1,39 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, reactive } from 'vue'
 import profielfoto from '/Images/profielfoto.jpg'
 import { getAuth } from 'firebase/auth'
-import { getFirestore, collection, addDoc } from 'firebase/firestore'
+import { getFirestore, collection, doc, updateDoc } from 'firebase/firestore'
+import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL } from 'firebase/storage'
 import { useRouter } from 'vue-router'
 
-const voornaam = ref('')
-const achternaam = ref('')
-const leeftijd = ref('')
-const linkedin = ref('')
-const domein = ref([])
-const beschikbaarVanaf = ref('')
-const opportuniteit = ref('')
-const studiejaar = ref('')
-const talenkennis = ref([])
+const router = useRouter()
+const db = getFirestore()
+const auth = getAuth()
+const storage = getStorage()
+
+const profiel = reactive({
+  voornaam: '',
+  achternaam: '',
+  leeftijd: '',
+  linkedin: '',
+  domein: [],
+  beschikbaarVanaf: '',
+  opportuniteit: '',
+  studiejaar: '',
+  talenkennis: [],
+  skills: [],
+  intro: '',
+  fotoUrl: '',
+  cv: null, // Wordt een object { url, name, size }
+})
+
+const cvFile = ref(null)
+const fotoFile = ref(null)
+const fotoPreview = ref(null)
+const uploadProgress = ref(0)
+const isUploading = ref(false)
+const error = ref('')
 const toestemming = ref(false)
-const cv = ref(null)
-const intro = ref('')
-const andereTaal = ref('')
-
-const skills = ref([])
-const showCustomSkill = ref(false)
-const customSkill = ref('')
-
-const showCustomTaal = ref(false)
-const customTaal = ref('')
-
-const showCustomDomein = ref(false)
-const customDomein = ref('')
-
-const selectedDomein = ref('')
-const selectedTaal = ref('')
-const selectedSkill = ref('')
 
 const possibleTalen = [
   'Nederlands', 'Engels', 'Frans', 'Duits', 'Spaans',
@@ -61,157 +63,123 @@ const possibleDomeinen = [
   'Game Development'
 ]
 
-const db = getFirestore()
-const auth = getAuth()
-const router = useRouter()
+const showCustomSkill = ref(false)
+const customSkill = ref('')
+const selectedSkill = ref('')
+const skills = profiel.skills
+function addSkill() { if (selectedSkill.value === 'custom') { showCustomSkill.value = true; } else if (selectedSkill.value && !skills.includes(selectedSkill.value)) { skills.push(selectedSkill.value); showCustomSkill.value = false; } }
+function confirmCustomSkill() { const trimmed = customSkill.value.trim(); if (trimmed && !skills.includes(trimmed)) { skills.push(trimmed); } customSkill.value = ''; }
+function removeSkill(index) { skills.splice(index, 1) }
 
-function addSkill() {
-  if (selectedSkill.value === 'custom') {
-    showCustomSkill.value = true;
-  } else if (
-    selectedSkill.value &&
-    !skills.value.includes(selectedSkill.value)
-  ) {
-    skills.value.push(selectedSkill.value);
-    showCustomSkill.value = false;
-  }
-  // selectedSkill.value = '';
-}
+const showCustomTaal = ref(false)
+const customTaal = ref('')
+const selectedTaal = ref('')
+const talenkennis = profiel.talenkennis
+function addTaal() { if (selectedTaal.value === 'custom') { showCustomTaal.value = true; } else if (selectedTaal.value && !talenkennis.includes(selectedTaal.value)) { talenkennis.push(selectedTaal.value); showCustomTaal.value = false; } }
+function confirmCustomTaal() { const trimmed = customTaal.value.trim(); if (trimmed && !talenkennis.includes(trimmed)) { talenkennis.push(trimmed); } customTaal.value = ''; }
+function removeTaal(index) { talenkennis.splice(index, 1) }
 
-function confirmCustomSkill() {
-  const trimmed = customSkill.value.trim();
-  if (trimmed && !skills.value.includes(trimmed)) {
-    skills.value.push(trimmed);
-  }
-  customSkill.value = '';
-  // showCustomSkill blijft true zolang selectedSkill 'custom' is
-}
-
-function removeSkill(index) {
-  skills.value.splice(index, 1)
-}
-
-function addTaal() {
-  if (selectedTaal.value === 'custom') {
-    showCustomTaal.value = true;
-  } else if (
-    selectedTaal.value &&
-    !talenkennis.value.includes(selectedTaal.value)
-  ) {
-    talenkennis.value.push(selectedTaal.value);
-    showCustomTaal.value = false;
-  }
-  // selectedTaal.value = '';
-}
-
-function confirmCustomTaal() {
-  const trimmed = customTaal.value.trim();
-  if (trimmed && !talenkennis.value.includes(trimmed)) {
-    talenkennis.value.push(trimmed);
-  }
-  customTaal.value = '';
-  // showCustomTaal blijft true zolang selectedTaal 'custom' is
-}
-
-function removeTaal(index) {
-  talenkennis.value.splice(index, 1)
-}
-
-function addDomein() {
-  if (selectedDomein.value === 'custom') {
-    showCustomDomein.value = true;
-  } else if (
-    selectedDomein.value &&
-    !domein.value.includes(selectedDomein.value)
-  ) {
-    domein.value.push(selectedDomein.value);
-    showCustomDomein.value = false;
-  }
-  // selectedDomein.value = '';
-}
-
-function confirmCustomDomein() {
-  const trimmed = customDomein.value.trim();
-  if (trimmed && !domein.value.includes(trimmed)) {
-    domein.value.push(trimmed);
-  }
-  customDomein.value = '';
-  // showCustomDomein blijft true zolang selectedDomein 'custom' is
-}
-
-function removeDomein(index) {
-  domein.value.splice(index, 1)
-}
-
-const foto = ref(null)
-const fotoPreview = ref(null)
+const showCustomDomein = ref(false)
+const customDomein = ref('')
+const selectedDomein = ref('')
+const domein = profiel.domein
+function addDomein() { if (selectedDomein.value === 'custom') { showCustomDomein.value = true; } else if (selectedDomein.value && !domein.includes(selectedDomein.value)) { domein.push(selectedDomein.value); showCustomDomein.value = false; } }
+function confirmCustomDomein() { const trimmed = customDomein.value.trim(); if (trimmed && !domein.includes(trimmed)) { domein.push(trimmed); } customDomein.value = ''; }
+function removeDomein(index) { domein.splice(index, 1) }
 
 function handleFotoUpload(e) {
   const file = e.target.files?.[0]
-  if (file) {
-    if (file.size > 5 * 1024 * 1024) { // 5MB limit
-      alert('Bestand is te groot. Maximum grootte is 5MB.')
-      e.target.value = '' // Reset input
-      return
-    }
-    
-    if (!file.type.startsWith('image/')) {
-      alert('Alleen afbeeldingsbestanden zijn toegestaan.')
-      e.target.value = '' // Reset input
-      return
-    }
-
-    foto.value = file
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      fotoPreview.value = e.target.result
-    }
-    reader.readAsDataURL(file)
+  if (file && file.type.startsWith('image/')) {
+    fotoFile.value = file
+    fotoPreview.value = URL.createObjectURL(file)
+  } else {
+    fotoFile.value = null
+    fotoPreview.value = null
   }
 }
 
 function handleCvUpload(e) {
-  const file = e.target.files?.[0] || null;
-  cv.value = file;
+  const file = e.target.files?.[0]
+  if (file && file.type === 'application/pdf') {
+    cvFile.value = file
+  } else {
+    alert('Upload alstublieft een PDF-bestand voor uw CV.')
+    e.target.value = ''
+    cvFile.value = null
+  }
+}
+
+async function uploadFile(file, path) {
+  return new Promise((resolve, reject) => {
+    const fileRef = storageRef(storage, path);
+    const uploadTask = uploadBytesResumable(fileRef, file);
+
+    uploadTask.on('state_changed',
+      (snapshot) => {
+        uploadProgress.value = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+      },
+      (error) => {
+        console.error("Uploadfout:", error);
+        reject(error);
+      },
+      async () => {
+        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+        resolve(downloadURL);
+      }
+    );
+  });
 }
 
 async function bevestigGegevens() {
   const user = auth.currentUser
   if (!user) {
-    alert('Je moet ingelogd zijn om je profiel op te slaan.')
+    error.value = 'Je moet ingelogd zijn om je profiel op te slaan.'
     return
   }
-  // (Optioneel) upload foto/cv naar storage en haal url op, hier dummy-url
-  let fotoUrl = ''
-  if (foto.value) {
-    // upload naar storage en haal url op
-    fotoUrl = 'dummy-foto-url' // TODO: upload implementeren
+  if (!toestemming.value) {
+    error.value = 'Je moet akkoord gaan met de voorwaarden.'
+    return
   }
-  let cvUrl = ''
-  if (cv.value) {
-    // upload naar storage en haal url op
-    cvUrl = 'dummy-cv-url' // TODO: upload implementeren
+
+  isUploading.value = true
+  error.value = ''
+  
+  try {
+    const studentDocRef = doc(db, 'student', user.uid)
+    const dataToSave = { ...profiel }
+
+    if (fotoFile.value) {
+      const fotoPath = `fotos/${user.uid}/${fotoFile.value.name}`;
+      dataToSave.fotoUrl = await uploadFile(fotoFile.value, fotoPath);
+    }
+
+    if (cvFile.value) {
+      const cvPath = `cvs/${user.uid}/${cvFile.value.name}`;
+      const cvUrl = await uploadFile(cvFile.value, cvPath);
+      dataToSave.cv = {
+        url: cvUrl,
+        name: cvFile.value.name,
+        size: cvFile.value.size
+      };
+    } else {
+        dataToSave.cv = null;
+    }
+    
+    // Verwijder de file-objecten voor het opslaan in firestore
+    delete dataToSave.fotoFile; 
+    delete dataToSave.cvFile;
+
+    await updateDoc(studentDocRef, dataToSave);
+
+    alert('Profiel succesvol opgeslagen!')
+    router.push('/dashboard')
+
+  } catch (e) {
+    console.error("Fout bij opslaan van profiel:", e)
+    error.value = `Er is een fout opgetreden: ${e.message}`
+  } finally {
+    isUploading.value = false
   }
-  await addDoc(collection(db, 'student'), {
-    authUid: user.uid,
-    voornaam: voornaam.value,
-    achternaam: achternaam.value,
-    leeftijd: leeftijd.value,
-    domein: domein.value,
-    studiejaar: studiejaar.value,
-    talenkennis: talenkennis.value,
-    linkedin: linkedin.value,
-    beschikbaarVanaf: beschikbaarVanaf.value,
-    opportuniteit: opportuniteit.value,
-    intro: intro.value,
-    skills: skills.value,
-    toestemming: toestemming.value,
-    foto: fotoUrl,
-    cv: cvUrl,
-    aangemaaktOp: new Date()
-  })
-  alert('Profiel succesvol opgeslagen!')
-  router.push('/dashboard')
 }
 </script>
 
@@ -230,17 +198,17 @@ async function bevestigGegevens() {
       <div class="form-column">
         <div class="form-group">
           <label for="voornaam">Voornaam *</label>
-          <input id="voornaam" v-model="voornaam" type="text" placeholder="Voer je naam in..." required />
+          <input id="voornaam" v-model="profiel.voornaam" type="text" placeholder="Voer je naam in..." required />
         </div>
 
         <div class="form-group">
           <label for="achternaam">Achternaam *</label>
-          <input id="achternaam" v-model="achternaam" type="text" placeholder="Voer je achternaam in..." required />
+          <input id="achternaam" v-model="profiel.achternaam" type="text" placeholder="Voer je achternaam in..." required />
         </div>
 
         <div class="form-group">
           <label for="leeftijd">Leeftijd *</label>
-          <input id="leeftijd" v-model="leeftijd" type="number" placeholder="Voer je leeftijd in..." required />
+          <input id="leeftijd" v-model="profiel.leeftijd" type="number" placeholder="Voer je leeftijd in..." required />
         </div>
 
         <div class="form-group">
@@ -264,7 +232,7 @@ async function bevestigGegevens() {
 
         <div class="form-group">
           <label for="studiejaar">Studiejaar *</label>
-          <select id="studiejaar" v-model="studiejaar" required>
+          <select id="studiejaar" v-model="profiel.studiejaar" required>
             <option disabled value="">Kies je studiejaar</option>
             <option>1e jaar</option>
             <option>2e jaar</option>
@@ -294,12 +262,15 @@ async function bevestigGegevens() {
 
         <div class="form-group">
           <label for="linkedin">LinkedIn</label>
-          <input id="linkedin" v-model="linkedin" type="url" placeholder="https://linkedin.com/in/jouwnaam" />
+          <input id="linkedin" v-model="profiel.linkedin" type="url" placeholder="https://linkedin.com/in/jouwnaam" />
         </div>
 
-        <div class="form-group">
-          <label for="cv-upload">CV uploaden *</label>
-          <input id="cv-upload" type="file" @change="handleCvUpload" required />
+        <div class="form-group form-group-full">
+          <label for="cv">Upload je CV (PDF) *</label>
+          <input id="cv" type="file" @change="handleCvUpload" accept=".pdf" required />
+          <div v-if="cvFile" class="file-info">
+            Geselecteerd bestand: {{ cvFile.name }} ({{ (cvFile.size / 1024).toFixed(2) }} KB)
+          </div>
         </div>
       </div>
 
@@ -328,17 +299,17 @@ async function bevestigGegevens() {
             @change="handleFotoUpload" 
             hidden
           />
-          <p><strong>{{ voornaam || 'Voornaam' }} {{ achternaam || 'Achternaam' }}</strong></p>
+          <p><strong>{{ profiel.voornaam || 'Voornaam' }} {{ profiel.achternaam || 'Achternaam' }}</strong></p>
         </div>
 
         <div class="form-group">
           <label for="beschikbaarVanaf">Beschikbaar vanaf *</label>
-          <input id="beschikbaarVanaf" v-model="beschikbaarVanaf" type="date" required />
+          <input id="beschikbaarVanaf" v-model="profiel.beschikbaarVanaf" type="date" required />
         </div>
 
         <div class="form-group">
           <label for="opportuniteit">Opportuniteit *</label>
-          <select id="opportuniteit" v-model="opportuniteit" required>
+          <select id="opportuniteit" v-model="profiel.opportuniteit" required>
             <option disabled value="">Kies een opportuniteit</option>
             <option>Stage</option>
             <option>Student Job</option>
@@ -350,7 +321,7 @@ async function bevestigGegevens() {
           <label for="introductie">Stel jezelf kort voor *</label>
           <textarea
             id="introductie"
-            v-model="intro"
+            v-model="profiel.intro"
             placeholder="Vertel in enkele zinnen wie je bent, je interesses en je ambities..."
             rows="5"
             required
@@ -381,20 +352,24 @@ async function bevestigGegevens() {
           </div>
         </div>
 
-        <div class="toestemming-richting">
-  <input
-    type="checkbox"
-    v-model="toestemming"
-    id="toestemming-checkbox"
-    required
-  />
-  <label for="toestemming-checkbox">
-    Ik geef toestemming dat mijn ingevulde gegevens gebruikt mogen worden in het kader van deze toepassing. *
-  </label>
-</div>
+        <div class="form-group-full">
+          <input type="checkbox" id="toestemming" v-model="toestemming" required>
+          <label for="toestemming">Ik geef toestemming...</label>
+        </div>
+
+        <div v-if="isUploading" class="form-group-full">
+          <label>Uploaden...</label>
+          <progress :value="uploadProgress" max="100"></progress>
+          <span>{{ Math.round(uploadProgress) }}%</span>
+        </div>
+        <div v-if="error" class="error-box">
+          {{ error }}
+        </div>
 
         <div class="submit-section">
-          <button class="submit-knop" type="submit">Bevestig gegevens</button>
+          <button class="submit-knop" type="submit" :disabled="isUploading">
+            {{ isUploading ? 'Bezig met opslaan...' : 'Profiel Opslaan' }}
+          </button>
         </div>
       </div>
     </form>
@@ -659,6 +634,15 @@ async function bevestigGegevens() {
     .header-blok .titel {
       font-size: 2rem;
     }
+  }
+
+  .file-info {
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+    color: #555;
+  }
+  .error-box {
+    color: red;
   }
 </style> 
 

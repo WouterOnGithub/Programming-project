@@ -16,7 +16,9 @@
         <p class="aantal-studenten">
           Aantal studenten ingepland: <strong>{{ gesorteerdeGesprekken.length }}</strong>
         </p>
-        <div v-if="gesorteerdeGesprekken.length === 0" class="geen-gegevens">
+        <div v-if="loading" class="geen-gegevens">Laden...</div>
+        <div v-else-if="error" class="geen-gegevens error">{{ error }}</div>
+        <div v-else-if="gesorteerdeGesprekken.length === 0" class="geen-gegevens">
           Geen geplande afspraken
         </div>
         <div v-else class="lijst">
@@ -41,8 +43,27 @@
                   <span>{{ gesprek.locatie }}</span>
                 </div>
               </div>
-              <div>
-                <button @click="annuleerGesprek(gesprek.id)" class="annuleerknop">Annuleren</button>
+              <div class="actie-knoppen">
+                <template v-if="gesprek.status === 'upcoming'">
+                  <button @click="bekijkProfiel(gesprek.studentId)" class="profielknop">
+                    <User class="icoon" />
+                    <span>Profiel</span>
+                  </button>
+                  <button @click="markeerAlsAfgerond(gesprek.id)" class="actieknop voltooi">
+                    ✓ Afgerond
+                  </button>
+                  <button @click="openAnnuleerModal(gesprek.id)" class="actieknop annuleer">Annuleren</button>
+                </template>
+                <template v-else-if="gesprek.status === 'geannuleerd'">
+                  <div class="status-badge geannuleerd">
+                    Geannuleerd
+                  </div>
+                </template>
+                <template v-else>
+                  <div class="status-badge afgerond">
+                    ✓ Gesprek Afgerond
+                  </div>
+                </template>
               </div>
             </div>
           </div>
@@ -50,6 +71,25 @@
       </section>
     </main>
   </BedrijfDashboardLayout>
+
+  <!-- Annuleer Modal -->
+  <div v-if="showAnnuleerModal" class="modal-overlay">
+    <div class="modal-content">
+      <h3 class="modal-title">Afspraak Annuleren</h3>
+      <p>Weet u zeker dat u deze afspraak wilt annuleren? Geef hieronder een reden op voor de student.</p>
+      <div class="form-group">
+        <label for="annuleerReden">Reden voor annulering (verplicht)</label>
+        <textarea id="annuleerReden" v-model="annuleerReden" rows="4" placeholder="Bijv. wegens onvoorziene omstandigheden..."></textarea>
+        <p v-if="annuleerError" class="error-text">{{ annuleerError }}</p>
+      </div>
+      <div class="modal-actions">
+        <button class="action-btn btn-cancel-edit" @click="closeAnnuleerModal">Terug</button>
+        <button class="action-btn btn-confirm-annuleer" @click="bevestigAnnulering" :disabled="!annuleerReden.trim()">
+          Annulering Bevestigen
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- Mobile-only sidebar -->
   <aside class="mobile-sidebar" :class="{ 'is-open': isMobileSidebarOpen }">
@@ -76,9 +116,11 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { CalendarDays, MapPin, Building, User } from 'lucide-vue-next'
 import { useRouter, useRoute } from 'vue-router'
+import { getAuth } from 'firebase/auth'
+import { getFirestore, collection, query, where, getDocs, doc, getDoc, deleteDoc, updateDoc } from 'firebase/firestore'
 import BedrijfDashboardLayout from '../../../components/BedrijfDashboardLayout.vue'
 
 const route = useRoute()
@@ -96,40 +138,161 @@ const navigation = [
   { name: 'Instellingen', href: '/SettingsBe' },
 ]
 
-const showDropdown = ref(false)
 const router = useRouter()
+const db = getFirestore()
+const auth = getAuth()
 
-const gesprekken = ref([]); // TODO: Haal echte data uit Firestore of API
+const gesprekken = ref([])
+const loading = ref(true)
+const error = ref(null)
+const showAnnuleerModal = ref(false)
+const afspraakVoorAnnuleringId = ref(null)
+const annuleerReden = ref('')
+const annuleerError = ref('')
+
+onMounted(async () => {
+  const user = auth.currentUser;
+  if (!user) {
+    error.value = "U moet ingelogd zijn om afspraken te bekijken.";
+    loading.value = false;
+    return;
+  }
+  const bedrijfId = user.uid;
+
+  try {
+    loading.value = true;
+    const afsprakenQuery = query(collection(db, "afspraken"), where("bedrijfId", "==", bedrijfId));
+    const afsprakenSnap = await getDocs(afsprakenQuery);
+
+    if (afsprakenSnap.empty) {
+      gesprekken.value = [];
+      loading.value = false;
+      return;
+    }
+
+    const afsprakenPromises = afsprakenSnap.docs
+      .filter(doc => {
+        const data = doc.data();
+        if (!data.studentUid) {
+          console.warn(`Afspraak document ${doc.id} wordt overgeslagen omdat het geen studentUid heeft.`);
+          return false;
+        }
+        return true;
+      })
+      .map(async (afspraakDoc) => {
+        const afspraakData = afspraakDoc.data();
+        
+        // Bereken duur en haal tijd op
+        const tijdString = afspraakData.time || 'N/A';
+        let duurString = 'N/A';
+
+        if (tijdString.includes(' - ')) {
+          const [start, end] = tijdString.split(' - ').map(t => t.trim());
+          const startDate = new Date(`1970-01-01T${start}`);
+          const endDate = new Date(`1970-01-01T${end}`);
+          if (!isNaN(startDate) && !isNaN(endDate)) {
+            const diffInMinutes = (endDate.getTime() - startDate.getTime()) / (1000 * 60);
+            duurString = `${diffInMinutes} min`;
+          }
+        }
+        
+        // Haal studentgegevens op
+        const studentDocRef = doc(db, 'student', afspraakData.studentUid);
+        const studentSnap = await getDoc(studentDocRef);
+        const studentData = studentSnap.exists() ? studentSnap.data() : {};
+
+        return {
+          id: afspraakDoc.id,
+          studentId: afspraakData.studentUid,
+          tijd: tijdString,
+          student: `${studentData.voornaam || 'Onbekende'} ${studentData.achternaam || 'Student'}`,
+          duur: duurString,
+          domein: studentData.domein?.join(', ') || 'Geen domein',
+          studiejaar: studentData.studiejaar || 'N/A',
+          locatie: 'Aula B - Stand 14', // of haal uit data
+          status: afspraakData.status || 'upcoming' // Status ophalen
+        };
+      });
+
+    gesprekken.value = await Promise.all(afsprakenPromises);
+
+  } catch (e) {
+    console.error("Fout bij ophalen van afspraken: ", e);
+    error.value = "Kon de afspraken niet laden.";
+  } finally {
+    loading.value = false;
+  }
+});
 
 const gesorteerdeGesprekken = computed(() =>
-  gesprekken.value.sort((a, b) => a.tijd.localeCompare(b.tijd))
+  [...gesprekken.value].sort((a, b) => a.tijd.localeCompare(b.tijd))
 )
 
-const annuleerGesprek = (id) => {
-  const student = gesprekken.value.find(g => g.id === id)?.student
-  console.log(`Automatische mail verzonden naar ${student} over annulering.`)
-  gesprekken.value = gesprekken.value.filter(g => g.id !== id)
-}
-
-function handleAvatarClick() {
-  showDropdown.value = !showDropdown.value
-}
-
-function handleLogout() {
-  router.push('/')
-}
-
-function handleClickOutside(event) {
-  const dropdown = document.getElementById('bedrijf-profile-dropdown')
-  const avatar = document.getElementById('bedrijf-profile-avatar')
-  if (dropdown && !dropdown.contains(event.target) && avatar && !avatar.contains(event.target)) {
-    showDropdown.value = false
+const bekijkProfiel = (studentId) => {
+  if (!studentId) {
+    alert("Kan profiel niet openen: student ID ontbreekt.");
+    return;
   }
-}
+  // Navigeer naar de nieuwe, bedrijf-specifieke profielpagina.
+  router.push(`/bedrijf/student/${studentId}`);
+};
 
-if (typeof window !== 'undefined') {
-  window.addEventListener('mousedown', handleClickOutside)
-}
+const markeerAlsAfgerond = async (id) => {
+  try {
+    const afspraakRef = doc(db, "afspraken", id);
+    await updateDoc(afspraakRef, {
+      status: 'afgerond'
+    });
+    // Update de lokale state om de UI direct bij te werken
+    const index = gesprekken.value.findIndex(g => g.id === id);
+    if (index !== -1) {
+      gesprekken.value[index].status = 'afgerond';
+    }
+  } catch (e) {
+    console.error("Fout bij bijwerken van afspraak: ", e);
+    alert("Kon de status van de afspraak niet bijwerken.");
+  }
+};
+
+const openAnnuleerModal = (id) => {
+  afspraakVoorAnnuleringId.value = id;
+  annuleerReden.value = '';
+  annuleerError.value = '';
+  showAnnuleerModal.value = true;
+};
+
+const closeAnnuleerModal = () => {
+  showAnnuleerModal.value = false;
+  afspraakVoorAnnuleringId.value = null;
+  annuleerReden.value = '';
+  annuleerError.value = '';
+};
+
+const bevestigAnnulering = async () => {
+  if (!annuleerReden.value.trim()) {
+    annuleerError.value = "Een reden opgeven is verplicht.";
+    return;
+  }
+  
+  try {
+    const afspraakRef = doc(db, "afspraken", afspraakVoorAnnuleringId.value);
+    await updateDoc(afspraakRef, {
+      status: 'geannuleerd',
+      annuleringsReden: annuleerReden.value
+    });
+    
+    // Update de lokale state
+    const index = gesprekken.value.findIndex(g => g.id === afspraakVoorAnnuleringId.value);
+    if (index !== -1) {
+      gesprekken.value[index].status = 'geannuleerd';
+    }
+    
+    closeAnnuleerModal();
+  } catch (e) {
+    console.error("Fout bij annuleren van afspraak: ", e);
+    annuleerError.value = "Kon de afspraak niet annuleren.";
+  }
+};
 </script>
 
 <style scoped>
@@ -421,27 +584,165 @@ if (typeof window !== 'undefined') {
   font-size: 0.875rem;
 }
 
-.annuleerknop {
-  background: #dc2626;
-  color: white;
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 0.5rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.2s ease;
+.actie-knoppen {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
-.annuleerknop:hover {
-  background: #b91c1c;
-}
-
-.event-date-note {
-  margin-top: 0.5rem;
-  font-size: 0.9rem;
-  color: #374151;
+.profielknop {
   display: flex;
   align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  background-color: #fff;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.profielknop .icoon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.actieknop {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  border: none;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.actieknop.voltooi {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.actieknop.voltooi:hover {
+  background-color: #bbf7d0;
+}
+
+.actieknop.annuleer {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.actieknop.annuleer:hover {
+  background-color: #fecaca;
+}
+
+.status-badge.afgerond {
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  background-color: #e5e7eb;
+  color: #4b5563;
+  font-weight: 500;
+  text-align: center;
+}
+
+.status-badge.geannuleerd {
+  background-color: #fef2f2;
+  color: #ef4444;
+  border: 1px solid #ef4444;
+}
+
+.error {
+  color: red;
+}
+
+/* Modal Stijlen */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+.modal-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+  width: 90%;
+  max-width: 500px;
+}
+.modal-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+}
+.modal-content p {
+  margin-bottom: 1.5rem;
+  color: #4b5563;
+}
+.form-group {
+  margin-bottom: 1.5rem;
+}
+.form-group label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+.form-group textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  resize: vertical;
+}
+.error-text {
+  color: #ef4444;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+.action-btn {
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background-color 0.2s, box-shadow 0.2s;
+}
+
+.btn-cancel-edit {
+  background-color: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.btn-cancel-edit:hover {
+  background-color: #e5e7eb;
+}
+
+.btn-confirm-annuleer {
+  background-color: #ef4444;
+  color: white;
+}
+
+.btn-confirm-annuleer:hover {
+  background-color: #dc2626;
+}
+
+.btn-confirm-annuleer:disabled {
+  background-color: #fca5a5;
+  cursor: not-allowed;
 }
 
 /* =================================== */
