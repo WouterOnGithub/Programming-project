@@ -2,14 +2,25 @@
   <BedrijfDashboardLayout>
     <main class="dashboard-main">
       <section class="dashboard-card">
-        <h2 class="subtitel">Geplande Afspraken</h2>
-        <p class="aantal-studenten">
-          Aantal studenten ingepland: <strong>{{ gesorteerdeGesprekken.length }}</strong>
-        </p>
+        <div class="header-flex">
+          <div>
+            <h2 class="subtitel">Geplande Afspraken</h2>
+            <p class="aantal-studenten">
+              Aantal studenten: <strong>{{ gesorteerdeGesprekken.length }}</strong>
+            </p>
+          </div>
+          <div class="filter-knoppen">
+            <button @click="setFilter('all')" :class="['filter-knop', { 'actief': activeFilter === 'all' }]">Alle</button>
+            <button @click="setFilter('upcoming')" :class="['filter-knop', { 'actief': activeFilter === 'upcoming' }]">Komend</button>
+            <button @click="setFilter('afgerond')" :class="['filter-knop', { 'actief': activeFilter === 'afgerond' }]">Afgerond</button>
+            <button @click="setFilter('geannuleerd')" :class="['filter-knop', { 'actief': activeFilter === 'geannuleerd' }]">Geannuleerd</button>
+          </div>
+        </div>
+        
         <div v-if="loading" class="geen-gegevens">Laden...</div>
         <div v-else-if="error" class="geen-gegevens error">{{ error }}</div>
         <div v-else-if="gesorteerdeGesprekken.length === 0" class="geen-gegevens">
-          Geen geplande afspraken
+          Geen afspraken die voldoen aan dit filter.
         </div>
         <div v-else class="lijst">
           <div v-for="gesprek in gesorteerdeGesprekken" :key="gesprek.id" class="kaart">
@@ -45,8 +56,9 @@
                   <button @click="openAnnuleerModal(gesprek.id)" class="actieknop annuleer">Annuleren</button>
                 </template>
                 <template v-else-if="gesprek.status === 'geannuleerd'">
-                  <div class="status-badge geannuleerd">
-                    Geannuleerd
+                  <div class="cancellation-reason">
+                    <div class="reason-header">Geannuleerd:</div>
+                    <p class="reason-text">"{{ gesprek.annuleringsReden }}"</p>
                   </div>
                 </template>
                 <template v-else>
@@ -109,6 +121,7 @@ const showAnnuleerModal = ref(false)
 const afspraakVoorAnnuleringId = ref(null)
 const annuleerReden = ref('')
 const annuleerError = ref('')
+const activeFilter = ref('all')
 
 onMounted(async () => {
   const user = auth.currentUser;
@@ -169,8 +182,9 @@ onMounted(async () => {
           duur: duurString,
           domein: studentData.domein?.join(', ') || 'Geen domein',
           studiejaar: studentData.studiejaar || 'N/A',
-          locatie: 'Aula B - Stand 14', // of haal uit data
-          status: afspraakData.status || 'upcoming' // Status ophalen
+          locatie: 'Aula B - Stand 14',
+          status: afspraakData.status || 'upcoming',
+          annuleringsReden: afspraakData.annuleringsReden || 'Geen reden opgegeven.'
         };
       });
 
@@ -184,9 +198,20 @@ onMounted(async () => {
   }
 });
 
+const gefilterdeGesprekken = computed(() => {
+  if (activeFilter.value === 'all') {
+    return gesprekken.value;
+  }
+  return gesprekken.value.filter(g => g.status === activeFilter.value);
+});
+
 const gesorteerdeGesprekken = computed(() =>
-  [...gesprekken.value].sort((a, b) => a.tijd.localeCompare(b.tijd))
-)
+  [...gefilterdeGesprekken.value].sort((a, b) => a.tijd.localeCompare(b.tijd))
+);
+
+const setFilter = (filter) => {
+  activeFilter.value = filter;
+};
 
 const bekijkProfiel = (studentId) => {
   if (!studentId) {
@@ -723,6 +748,54 @@ if (typeof window !== 'undefined') {
 .btn-confirm-annuleer:disabled {
   background-color: #fca5a5;
   cursor: not-allowed;
+}
+
+.header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+.filter-knoppen {
+  display: flex;
+  gap: 0.5rem;
+}
+.filter-knop {
+  padding: 0.5rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  background-color: #fff;
+  color: #374151;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.filter-knop:hover { background-color: #f3f4f6; }
+.filter-knop.actief {
+  background-color: #c20000;
+  color: #fff;
+  border-color: #c20000;
+}
+.cancellation-reason {
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  width: 100%;
+  text-align: left;
+}
+.reason-header {
+  font-weight: 600;
+  color: #b91c1c;
+  margin-bottom: 0.25rem;
+}
+.reason-text {
+  margin: 0;
+  color: #dc2626;
+  font-style: italic;
+  font-size: 0.9rem;
 }
 </style>
   
