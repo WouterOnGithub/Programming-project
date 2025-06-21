@@ -1,6 +1,32 @@
 <template>
   <StudentDashboardLayout>
-    <!-- Alleen de main content van de swipepagina, zonder sidebar/header -->
+    <!-- Mobile-only header -->
+    <header class="mobile-header">
+      <img src="/Images/ehb-logo.png" alt="EhB Logo" class="mobile-logo" />
+      <button @click="toggleMobileSidebar" class="hamburger-menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </header>
+
+    <!-- Mobile-only welcome banner -->
+    <section class="welcome-banner-mobile">
+      <div class="welcome-text">
+        <h1 class="welcome-title">Welkom, {{ studentData.name }}!</h1>
+        <p class="welcome-subtitle">Hier is je dashboard overzicht</p>
+      </div>
+      <div class="welcome-avatar" @click="handleAvatarClick">
+        <img v-if="studentData.foto" :src="studentData.foto" alt="Profielfoto" class="avatar-img" />
+        <span v-else>{{ studentData.name ? studentData.name.charAt(0) : 'G' }}</span>
+      </div>
+      <div v-if="showDropdown" id="mobile-profile-dropdown" class="profile-dropdown-mobile">
+        <button class="dropdown-item" @click="goToProfile">Profiel</button>
+        <button class="dropdown-item" @click="handleLogout">Uitloggen</button>
+      </div>
+    </section>
+
+    <!-- Main Content -->
     <main class="dashboard-main">
       <!-- Swiping Content -->
       <div class="swiping-content">
@@ -68,13 +94,36 @@
       </div>
     </main>
   </StudentDashboardLayout>
+  
+  <!-- Mobile-only sidebar -->
+  <aside class="mobile-sidebar" :class="{ 'is-open': isMobileSidebarOpen }">
+    <div class="mobile-sidebar-header">
+      <button @click="toggleMobileSidebar" class="close-sidebar-btn">
+        <span></span>
+        <span></span>
+      </button>
+      <div class="sidebar-header-content">
+        <img src="/Images/ehb-logo.png" alt="EhB Logo" class="sidebar-header-logo" />
+        <div class="sidebar-header-text">
+          <h3>StudentMatch</h3>
+          <p>Studentdashboard</p>
+        </div>
+      </div>
+    </div>
+    <nav class="mobile-nav">
+      <router-link v-for="item in navigation" :key="item.name" :to="item.href" class="mobile-nav-link" :class="{ 'active-link': $route.path === item.href }">
+        <span>{{ item.name }}</span>
+      </router-link>
+    </nav>
+  </aside>
+  <div v-if="isMobileSidebarOpen" @click="toggleMobileSidebar" class="sidebar-overlay"></div>
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useRouter } from 'vue-router';
 import { db, auth } from '../../firebase/config';
-import { collection, getDocs, setDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { collection, getDocs, setDoc, doc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import StudentDashboardLayout from '../../components/StudentDashboardLayout.vue'
 
@@ -82,6 +131,8 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: 'fas fa-chart-pie' },
   { name: 'Job Swiping', href: '/swipe', icon: 'fas fa-heart' },
   { name: 'Afspraken', href: '/appointments', icon: 'fas fa-calendar' },
+  { name: 'Favorieten', href: '/Favorietenst', icon: 'fas fa-star' },
+  { name: 'Matches', href: '/stmatch', icon: 'fas fa-check-double' },
   { name: 'Profiel', href: '/profile', icon: 'fas fa-user' },
   { name: 'Instellingen', href: '/SettingsStu', icon: 'fas fa-cog' },
 ];
@@ -99,6 +150,37 @@ export default {
     const error = ref(null);
     const currentUser = ref(null);
     const router = useRouter();
+    const isMobileSidebarOpen = ref(false);
+    const showDropdown = ref(false);
+
+    const studentData = ref({
+      name: 'Gebruiker',
+      foto: null,
+    });
+
+    const toggleMobileSidebar = () => {
+      isMobileSidebarOpen.value = !isMobileSidebarOpen.value;
+    };
+
+    const handleAvatarClick = () => {
+      showDropdown.value = !showDropdown.value;
+    };
+
+    const handleLogout = () => {
+      router.push('/');
+    };
+
+    const goToProfile = () => {
+      router.push('/WeergaveSt');
+    };
+
+    const handleClickOutside = (event) => {
+      const dropdown = document.getElementById('mobile-profile-dropdown');
+      const avatar = document.querySelector('.welcome-avatar');
+      if (dropdown && !dropdown.contains(event.target) && avatar && !avatar.contains(event.target)) {
+        showDropdown.value = false;
+      }
+    };
 
     const viewProfile = (bedrijfId) => {
       if (bedrijfId) {
@@ -137,6 +219,16 @@ export default {
 
       try {
         loading.value = true;
+        
+        // Fetch student data for mobile banner
+        const studentDocRef = doc(db, 'student', studentId);
+        const studentDocSnap = await getDoc(studentDocRef);
+        if (studentDocSnap.exists()) {
+          const data = studentDocSnap.data();
+          studentData.value.name = data.voornaam ? `${data.voornaam} ${data.achternaam || ''}`.trim() : 'Gebruiker';
+          studentData.value.foto = data.foto || null;
+        }
+
         const swipedIds = new Set();
         
         const swipesSnap = await getDocs(collection(db, 'student', studentId, 'swipes'));
@@ -181,6 +273,15 @@ export default {
           error.value = "Log in om bedrijven te swipen.";
         }
       });
+      if (typeof window !== 'undefined') {
+        window.addEventListener('mousedown', handleClickOutside);
+      }
+    });
+
+    onBeforeUnmount(() => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('mousedown', handleClickOutside);
+      }
     });
 
     const currentJob = computed(() => jobs.value[0]);
@@ -232,7 +333,14 @@ export default {
       navigation,
       loading,
       error,
-      viewProfile
+      viewProfile,
+      isMobileSidebarOpen,
+      toggleMobileSidebar,
+      studentData,
+      showDropdown,
+      handleAvatarClick,
+      handleLogout,
+      goToProfile
     };
   },
 };
@@ -330,10 +438,11 @@ export default {
   color: #6b7280;
 }
 .dashboard-main {
-  flex: 1;
-  padding: 0;
+  padding: 1rem;
+  height: auto;
   display: flex;
   flex-direction: column;
+  gap: 1rem;
 }
 .dashboard-header {
   display: flex;
@@ -680,5 +789,367 @@ export default {
 
 .btn-icon {
   font-size: 18px;
+}
+
+/* === MOBILE RESPONSIVE STYLES === */
+.mobile-header,
+.welcome-banner-mobile,
+.mobile-sidebar,
+.sidebar-overlay {
+  display: none;
+}
+
+@media (max-width: 992px) {
+  .job-card {
+    flex-direction: column;
+    height: auto;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .left-section, .right-section {
+    width: 100%;
+    min-height: auto;
+    border-right: none;
+    padding: 1.5rem;
+  }
+  .left-section {
+    border-bottom: 1px solid #e5e7eb;
+  }
+  .action-buttons {
+    flex-direction: row;
+    gap: 1rem;
+  }
+  .action-btn {
+    width: 100%;
+  }
+  /* Hide desktop-specific elements from the layout component */
+  :deep(.sidebar-nav),
+  :deep(.dashboard-header) {
+    display: none !important;
+  }
+
+  /* Show mobile-specific elements */
+  .mobile-header,
+  .welcome-banner-mobile,
+  .mobile-sidebar {
+    display: flex;
+  }
+
+  .dashboard-main {
+    padding: 0;
+    background-color: #f8f9fa;
+  }
+
+  .swiping-content {
+    padding: 0 1.5rem 1.5rem;
+  }
+
+  .job-card-container {
+    padding: 0;
+    height: 100%;
+    border: 1px solid #e5e7eb;
+  }
+
+  .job-card {
+    border-radius: 1rem;
+    box-shadow: none;
+    border: 1px solid #e5e7eb;
+  }
+
+  .left-section, .right-section {
+    padding: 1.25rem;
+  }
+
+  .company-logo {
+    width: 60px;
+    height: 60px;
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+  }
+
+  .company-name {
+    font-size: 1.5rem;
+    margin-top: 1rem;
+  }
+
+  .job-title {
+    font-size: 1.25rem;
+  }
+
+  .location, .description, .detail-text {
+    font-size: 0.9rem;
+  }
+
+  .links-section {
+    margin-top: 1rem;
+  }
+
+  .links-section .linkedin-link, .links-section .view-more-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  .detail-item {
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .tags {
+    margin-bottom: 1rem;
+    gap: 0.5rem;
+  }
+
+  .tag {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.7rem;
+  }
+  
+  .action-btn {
+    padding: 0.8rem;
+    font-size: 0.9rem;
+  }
+
+  .favorite-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+    top: 15px;
+    right: 15px;
+  }
+
+  /* Mobile Header */
+  .mobile-header {
+    background: #fff;
+    padding: 1rem 1.5rem;
+    justify-content: space-between;
+    align-items: center;
+    margin: 1.5rem 1.5rem 0;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  }
+
+  .mobile-logo {
+    height: 42px;
+  }
+
+  .hamburger-menu {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 28px;
+    height: 21px;
+    z-index: 1002;
+  }
+
+  .hamburger-menu span {
+    display: block;
+    width: 100%;
+    height: 3px;
+    background-color: #c20000;
+    border-radius: 2px;
+  }
+
+  /* Mobile Sidebar */
+  .mobile-sidebar {
+    position: fixed;
+    top: 0;
+    left: -280px;
+    width: 280px;
+    height: 100%;
+    background: #fff;
+    z-index: 1001;
+    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    flex-direction: column;
+    border-right: 1px solid #e5e7eb;
+  }
+
+  .mobile-sidebar.is-open {
+    left: 0;
+  }
+
+  .mobile-sidebar-header {
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  
+  .sidebar-header-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  
+  .sidebar-header-logo {
+    height: 36px;
+  }
+  
+  .sidebar-header-text h3 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #111827;
+  }
+  
+  .sidebar-header-text p {
+    font-size: 0.9rem;
+    color: #6b7280;
+  }
+
+  .close-sidebar-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    position: relative;
+    align-self: flex-end;
+    margin-bottom: 1rem;
+  }
+
+  .close-sidebar-btn span {
+    display: block;
+    position: absolute;
+    width: 100%;
+    height: 2.5px;
+    background-color: #c20000;
+    border-radius: 2px;
+    top: 50%;
+    left: 0;
+  }
+
+  .close-sidebar-btn span:first-child {
+    transform: translateY(-50%) rotate(45deg);
+  }
+
+  .close-sidebar-btn span:last-child {
+    transform: translateY(-50%) rotate(-45deg);
+  }
+
+  .mobile-nav {
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .mobile-nav-link {
+    padding: 0.8rem 1.2rem;
+    border-radius: 0.5rem;
+    color: #6b7280;
+    font-weight: 500;
+    text-decoration: none;
+    transition: color 0.2s, background-color 0.2s;
+  }
+
+  .mobile-nav-link:hover {
+    color: #c20000;
+    background-color: #f3f4f6;
+  }
+
+  .mobile-nav-link.active-link {
+    background: #f3f4f6;
+    color: #c20000;
+    font-weight: 600;
+  }
+
+  .sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    display: none;
+  }
+
+  .mobile-sidebar.is-open + .sidebar-overlay {
+    display: block;
+  }
+
+  .welcome-banner-mobile {
+    background: #fff;
+    padding: 1.5rem;
+    justify-content: space-between;
+    align-items: center;
+    margin: 1rem 1.5rem;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    position: relative;
+  }
+
+  .welcome-title {
+    color: #c20000;
+    font-size: 1.25rem;
+    font-weight: 600;
+  }
+  .welcome-subtitle {
+    color: #6b7280;
+    font-size: 0.9rem;
+  }
+  .welcome-avatar {
+    width: 2.5rem; /* 40px */
+    height: 2.5rem; /* 40px */
+    border-radius: 50%;
+    background: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #c20000;
+    border: 1.5px solid #222;
+    cursor: pointer;
+  }
+  .welcome-avatar .avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    background-color: #f9fafb;
+  }
+
+  .profile-dropdown-mobile {
+    position: absolute;
+    top: 75px;
+    right: 1.5rem;
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    z-index: 1100;
+    border: 1px solid #f3f4f6;
+    width: 160px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .profile-dropdown-mobile .dropdown-item {
+    padding: 0.75rem 1rem;
+    background: none;
+    border: none;
+    text-align: left;
+    width: 100%;
+    font-size: 0.95rem;
+    color: #374151;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  .profile-dropdown-mobile .dropdown-item:hover {
+    background-color: #f9fafb;
+  }
+}
+
+@media (min-width: 769px) {
+  .mobile-header,
+  .welcome-banner-mobile,
+  .mobile-sidebar,
+  .sidebar-overlay {
+    display: none !important;
+  }
 }
 </style>
