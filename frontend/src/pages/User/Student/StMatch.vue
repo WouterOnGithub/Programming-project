@@ -62,7 +62,7 @@
               <span>Gesprek</span>
             </button>
             <span v-else class="status-wacht">In afwachting van validatie door het bedrijf</span>
-            <button class="verwijder-btn-rond" @click="verwijderMatch(bedrijf.id)">✖</button>
+            <button class="verwijder-btn-rond" @click="openConfirmModal(bedrijf)">✖</button>
           </div>
         </div>
         <div v-if="gefilterdeBedrijven.length === 0" class="geen-resultaten">
@@ -94,17 +94,30 @@
       </div>
     </section>
   </StudentDashboardLayout>
+
+  <!-- Confirmation Modal -->
+  <div v-if="showConfirm" class="modal-overlay" @click="showConfirm = false">
+    <div class="modal" @click.stop>
+      <p>Weet je zeker dat je deze match wilt verwijderen?</p>
+      <div class="modal-actions">
+        <button class="knop-ja" @click="confirmUnmatch">Ja</button>
+        <button class="knop-nee" @click="showConfirm = false">Nee</button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { Heart, Calendar, User, Search, Building } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
 import StudentDashboardLayout from '../../../components/StudentDashboardLayout.vue'
 import { getAuth } from 'firebase/auth'
 import { getFirestore, collection, getDocs, doc, getDoc, addDoc, updateDoc, query, where, deleteDoc } from 'firebase/firestore'
 
 const db = getFirestore();
 const auth = getAuth();
+const router = useRouter();
 const matchBedrijven = ref([])
 const zoekterm = ref('')
 const showTimeModal = ref(false)
@@ -125,6 +138,8 @@ const timeSlots = [
 ]
 const takenSlots = ref([])
 const selectedBedrijfId = ref(null)
+const showConfirm = ref(false)
+const matchToDelete = ref(null)
 
 onMounted(async () => {
   let studentId = auth.currentUser?.uid;
@@ -176,7 +191,7 @@ const gefilterdeBedrijven = computed(() =>
 )
 
 const toonProfiel = (id) => {
-  console.log(`Bekijk profiel van bedrijf ${id}`)
+  router.push({ name: 'BedrijfProfielVoorStudent', params: { id: id } })
 }
 
 const planAfspraak = async (id) => {
@@ -280,6 +295,48 @@ async function verwijderMatch(bedrijfId) {
   // Herlaad matches
   await reloadMatches();
 }
+
+const openConfirmModal = (match) => {
+  matchToDelete.value = match;
+  showConfirm.value = true;
+};
+
+const confirmUnmatch = async () => {
+  if (!matchToDelete.value) return;
+
+  const studentId = auth.currentUser?.uid;
+  // Het 'id' van het match-object is de bedrijfId
+  const bedrijfId = matchToDelete.value.id; 
+
+  if (!studentId || !bedrijfId) {
+    console.error("Fout: student- of bedrijf-ID ontbreekt.");
+    return;
+  }
+
+  try {
+    // Verwijder de swipe van de student. Dit maakt dat het bedrijf weer in de swipe-lijst komt.
+    const studentSwipeRef = doc(db, 'student', studentId, 'swipes', bedrijfId);
+    await deleteDoc(studentSwipeRef);
+
+    // Verwijder de swipe van het bedrijf op de student, als die bestaat
+    // (niet strikt noodzakelijk voor de UI van de student, maar wel voor een schone database)
+    const companySwipeRef = doc(db, 'bedrijf', bedrijfId, 'swipes', studentId);
+    await deleteDoc(companySwipeRef).catch(e => console.log("Bedrijfsswipe niet gevonden, mogelijk was er nog geen match."));
+    
+    // Update de UI door de match uit de lokale lijst te filteren
+    matchBedrijven.value = matchBedrijven.value.filter(m => m.id !== bedrijfId);
+
+  } catch (err) {
+    console.error("Fout bij het verwijderen van de match: ", err);
+  } finally {
+    showConfirm.value = false;
+    matchToDelete.value = null;
+  }
+};
+
+const goToProfile = (bedrijfId) => {
+  // Logic to navigate to company profile
+};
 </script>
 
 <style scoped>
@@ -759,5 +816,58 @@ async function verwijderMatch(bedrijfId) {
 .verwijder-btn-rond:hover {
   background: #dc2626;
   color: #fff;
+}
+
+/* Modal styles - copied from StProfielFavorieten */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+.modal {
+  background-color: white;
+  padding: 2rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  text-align: center;
+}
+.modal p {
+  margin-bottom: 1.5rem;
+  font-size: 1.1rem;
+  color: #374151;
+}
+.modal-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+.knop-ja, .knop-nee {
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.knop-ja {
+  background: #c20000;
+  color: white;
+}
+.knop-ja:hover {
+  background: #a50000;
+}
+.knop-nee {
+  background: #e5e7eb;
+  color: #374151;
+}
+.knop-nee:hover {
+  background: #d1d5db;
 }
 </style>

@@ -34,11 +34,21 @@
                 </div>
               </div>
               <div class="actie-knoppen">
-                <button @click="bekijkProfiel(gesprek.studentId)" class="profielknop">
-                  <User class="icoon" />
-                  <span>Profiel</span>
-                </button>
-                <button @click="annuleerGesprek(gesprek.id)" class="annuleerknop">Annuleren</button>
+                <template v-if="gesprek.status !== 'afgerond'">
+                  <button @click="bekijkProfiel(gesprek.studentId)" class="profielknop">
+                    <User class="icoon" />
+                    <span>Profiel</span>
+                  </button>
+                  <button @click="markeerAlsAfgerond(gesprek.id)" class="actieknop voltooi">
+                    ✓ Afgerond
+                  </button>
+                  <button @click="annuleerGesprek(gesprek.id)" class="actieknop annuleer">Annuleren</button>
+                </template>
+                <template v-else>
+                  <div class="status-badge afgerond">
+                    ✓ Gesprek Afgerond
+                  </div>
+                </template>
               </div>
             </div>
           </div>
@@ -53,7 +63,7 @@ import { ref, computed, onMounted } from 'vue'
 import { CalendarDays, MapPin, Building, User } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import { getAuth } from 'firebase/auth'
-import { getFirestore, collection, query, where, getDocs, doc, getDoc, deleteDoc } from 'firebase/firestore'
+import { getFirestore, collection, query, where, getDocs, doc, getDoc, deleteDoc, updateDoc } from 'firebase/firestore'
 import BedrijfDashboardLayout from '../../../components/BedrijfDashboardLayout.vue'
 
 const navigation = [
@@ -132,6 +142,7 @@ onMounted(async () => {
           domein: studentData.domein?.join(', ') || 'Geen domein',
           studiejaar: studentData.studiejaar || 'N/A',
           locatie: 'Aula B - Stand 14', // of haal uit data
+          status: afspraakData.status || 'upcoming' // Status ophalen
         };
       });
 
@@ -156,6 +167,23 @@ const bekijkProfiel = (studentId) => {
   }
   // Navigeer naar de nieuwe, bedrijf-specifieke profielpagina.
   router.push(`/bedrijf/student/${studentId}`);
+};
+
+const markeerAlsAfgerond = async (id) => {
+  try {
+    const afspraakRef = doc(db, "afspraken", id);
+    await updateDoc(afspraakRef, {
+      status: 'afgerond'
+    });
+    // Update de lokale state om de UI direct bij te werken
+    const index = gesprekken.value.findIndex(g => g.id === id);
+    if (index !== -1) {
+      gesprekken.value[index].status = 'afgerond';
+    }
+  } catch (e) {
+    console.error("Fout bij bijwerken van afspraak: ", e);
+    alert("Kon de status van de afspraak niet bijwerken.");
+  }
 };
 
 const annuleerGesprek = async (id) => {
@@ -488,44 +516,56 @@ if (typeof window !== 'undefined') {
 }
 
 .profielknop {
-  background-color: #c82333; /* Rood */
-  color: white;
-  border: none;
-  padding: 0.4rem 0.8rem; /* Iets kleiner gemaakt */
-  border-radius: 0.375rem;
-  cursor: pointer;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  transition: background-color 0.2s;
-  font-size: 0.875rem; /* Kleinere tekst */
-}
-
-.profielknop:hover {
-  background-color: #a21b29; /* Donkerder rood */
-}
-
-.annuleerknop {
-  background: #dc2626;
-  color: white;
   padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 0.5rem;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  background-color: #fff;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.2s ease;
 }
 
-.annuleerknop:hover {
-  background: #b91c1c;
+.profielknop .icoon {
+  width: 1rem;
+  height: 1rem;
 }
 
-.event-date-note {
-  margin-top: 0.5rem;
-  font-size: 0.9rem;
-  color: #374151;
-  display: flex;
-  align-items: center;
+.actieknop {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  border: none;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.actieknop.voltooi {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.actieknop.voltooi:hover {
+  background-color: #bbf7d0;
+}
+
+.actieknop.annuleer {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.actieknop.annuleer:hover {
+  background-color: #fecaca;
+}
+
+.status-badge.afgerond {
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  background-color: #e5e7eb;
+  color: #4b5563;
+  font-weight: 500;
+  text-align: center;
 }
 
 .error {

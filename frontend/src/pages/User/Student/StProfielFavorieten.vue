@@ -59,9 +59,13 @@
                 <Building :size="14" />
                 <span>Profiel</span>
               </button>
-              <button class="knop-rood" @click="planAfspraak(bedrijf.id)">
-                <Calendar :size="14" />
-                <span>Gesprek</span>
+              <button 
+                class="knop-rood" 
+                @click="maakMatch(bedrijf.id)"
+                :disabled="matchedBedrijfIds.has(bedrijf.id)"
+              >
+                <Heart :size="14" />
+                <span>{{ matchedBedrijfIds.has(bedrijf.id) ? 'Gematched' : 'Match' }}</span>
               </button>
               <button class="knop-verwijder" @click="openConfirm(bedrijf)">
                 <span>Verwijder</span>
@@ -91,16 +95,53 @@
 </template>
   
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { Heart, Calendar, User, Search, Building } from 'lucide-vue-next'
 import StudentDashboardLayout from '../../../components/StudentDashboardLayout.vue'
 import { getAuth } from 'firebase/auth'
-import { getFirestore, collection, getDocs, doc, deleteDoc, query, where, documentId } from 'firebase/firestore'
+import { getFirestore, collection, getDocs, doc, deleteDoc, query, where, documentId, setDoc, serverTimestamp } from 'firebase/firestore'
+import { useRouter } from 'vue-router'
 
 const db = getFirestore();
 const auth = getAuth();
+const router = useRouter();
 const bedrijven = ref([])
 const zoekterm = ref('')
+const gefilterdeBedrijven = ref([]);
+const matchedBedrijfIds = ref(new Set());
+
+// Functie om de lijst te filteren
+const filterBedrijven = () => {
+  if (!zoekterm.value) {
+    gefilterdeBedrijven.value = bedrijven.value;
+    return;
+  }
+  gefilterdeBedrijven.value = bedrijven.value.filter((bedrijf) => {
+    const zoektermLower = zoekterm.value.toLowerCase();
+    const naamMatch = bedrijf.naam.toLowerCase().includes(zoektermLower);
+    const locatieMatch = bedrijf.locatie.toLowerCase().includes(zoektermLower);
+
+    // Robuuste check voor sector (kan string of array zijn)
+    let sectorMatch = false;
+    if (typeof bedrijf.sector === 'string') {
+      sectorMatch = bedrijf.sector.toLowerCase().includes(zoektermLower);
+    } else if (Array.isArray(bedrijf.sector)) {
+      sectorMatch = bedrijf.sector.some(s => s.toLowerCase().includes(zoektermLower));
+    }
+
+    return naamMatch || sectorMatch || locatieMatch;
+  });
+};
+
+// Watcher voor als de originele lijst met bedrijven verandert
+watch(bedrijven, () => {
+  filterBedrijven();
+}, { deep: true });
+
+// Watcher voor als de zoekterm verandert
+watch(zoekterm, () => {
+  filterBedrijven();
+});
 
 onMounted(async () => {
   try {
@@ -116,6 +157,12 @@ onMounted(async () => {
       return;
     }
     const studentId = user.uid;
+
+    // Haal bestaande matches (interessante swipes) op om knoppen uit te schakelen
+    const swipesCol = collection(db, 'student', studentId, 'swipes');
+    const swipesQuery = query(swipesCol, where('status', '==', 'interessant'));
+    const swipesSnapshot = await getDocs(swipesQuery);
+    swipesSnapshot.forEach(doc => matchedBedrijfIds.value.add(doc.id));
 
     // 1. Haal de favorieten van de student op (documenten met bedrijfUid)
     const favorietenCol = collection(db, 'student', studentId, 'favorieten');
@@ -149,23 +196,47 @@ onMounted(async () => {
       bedrijven.value = [];
     }
 
+    // Initialiseer de gefilterde lijst
+    gefilterdeBedrijven.value = bedrijven.value;
+
   } catch (error) {
     console.error("Fout bij het ophalen van favoriete bedrijven:", error);
     bedrijven.value = [];
   }
 });
 
-const gefilterdeBedrijven = computed(() =>
-  bedrijven.value.filter((bedrijf) =>
-    bedrijf.naam.toLowerCase().includes(zoekterm.value.toLowerCase()) ||
-    bedrijf.sector.toLowerCase().includes(zoekterm.value.toLowerCase()) ||
-    bedrijf.locatie.toLowerCase().includes(zoekterm.value.toLowerCase())
-  )
-)
-
 const toonProfiel = (id) => {
-  // Navigeer naar bedrijfsprofiel
+  router.push({ name: 'BedrijfProfielVoorStudent', params: { id: id } })
 }
+
+const maakMatch = async (bedrijfId) => {
+  const studentId = auth.currentUser?.uid;
+  if (!studentId || !bedrijfId) {
+    console.error("Kon geen match maken: gebruiker of bedrijf niet gevonden.");
+    return;
+  }
+
+  try {
+    // 1. Maak de match aan in de 'swipes' collectie
+    const swipeDocRef = doc(db, 'student', studentId, 'swipes', bedrijfId);
+    await setDoc(swipeDocRef, {
+      bedrijfUid: bedrijfId,
+      status: 'interessant',
+      timestamp: serverTimestamp()
+    });
+
+    // 2. Verwijder het bedrijf uit de 'favorieten' subcollectie
+    const favorietDocRef = doc(db, 'student', studentId, 'favorieten', bedrijfId);
+    await deleteDoc(favorietDocRef);
+
+    // 3. Update de UI
+    matchedBedrijfIds.value.add(bedrijfId);
+    bedrijven.value = bedrijven.value.filter(b => b.id !== bedrijfId);
+    
+  } catch (error) {
+    console.error("Fout bij het maken van de match of verwijderen van favoriet:", error);
+  }
+};
 
 const planAfspraak = (id) => {
   // Navigeer naar afspraak plannen
@@ -518,6 +589,29 @@ const verwijderFavoriet = async (bedrijf) => {
   background-color: #b91c1c;
 }
 
+.knop-rood:disabled {
+  background-color: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.knop-verwijder {
+  background-color: #fff;
+  color: #dc2626;
+  border: 1px solid #dc2626;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.knop-verwijder:hover {
+  background-color: #ffeaea;
+}
+
 .geen-resultaten {
   text-align: center;
   padding: 4rem 2rem;
@@ -576,20 +670,5 @@ const verwijderFavoriet = async (bedrijf) => {
 }
 .knop-nee:hover {
   background: #e5e7eb;
-}
-.knop-verwijder {
-  background-color: #fff;
-  color: #dc2626;
-  border: 1px solid #dc2626;
-  padding: 0.5rem 0.75rem;
-  border-radius: 0.5rem;
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  cursor: pointer;
-  transition: background 0.2s, color 0.2s;
-}
-.knop-verwijder:hover {
-  background-color: #ffeaea;
 }
 </style>

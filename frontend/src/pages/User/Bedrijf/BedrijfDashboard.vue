@@ -14,85 +14,73 @@
 
       <!-- Statistieken -->
       <section class="dashboard-stats">
-        <div v-for="(stat, index) in statsData" :key="index" class="stat-card">
-          <div class="stat-card-top">
-            <div>
-              <p class="stat-label">{{ stat.title }}</p>
-              <p class="stat-value">{{ stat.value }}</p>
-            </div>
-            <div :class="['stat-icon', stat.color]">
-              <i :class="stat.icon"></i>
+        <component v-for="(stat, index) in statsData" 
+          :key="index" 
+          :is="stat.isLink ? 'router-link' : 'div'"
+          :to="stat.path"
+          class="stat-wrapper"
+          :class="{ 'is-link': stat.isLink }"
+          >
+          <div class="stat-card">
+            <div class="stat-card-top">
+              <div>
+                <p class="stat-label">{{ stat.title }}</p>
+                <p class="stat-value">{{ stat.value }}</p>
+              </div>
+              <div :class="['stat-icon', stat.color]">
+                <i :class="stat.icon"></i>
+              </div>
             </div>
           </div>
-          <div class="stat-card-bottom">
-            <i v-if="stat.trend === 'up'" class="fas fa-arrow-up text-green-600"></i>
-            <i v-else-if="stat.trend === 'down'" class="fas fa-arrow-down text-red-600"></i>
-            <span :class="{
-              'text-green-600': stat.trend === 'up',
-              'text-red-600': stat.trend === 'down',
-              'text-muted': stat.trend === 'neutral'
-            }">{{ stat.change }}</span>
-            <span class="text-muted">vs vorige week</span>
-          </div>
-        </div>
+        </component>
       </section>
       <!-- 2 kolommen: studenten + activiteit -->
       <section class="dashboard-2col">
         <div class="dashboard-card">
           <div class="dashboard-card-header">
-            <h3>Geïnteresseerde Studenten</h3>
+            <h3>Geïnteresseerde Studenten (Matches)</h3>
             <i class="fas fa-user-graduate"></i>
           </div>
-          <ul class="dashboard-todos">
-            <li v-for="student in interestedStudents" :key="student.id" class="todo-item">
-              {{ student.name }} – {{ student.study }} – {{ student.campus }}
+          <ul v-if="displayedStudents.length > 0" class="dashboard-todos">
+            <li v-for="student in displayedStudents" :key="student.id" class="todo-item">
+              {{ student.name }} – {{ student.study }}
             </li>
           </ul>
+          <div v-if="loadingStudents" class="no-data">
+            Matches laden...
+          </div>
+          <div v-else-if="interestedStudents.length === 0" class="no-data">
+            Nog geen studenten gematched.
+          </div>
+          <div v-if="interestedStudents.length > 3" class="meer-zien-container">
+            <button @click="goToMatches" class="meer-zien-knop">Meer Zien &rarr;</button>
+          </div>
         </div>
         <div class="dashboard-card">
           <div class="dashboard-card-header">
-            <h3>Recente Activiteit</h3>
-            <i class="fas fa-chart-line"></i>
+            <h3>Geplande Afspraken</h3>
+            <i class="fas fa-calendar-check"></i>
           </div>
-
-          <ul class="dashboard-activity">
-            <li v-for="activity in recentActivity" :key="activity.id" class="activity-row">
-              <span class="activity-dot" :class="activity.type"></span>
-              <span>{{ activity.text }}</span>
-            </li>
-          </ul>
-
-          <div class="dashboard-activity">
-            <div v-if="recentActivity.length === 0" class="no-data">
-              Geen recente activiteit
-            </div>
-            <div
-              v-else
-              v-for="(activity, index) in recentActivity"
-              :key="index"
-              class="activity-row"
-            >
-              <div :class="['activity-dot', activity.type]"></div>
-              <div>
-                <p class="activity-action">{{ activity.action }}</p>
-                <p class="activity-time">{{ activity.time }}</p>
+          <div v-if="displayedAfspraken.length > 0" class="afspraken-lijst">
+            <div v-for="afspraak in displayedAfspraken" :key="afspraak.id" class="afspraak-item">
+              <div class="afspraak-info">
+                <span class="student-naam">{{ afspraak.studentNaam }}</span>
+                <span class="afspraak-tijd">{{ afspraak.displayTime }}</span>
               </div>
+              <button @click="bekijkProfiel(afspraak.studentId)" class="profiel-knop">
+                Bekijk Profiel
+              </button>
             </div>
           </div>
-        </div>
-      </section>
-
-      <!-- Snelle acties -->
-      <section class="dashboard-card dashboard-actions">
-        <h3>Snelle Acties</h3>
-        <div class="dashboard-actions-grid">
-          <button class="dashboard-action-btn bg-primary text-white" @click="toast.info('Open de planner om een gesprek in te plannen')">
-            <i class="fas fa-calendar-plus"></i> Plan Gesprek
-          </button>
-          <button class="dashboard-action-btn bg-accent" @click="toast.success('Je standlocatie wordt geladen...')">
-            <i class="fas fa-map-marker-alt"></i> Bekijk Standlocatie
-          </button>
-
+          <div v-if="loadingAfspraken" class="no-data">
+            Afspraken laden...
+          </div>
+          <div v-else-if="geplandeAfspraken.length === 0" class="no-data">
+            Nog geen afspraken gepland.
+          </div>
+          <div v-if="geplandeAfspraken.length > 3" class="meer-zien-container">
+            <button @click="goToGesprekken" class="meer-zien-knop">Alle afspraken &rarr;</button>
+          </div>
         </div>
       </section>
     </main>
@@ -100,15 +88,16 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed, watch, onBeforeUnmount } from 'vue'
 import BedrijfDashboardLayout from '../../../components/BedrijfDashboardLayout.vue'
 import { useRouter } from 'vue-router'
 import { useToast } from 'vue-toastification'
 import { auth, db } from '../../../firebase/config'
-import { doc, onSnapshot } from 'firebase/firestore'
+import { doc, onSnapshot, collection, query, where, getDocs, getDoc, orderBy } from 'firebase/firestore'
 import { onAuthStateChanged } from 'firebase/auth'
 
 const toast = useToast()
+const router = useRouter()
 
 // Add verification status tracking
 const verificatieStatus = ref('wachtend op verificatie')
@@ -116,26 +105,49 @@ const afwijzingsreden = ref('')
 
 // Reactive current user
 const currentUser = ref(null)
+const interestedStudents = ref([])
+const loadingStudents = ref(true)
+const geplandeAfspraken = ref([])
+const loadingAfspraken = ref(true)
+const locatieGegevens = ref(null)
 
-// Watch for auth state changes
-onAuthStateChanged(auth, (user) => {
-  console.log('Auth state changed:', user)
-  currentUser.value = user
-  
-  if (user) {
-    console.log('User logged in:', user.uid)
-    setupCompanyListener(user.uid)
-  } else {
-    console.log('No user logged in')
+let authListenerUnsubscribe = null;
+let companyListenerUnsubscribe = null;
+
+const displayedStudents = computed(() => interestedStudents.value.slice(0, 3))
+const displayedAfspraken = computed(() => geplandeAfspraken.value.slice(0, 3))
+
+const goToMatches = () => {
+  router.push('/bedrijfmatch')
+}
+
+const bekijkProfiel = (studentId) => {
+  if (!studentId) {
+    toast.error("Student ID ontbreekt, kan profiel niet openen.");
+    return;
   }
-})
+  router.push(`/bedrijf/student/${studentId}`);
+}
 
-// Setup company data listener
+const goToGesprekken = () => {
+  router.push('/GesprekkenBd')
+}
+
+const formatTijd = (timestamp) => {
+  if (!timestamp || !timestamp.toDate) return 'Onbekende tijd'
+  return timestamp.toDate().toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })
+}
+
 const setupCompanyListener = (userId) => {
+  // Ruim eventuele vorige listener op
+  if (companyListenerUnsubscribe) {
+    companyListenerUnsubscribe();
+  }
+
   console.log('Setting up company listener for:', userId)
   
   const companyRef = doc(db, 'bedrijf', userId)
-  onSnapshot(companyRef, (doc) => {
+  companyListenerUnsubscribe = onSnapshot(companyRef, (doc) => {
     if (doc.exists()) {
       console.log('Company data received:', doc.data())
       const data = doc.data()
@@ -149,24 +161,219 @@ const setupCompanyListener = (userId) => {
   })
 }
 
+const fetchInterestedStudents = async (bedrijfId) => {
+  if (!bedrijfId) return
+  loadingStudents.value = true
+  try {
+    // Aanname: er is een 'matches' collectie waar matches worden opgeslagen.
+    // Dit is een efficiëntere manier dan alle studenten doorzoeken.
+    const matchesQuery = query(collection(db, 'matches'), where('bedrijfId', '==', bedrijfId))
+    const matchesSnap = await getDocs(matchesQuery)
+
+    if (matchesSnap.empty) {
+      interestedStudents.value = []
+      return
+    }
+
+    const studentPromises = matchesSnap.docs.map(async (matchDoc) => {
+      const matchData = matchDoc.data()
+      const studentDoc = await getDoc(doc(db, 'student', matchData.studentId))
+      if (studentDoc.exists()) {
+        const studentData = studentDoc.data()
+        return {
+          id: studentDoc.id,
+          name: `${studentData.voornaam || ''} ${studentData.achternaam || ''}`.trim(),
+          study: (studentData.domein && studentData.domein.length > 0) ? studentData.domein.join(', ') : 'Onbekend'
+        }
+      }
+      return null
+    })
+
+    interestedStudents.value = (await Promise.all(studentPromises)).filter(Boolean)
+
+  } catch (error) {
+    console.error("Fout bij ophalen van geïnteresseerde studenten:", error)
+    toast.error("Kon gematchte studenten niet laden.")
+  } finally {
+    loadingStudents.value = false
+  }
+}
+
+const fetchGeplandeAfspraken = async (bedrijfId) => {
+  if (!bedrijfId) return;
+  loadingAfspraken.value = true;
+  try {
+    // Query aangepast om alle afspraken op te halen, zoals op GesprekkenBd
+    const afsprakenQuery = query(
+      collection(db, "afspraken"), 
+      where("bedrijfId", "==", bedrijfId)
+    );
+    const afsprakenSnap = await getDocs(afsprakenQuery);
+
+    if (afsprakenSnap.empty) {
+      geplandeAfspraken.value = [];
+      loadingAfspraken.value = false;
+      return;
+    }
+
+    const afsprakenPromises = afsprakenSnap.docs.map(async (afspraakDoc) => {
+      const afspraakData = afspraakDoc.data();
+      
+      // Stop als er geen student gekoppeld is
+      if (!afspraakData.studentUid) {
+        console.warn(`Afspraak document ${afspraakDoc.id} wordt overgeslagen omdat studentUid ontbreekt.`);
+        return null;
+      }
+
+      let normalizedStartTime;
+      let displayTime;
+
+      // Logica om zowel nieuwe (tijdslot) als oude (time) data te verwerken
+      if (afspraakData.tijdslot && afspraakData.tijdslot.startTime) {
+          normalizedStartTime = afspraakData.tijdslot.startTime.toDate();
+          displayTime = normalizedStartTime.toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' });
+      } else if (afspraakData.time && afspraakData.aangemaaktOp) {
+          const datePart = afspraakData.aangemaaktOp.toDate();
+          const timePart = afspraakData.time.split(' - ')[0].trim();
+          const [hours, minutes] = timePart.split(':');
+          
+          normalizedStartTime = new Date(datePart);
+          normalizedStartTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+          
+          displayTime = afspraakData.time; // Toon "10:00 - 10:15"
+      } else {
+          console.warn(`Afspraak document ${afspraakDoc.id} wordt overgeslagen omdat tijdinformatie (tijdslot of time/aangemaaktOp) ontbreekt.`);
+          return null;
+      }
+
+      // Haal studentgegevens op
+      const studentDocRef = doc(db, 'student', afspraakData.studentUid);
+      const studentSnap = await getDoc(studentDocRef);
+      const studentData = studentSnap.exists() ? studentSnap.data() : {};
+
+      return {
+        id: afspraakDoc.id,
+        studentId: afspraakData.studentUid,
+        studentNaam: `${studentData.voornaam || 'Onbekende'} ${studentData.achternaam || 'Student'}`,
+        normalizedStartTime: normalizedStartTime,
+        displayTime: displayTime
+      };
+    });
+
+    // Filter null values eruit en sla alle afspraken op
+    const alleAfspraken = (await Promise.all(afsprakenPromises)).filter(Boolean);
+
+    // Sorteer de afspraken lokaal op de genormaliseerde starttijd
+    alleAfspraken.sort((a, b) => a.normalizedStartTime - b.normalizedStartTime);
+
+    geplandeAfspraken.value = alleAfspraken;
+    
+  } catch (error) {
+    console.error("Fout bij ophalen van afspraken:", error);
+    toast.error("Kon de geplande afspraken niet laden.");
+    geplandeAfspraken.value = []; // Zorg ervoor dat de lijst leeg is bij een fout
+  } finally {
+    loadingAfspraken.value = false;
+  }
+};
+
+const fetchAppointmentCount = async (bedrijfId) => {
+  if (!bedrijfId) return;
+  try {
+    const afsprakenQuery = query(collection(db, "afspraken"), where("bedrijfId", "==", bedrijfId));
+    const afsprakenSnap = await getDocs(afsprakenQuery);
+    
+    const afsprakenStat = statsData.value.find(stat => stat.id === 'afspraken');
+    if (afsprakenStat) {
+      afsprakenStat.value = afsprakenSnap.size.toString();
+    }
+  } catch (error) {
+    console.error("Fout bij ophalen van aantal afspraken:", error);
+  }
+};
+
+const fetchLocatieGegevens = async (bedrijfId) => {
+  if (!bedrijfId) return
+  const locatieStat = statsData.value.find(s => s.id === 'locatie')
+
+  try {
+    const locQuery = query(collection(db, 'company_locations'), where('companyId', '==', bedrijfId))
+    const locSnap = await getDocs(locQuery)
+    if (!locSnap.empty) {
+      const locationData = locSnap.docs[0].data()
+      locatieGegevens.value = locationData
+      if (locatieStat) {
+        locatieStat.value = `Stand ${locationData.standId || 'Onbekend'}`
+        locatieStat.isLink = true
+        locatieStat.path = '/bedrijf/grondplan'
+        locatieStat.color = 'text-purple-600'
+        locatieStat.change = 'Bekijk op plattegrond'
+      }
+    } else {
+      locatieGegevens.value = null
+      if (locatieStat) {
+        locatieStat.value = 'Nog niet toegewezen door de school'
+        locatieStat.isLink = false
+        locatieStat.path = null
+        locatieStat.change = ''
+      }
+    }
+  } catch (error) {
+    console.error("Fout bij ophalen van locatiegegevens:", error)
+    locatieGegevens.value = null
+     if (locatieStat) {
+        locatieStat.value = 'Fout bij laden'
+        locatieStat.isLink = false
+        locatieStat.path = null
+     }
+  }
+}
+
 onMounted(() => {
   console.log('BedrijfDashboard mounted')
-  console.log('Initial auth.currentUser:', auth.currentUser)
-  
   toast.success('Welkom terug op je bedrijfsdashboard!')
   
-  // Set initial user if already logged in
-  if (auth.currentUser) {
-    currentUser.value = auth.currentUser
-    setupCompanyListener(auth.currentUser.uid)
-  }
+  authListenerUnsubscribe = onAuthStateChanged(auth, (user) => {
+    console.log('Auth state changed:', user);
+    currentUser.value = user;
+    if (user) {
+      console.log('User logged in:', user.uid)
+      setupCompanyListener(user.uid)
+      fetchInterestedStudents(user.uid)
+      fetchGeplandeAfspraken(user.uid)
+      fetchLocatieGegevens(user.uid)
+      fetchAppointmentCount(user.uid)
+    } else {
+      console.log('No user logged in');
+      // Ruim data en listeners op als gebruiker uitlogt
+      if (companyListenerUnsubscribe) companyListenerUnsubscribe();
+      interestedStudents.value = [];
+      geplandeAfspraken.value = [];
+      locatieGegevens.value = null;
+      
+      const afsprakenStat = statsData.value.find(s => s.id === 'afspraken');
+      if (afsprakenStat) {
+        afsprakenStat.value = '0';
+      }
+
+      const locatieStat = statsData.value.find(s => s.id === 'locatie');
+      if(locatieStat) {
+        locatieStat.value = 'Laden...';
+        locatieStat.isLink = false;
+      }
+    }
+  });
 })
 
-const interestedStudents = ref([
-  { id: 1, name: 'Lina V.', study: 'Toegepaste Informatica', campus: 'Campus Kaai' },
-  { id: 2, name: 'Joris D.', study: 'Multimedia & Creatieve Technologie', campus: 'Campus Kanal' },
-  { id: 3, name: 'Anas K.', study: 'Netwerkbeheer', campus: 'Campus Bloemenhof' },
-])
+onBeforeUnmount(() => {
+  console.log("Cleaning up BedrijfDashboard listeners.");
+  if (authListenerUnsubscribe) {
+    authListenerUnsubscribe();
+  }
+  if (companyListenerUnsubscribe) {
+    companyListenerUnsubscribe();
+  }
+});
 
 const navigation = [
   { name: 'Dashboard', href: '/BedrijfDashboard', icon: 'fas fa-chart-pie' },
@@ -191,34 +398,25 @@ const statsData = ref([
     color: 'text-red-600',
   },
   {
+    id: 'afspraken',
     title: 'Geplande Afspraken',
-    value: '5',
-    change: '+1',
-    trend: 'up',
+    value: '0',
+    change: '',
+    trend: 'neutral',
     icon: 'fas fa-calendar-check',
     color: 'text-orange-600',
   },
   {
-    title: 'Bezoekers Vandaag',
-    value: '24',
-    change: '+3',
-    trend: 'up',
-    icon: 'fas fa-user-friends',
-    color: 'text-green-600',
-  },
-  {
-    title: 'Locatie (Aula)',
-    value: 'Aula B – Stand 14',
+    id: 'locatie',
+    title: 'Mijn locatie op de beurs',
+    value: 'Laden...',
     change: '',
     trend: 'neutral',
     icon: 'fas fa-map-marker-alt',
-    color: 'text-purple-600',
+    color: 'text-gray-400',
+    isLink: false,
+    path: null
   },
-])
-
-const recentActivity = ref([
-  { type: 'interview', action: 'Gesprek gepland met L. Vanhoutte', time: '1 dag geleden' },
-  { type: 'match', action: 'Nieuwe match met R. De Wilde', time: '2 dagen geleden' },
 ])
 </script>
 
@@ -485,7 +683,7 @@ const recentActivity = ref([
 }
 @media (min-width: 1024px) {
   .dashboard-stats {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 .stat-card {
@@ -696,6 +894,88 @@ const recentActivity = ref([
   color: #6b7280;
   font-size: 0.85rem;
   padding: 1rem;
+}
+.meer-zien-container {
+  text-align: right;
+  margin-top: 1rem;
+}
+.meer-zien-knop {
+  background: none;
+  border: none;
+  color: #c20000;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.disabled-link {
+  background-color: #e5e7eb !important;
+  color: #9ca3af !important;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.stat-wrapper.is-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+  border-radius: 0.75rem; /* Match stat-card border-radius */
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.stat-wrapper.is-link:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.stat-wrapper.is-link .stat-card {
+  height: 100%;
+}
+
+.afspraken-lijst {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.afspraak-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #f9fafb;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+}
+
+.afspraak-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.student-naam {
+  font-weight: 600;
+  color: #111827;
+}
+
+.afspraak-tijd {
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+.profiel-knop {
+  background-color: #c20000;
+  color: white;
+  border: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 0.375rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.profiel-knop:hover {
+  background-color: #a50000;
 }
 </style>
 

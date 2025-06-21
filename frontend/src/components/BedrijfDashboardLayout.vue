@@ -27,7 +27,7 @@
     <main class="dashboard-main">
       <header class="dashboard-header">
         <div>
-          <h1>Welkom terug, {{ userData.companyName }}!</h1>
+          <h1>Welkom {{ userData.companyName }}</h1>
           <p>Hier is je bedrijfsdashboard overzicht</p>
         </div>
         <div class="dashboard-header-actions">

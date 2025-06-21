@@ -22,7 +22,9 @@ import BedrijfMatch from '../pages/User/Bedrijf/BedrijfMatch.vue'
 import SettingsStu from '../pages/User/SettingsStu.vue'
 import SettingsBe from '../pages/User/Bedrijf/SettingsBe.vue'
 import StudentProfielVoorBedrijf from '../pages/User/Bedrijf/StudentProfielVoorBedrijf.vue'
+import GrondplanBedrijf from '../pages/User/Bedrijf/GrondplanBedrijf.vue'
 import NotFound from '../pages/User/NotFound.vue'
+import BedrijfProfielVoorStudent from '../pages/User/Student/BedrijfProfielVoorStudent.vue'
 
 const userRoutes = [
   { path: '/', name: 'Home', component: HomePage },
@@ -32,7 +34,7 @@ const userRoutes = [
   { path: '/dashboard', name: 'Dashboard', component: Dashboard },
   { path: '/student/:id', name: 'StudentDetail', component: StudentDetail },
   { path: '/WijzigBd', name: 'WijzigBd', component: BedrijfProfielWijzigen },
-  { path: '/WeergaveBd', name: 'WeergaveBd', component: BedrijfProfielWeergave },
+  { path: '/WeergaveBd/:id?', name: 'WeergaveBd', component: BedrijfProfielWeergave },
   { path: '/GesprekkenBd', name: 'GesprekkenBd', component: BedrijfProfielGesprekken },
   { path: '/WeergaveSt', name: 'WeergaveSt', component: StProfielWeergave },
   { path: '/Favorietenst', name: 'Favorietenst', component: StProfielFavorieten },
@@ -48,7 +50,9 @@ const userRoutes = [
   { path: '/stmatch', name: 'Stmatch', component: StMatch},
   { path: '/bedrijfmatch', name: 'Bedrijfmatch', component: BedrijfMatch},
   { path: '/bedrijf/student/:id', name: 'StudentProfielVoorBedrijf', component: StudentProfielVoorBedrijf },
+  { path: '/bedrijf/grondplan', name: 'GrondplanBedrijf', component: GrondplanBedrijf },
   { path: '/test', name: 'TestPage', component: () => import('../pages/User/TestPage.vue') },
+  { path: '/student/bedrijf/:id', name: 'BedrijfProfielVoorStudent', component: BedrijfProfielVoorStudent },
 ]
 
 // Combineer alles in één routerconfig
@@ -120,7 +124,7 @@ router.beforeEach(async (to, from, next) => {
 
   // Bedrijf-only routes
   const bedrijfOnly = [
-    '/BedrijfDashboard', '/WijzigBd', '/WeergaveBd', '/GesprekkenBd', '/Favorietenbd', '/InvoerenBd', '/bedrijfmatch', '/SettingsBe'
+    '/BedrijfDashboard', '/WijzigBd', '/WeergaveBd', '/GesprekkenBd', '/Favorietenbd', '/InvoerenBd', '/bedrijfmatch', '/SettingsBe', '/bedrijf/grondplan'
   ];
   if (bedrijfOnly.some(p => to.path.startsWith(p))) {
     if (to.path === '/InvoerenBd' && to.query.fromRegister === '1') {
