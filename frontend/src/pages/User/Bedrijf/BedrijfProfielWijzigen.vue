@@ -32,14 +32,18 @@
                 <label for="gesitueerdIn">Gesitueerd in *</label>
                 <input id="gesitueerdIn" v-model="bedrijfsdata.gesitueerdIn" type="text" placeholder="Bv. Brussel" required />
               </div>
-              <div class="form-group">
-                <label for="starttijd">Starttijd *</label>
-                <input id="starttijd" v-model="bedrijfsdata.starttijd" type="time" required />
-              </div>
-              <div class="form-group">
-                <label for="eindtijd">Eindtijd *</label>
-                <input id="eindtijd" v-model="bedrijfsdata.eindtijd" type="time" required />
-              </div>
+              <TimePicker
+                label="Starttijd *"
+                v-model="bedrijfsdata.starttijd"
+                min="10:00"
+                max="16:00"
+              />
+              <TimePicker
+                label="Eindtijd *"
+                v-model="bedrijfsdata.eindtijd"
+                :min="bedrijfsdata.starttijd"
+                max="16:00"
+              />
               <div class="form-group">
                 <label for="linkedin">LinkedIn</label>
                 <input id="linkedin" v-model="bedrijfsdata.linkedin" type="text" placeholder="https://www.linkedin.com/..." />
@@ -138,6 +142,7 @@ import { getFirestore, collection, query, where, getDocs, doc, updateDoc } from 
 import profielfotoDefault from '/Images/profielfoto.jpg'
 import potlood from '/Images/potlood.png'
 import BedrijfDashboardLayout from '../../../components/BedrijfDashboardLayout.vue'
+import TimePicker from '../../../components/TimePicker.vue'
 
 const profielfotoURL = ref(profielfotoDefault)
 const bedrijfsdata = ref({})
@@ -219,6 +224,12 @@ onMounted(async () => {
   }
 })
 
+watch(() => bedrijfsdata.value.starttijd, (newStartTime) => {
+  if (newStartTime && bedrijfsdata.value.eindtijd && newStartTime >= bedrijfsdata.value.eindtijd) {
+    bedrijfsdata.value.eindtijd = newStartTime
+  }
+})
+
 function wijzigAfbeelding(event) {
   const file = event.target.files[0]
   if (file && file.type.startsWith('image/')) {
@@ -273,21 +284,23 @@ function removeTypePositie(index) {
 }
 
 async function bevestigGegevens() {
-  foutmelding.value = ''
-  if (!bedrijfsDocId.value) {
-    foutmelding.value = 'Geen bedrijfsprofiel gevonden.'
+  if (!bedrijfsdata.value.bedrijfsnaam || !bedrijfsdata.value.gesitueerdIn || !bedrijfsdata.value.starttijd || !bedrijfsdata.value.eindtijd) {
+    foutmelding.value = 'Vul alle verplichte velden in.'
     return
   }
+
+  if (bedrijfsdata.value.starttijd >= bedrijfsdata.value.eindtijd) {
+    foutmelding.value = 'Starttijd moet voor eindtijd zijn.'
+    return
+  }
+  
   try {
     const db = getFirestore()
     const docRef = doc(db, 'bedrijf', bedrijfsDocId.value)
     await updateDoc(docRef, bedrijfsdata.value)
-    alert('Gegevens succesvol opgeslagen!')
-    setTimeout(() => {
-      router.push('/WeergaveBd')
-    }, 800)
+    router.push('/WeergaveBd')
   } catch (e) {
-    foutmelding.value = 'Fout bij opslaan: ' + e.message
+    foutmelding.value = 'Fout bij het opslaan van de gegevens.'
   }
 }
 </script>

@@ -16,6 +16,11 @@
               Komend
             </button>
             <button 
+              @click="setFilter('geannuleerd')" 
+              :class="['filter-knop', { 'actief': activeFilter === 'geannuleerd' }]">
+              Geannuleerd
+            </button>
+            <button 
               @click="setFilter('afgerond')" 
               :class="['filter-knop', { 'actief': activeFilter === 'afgerond' }]">
               Afgerond
@@ -74,6 +79,11 @@
               </div>
             </div>
 
+            <div v-if="appointment.status === 'geannuleerd' && appointment.annuleringsReden" class="cancellation-reason">
+              <div class="reason-header">Reden van annulering:</div>
+              <p class="reason-text">"{{ appointment.annuleringsReden }}"</p>
+            </div>
+
             <div v-if="appointment.status === 'upcoming'" class="appointment-actions">
               <button class="action-btn btn-edit" @click="startEditTime(appointment.id)">🕒 Aanpassen</button>
               <button class="action-btn btn-cancel" @click="cancelAppointment(appointment.id)">❌ Annuleren</button>
@@ -90,9 +100,9 @@
             <button
               v-for="slot in timeSlots"
               :key="slot"
-              :disabled="isSlotTaken(slot) && slot !== editingAppointmentOriginalTime"
-              :class="['timeslot-btn', { taken: isSlotTaken(slot) && slot !== editingAppointmentOriginalTime, selected: selectedTimeSlot === slot }]"
-              @click="selectTimeSlot(slot)"
+              :disabled="isSlotTaken(slot)"
+              :class="['timeslot-btn', { 'pauze': slot === 'Pauze', taken: isSlotTaken(slot), selected: selectedTimeSlot === slot }]"
+              @click="slot !== 'Pauze' && selectTimeSlot(slot)"
             >
               {{ slot }}
             </button>
@@ -108,11 +118,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import StudentDashboardLayout from '../../components/StudentDashboardLayout.vue'
-import { getAuth } from 'firebase/auth';
-import { getFirestore, collection, getDocs, updateDoc, doc, deleteDoc, query, where, documentId } from 'firebase/firestore';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { getFirestore, collection, getDocs, updateDoc, doc, deleteDoc, query, where, documentId, onSnapshot, getDoc } from 'firebase/firestore';
 
 const db = getFirestore();
 const auth = getAuth();
@@ -129,53 +139,31 @@ const appointments = ref([]);
 const loading = ref(true);
 const error = ref(null);
 const route = useRoute();
+let appointmentsUnsubscribe = null;
 
 const setFilter = (filter) => {
   activeFilter.value = filter;
 };
 
-onMounted(async () => {
-  try {
-    loading.value = true;
-    error.value = null;
-    let studentId = auth.currentUser?.uid;
+const setupAppointmentsListener = (studentId) => {
+  const afsprakenQuery = query(collection(db, 'afspraken'), where('studentUid', '==', studentId));
 
-    if (!studentId) {
-      await new Promise((resolve, reject) => {
-        const unsub = auth.onAuthStateChanged(user => {
-          unsub();
-          if (user) {
-            studentId = user.uid;
-            resolve();
-          } else {
-            reject(new Error("Gebruiker niet ingelogd."));
-          }
-        });
-      });
-    }
-    
-    // 1. Haal alleen de afspraken voor de huidige student op
-    const afsprakenQuery = query(collection(db, 'afspraken'), where('studentUid', '==', studentId));
-    const afsprakenSnap = await getDocs(afsprakenQuery);
-
+  appointmentsUnsubscribe = onSnapshot(afsprakenQuery, async (afsprakenSnap) => {
     if (afsprakenSnap.empty) {
       appointments.value = [];
       loading.value = false;
       return;
     }
 
-    // 2. Verzamel de unieke bedrijf ID's van die afspraken
     const bedrijfIds = [...new Set(afsprakenSnap.docs.map(doc => doc.data().bedrijfId).filter(Boolean))];
     const bedrijvenMap = {};
 
-    // 3. Haal alleen de benodigde bedrijfsdata op
     if (bedrijfIds.length > 0) {
       const bedrijvenQuery = query(collection(db, 'bedrijf'), where(documentId(), 'in', bedrijfIds));
       const bedrijvenSnap = await getDocs(bedrijvenQuery);
       bedrijvenSnap.forEach(docu => { bedrijvenMap[docu.id] = docu.data(); });
     }
 
-    // 4. Combineer de data
     appointments.value = afsprakenSnap.docs.map(docu => {
       const data = docu.data();
       const bedrijf = bedrijvenMap[data.bedrijfId] || {};
@@ -186,19 +174,45 @@ onMounted(async () => {
         company: bedrijf.bedrijfsnaam || 'Onbekend Bedrijf',
         location: bedrijf.gesitueerdIn || 'Onbekend',
         duration: data.duur || '10 min',
-        avatar: (bedrijf.bedrijfsnaam || '?')[0]
+        avatar: (bedrijf.bedrijfsnaam || '?')[0],
+        annuleringsReden: data.annuleringsReden || null
       };
     });
-  } catch (e) {
-    console.error("Fout bij ophalen van afspraken:", e);
-    error.value = "De afspraken konden niet geladen worden. Probeer het later opnieuw.";
-  } finally {
     loading.value = false;
+  }, (err) => {
+    console.error("Fout bij ophalen van afspraken:", err);
+    error.value = "De afspraken konden niet geladen worden. Probeer het later opnieuw.";
+    loading.value = false;
+  });
+};
+
+onMounted(() => {
+  const authUnsubscribe = onAuthStateChanged(auth, (user) => {
+    if (user) {
+      if (appointmentsUnsubscribe) appointmentsUnsubscribe();
+      setupAppointmentsListener(user.uid);
+    } else {
+      if (appointmentsUnsubscribe) appointmentsUnsubscribe();
+      appointments.value = [];
+      loading.value = false;
+      error.value = "U moet ingelogd zijn om uw afspraken te zien.";
+    }
+  });
+
+  onBeforeUnmount(() => {
+    authUnsubscribe();
+  });
+});
+
+onBeforeUnmount(() => {
+  if (appointmentsUnsubscribe) {
+    appointmentsUnsubscribe();
   }
 });
 
 const filteredAppointments = computed(() => {
   if (activeFilter.value === 'all') return appointments.value;
+  if (activeFilter.value === 'geannuleerd') return appointments.value.filter(a => a.status === 'geannuleerd');
   if (activeFilter.value === 'upcoming') return appointments.value.filter(a => a.status === 'upcoming');
   if (activeFilter.value === 'afgerond') return appointments.value.filter(a => a.status === 'afgerond');
   return appointments.value;
@@ -209,41 +223,89 @@ const showTimeModal = ref(false);
 const selectedTimeSlot = ref(null);
 const editingAppointmentOriginalTime = ref(null);
 const timeSlots = ref([]);
+const takenSlots = ref([]);
 
-function generateTimeSlots(start, end, duurMinuten) {
+function generateTimeSlots(startTime, endTime, durationString) {
   const slots = [];
-  let [h, m] = start.split(':').map(Number);
-  let [eh, em] = end.split(':').map(Number);
-  let startMinutes = h * 60 + m;
-  const endMinutes = eh * 60 + em;
-  while (startMinutes + duurMinuten <= endMinutes) {
-    const fromH = String(Math.floor(startMinutes / 60)).padStart(2, '0');
-    const fromM = String(startMinutes % 60).padStart(2, '0');
-    const toMinutes = startMinutes + duurMinuten;
-    const toH = String(Math.floor(toMinutes / 60)).padStart(2, '0');
-    const toM = String(toMinutes % 60).padStart(2, '0');
-    slots.push(`${fromH}:${fromM} - ${toH}:${toM}`);
-    startMinutes += duurMinuten;
+  const duration = parseInt(durationString.match(/\d+/)[0], 10);
+  const lunchStart = 12;
+  const lunchEnd = 13;
+
+  const parseTime = (timeStr) => {
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    const date = new Date();
+    date.setHours(hours, minutes, 0, 0);
+    return date;
+  };
+
+  let currentTime = parseTime(startTime);
+  const endDateTime = parseTime(endTime);
+
+  const startMinutes = currentTime.getMinutes();
+  const remainder = startMinutes % duration;
+  if (remainder !== 0) {
+    currentTime.setMinutes(startMinutes + (duration - remainder));
+  }
+
+  let pauzeToegevoegd = false;
+
+  while (currentTime < endDateTime) {
+    const slotStart = new Date(currentTime);
+    const slotEnd = new Date(currentTime.getTime() + duration * 60000);
+    const slotStartHour = slotStart.getHours();
+
+    if (slotStartHour >= lunchStart && slotStartHour < lunchEnd) {
+      if (!pauzeToegevoegd) {
+        slots.push('Pauze');
+        pauzeToegevoegd = true;
+      }
+      currentTime.setMinutes(currentTime.getMinutes() + duration);
+      continue;
+    }
+    
+    if (slotEnd > endDateTime) break;
+
+    const formatTime = (date) => date.toTimeString().substring(0, 5);
+    slots.push(`${formatTime(slotStart)} - ${formatTime(slotEnd)}`);
+    
+    currentTime = slotEnd;
   }
   return slots;
 }
 
-function startEditTime(id) {
-  editingAppointmentId.value = id;
-  showTimeModal.value = true;
-  const appt = appointments.value.find(a => a.id === id);
-  editingAppointmentOriginalTime.value = appt?.time || null;
-  selectedTimeSlot.value = appt?.time || null;
-  // Dynamisch tijdslotten genereren
-  const bedrijf = appt;
-  let duur = bedrijf.duration || '10 minuten';
-  let duurMin = parseInt(duur);
-  if (isNaN(duurMin)) duurMin = 10;
-  // Haal starttijd en eindtijd uit de bedrijfsdata, met fallback
-  const start = bedrijf.starttijd || (bedrijf.startTijd ? bedrijf.startTijd : '10:00');
-  const end = bedrijf.eindtijd || (bedrijf.eindTijd ? bedrijf.eindTijd : '16:00');
-  timeSlots.value = generateTimeSlots(start, end, duurMin);
-}
+const startEditTime = async (appointmentId) => {
+  const appointment = appointments.value.find(a => a.id === appointmentId);
+  if (!appointment) return;
+
+  editingAppointmentId.value = appointmentId;
+  selectedTimeSlot.value = null;
+  editingAppointmentOriginalTime.value = appointment.time;
+
+  try {
+    const bedrijfDocRef = doc(db, 'bedrijf', appointment.bedrijfId);
+    const bedrijfDoc = await getDoc(bedrijfDocRef);
+    if (!bedrijfDoc.exists()) throw new Error("Bedrijf niet gevonden");
+
+    const bedrijfData = bedrijfDoc.data();
+    const { starttijd, eindtijd, gesprekDuur } = bedrijfData;
+
+    if (!starttijd || !eindtijd || !gesprekDuur) {
+      timeSlots.value = ['Geen tijden beschikbaar'];
+    } else {
+      timeSlots.value = generateTimeSlots(starttijd, eindtijd, gesprekDuur);
+    }
+    
+    const afsprakenSnap = await getDocs(
+        query(collection(db, 'afspraken'), where('bedrijfId', '==', appointment.bedrijfId))
+    );
+    takenSlots.value = afsprakenSnap.docs.map(d => d.data().time);
+
+    showTimeModal.value = true;
+  } catch (err) {
+    console.error("Fout bij ophalen van tijdsloten:", err);
+    // Toon eventueel een foutmelding aan de gebruiker
+  }
+};
 
 function closeTimeModal() {
   showTimeModal.value = false;
@@ -265,30 +327,21 @@ async function saveTime(id, slot) {
 }
 
 function isSlotTaken(slot) {
-  return appointments.value.some(a => a.time === slot && a.id !== editingAppointmentId.value && a.status !== 'geannuleerd');
+  if (slot === 'Pauze') return true;
+  // Sta toe om de originele tijd opnieuw te selecteren
+  if (slot === editingAppointmentOriginalTime.value) return false;
+  return takenSlots.value.includes(slot);
 }
-
-function loadAppointments() {
-  console.log('Afspraken opnieuw geladen!');
-}
-
-watch(
-  () => route.fullPath,
-  (to, from) => {
-    if (to === from) {
-      loadAppointments();
-    }
-  }
-);
 
 const isStudent = () => true;
 
 function getStatusText(status) {
-  return {
-    upcoming: 'Komend',
-    afgerond: 'Afgerond',
-    geannuleerd: 'Geannuleerd'
-  }[status] || status;
+  switch (status) {
+    case 'upcoming': return 'Komend';
+    case 'afgerond': return 'Afgerond';
+    case 'geannuleerd': return 'Geannuleerd';
+    default: return status;
+  }
 }
 
 function formatDate(dateString) {
@@ -488,6 +541,7 @@ function formatDate(dateString) {
 .filter-knoppen {
   display: flex;
   gap: 0.5rem;
+  flex-wrap: wrap;
 }
 .filter-knop {
   padding: 0.5rem 1rem;
@@ -574,8 +628,8 @@ function formatDate(dateString) {
   color: #065f46;
 }
 .status-badge.geannuleerd {
-    background-color: #fee2e2;
-    color: #991b1b;
+  background-color: #fef2f2;
+  color: #ef4444;
 }
 /* Fallback voor onbekende status */
 .status-badge:not(.upcoming):not(.afgerond):not(.geannuleerd) {
@@ -754,5 +808,38 @@ function formatDate(dateString) {
   gap: 1rem;
   width: 100%;
   margin-top: 1rem;
+}
+.timeslot-break {
+  grid-column: 1 / -1;
+  text-align: center;
+  font-weight: 600;
+  color: #6c757d;
+  background-color: #f8f9fa;
+  padding: 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+}
+.timeslot-btn.pauze {
+  background-color: #e5e7eb;
+  color: #6b7280;
+  cursor: not-allowed;
+  font-style: italic;
+}
+.cancellation-reason {
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+.reason-header {
+  font-weight: 600;
+  color: #b91c1c;
+  margin-bottom: 0.5rem;
+}
+.reason-text {
+  margin: 0;
+  color: #dc2626;
+  font-style: italic;
 }
 </style>

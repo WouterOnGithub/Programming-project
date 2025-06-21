@@ -34,7 +34,7 @@
                 </div>
               </div>
               <div class="actie-knoppen">
-                <template v-if="gesprek.status !== 'afgerond'">
+                <template v-if="gesprek.status === 'upcoming'">
                   <button @click="bekijkProfiel(gesprek.studentId)" class="profielknop">
                     <User class="icoon" />
                     <span>Profiel</span>
@@ -42,7 +42,12 @@
                   <button @click="markeerAlsAfgerond(gesprek.id)" class="actieknop voltooi">
                     ✓ Afgerond
                   </button>
-                  <button @click="annuleerGesprek(gesprek.id)" class="actieknop annuleer">Annuleren</button>
+                  <button @click="openAnnuleerModal(gesprek.id)" class="actieknop annuleer">Annuleren</button>
+                </template>
+                <template v-else-if="gesprek.status === 'geannuleerd'">
+                  <div class="status-badge geannuleerd">
+                    Geannuleerd
+                  </div>
                 </template>
                 <template v-else>
                   <div class="status-badge afgerond">
@@ -56,6 +61,25 @@
       </section>
     </main>
   </BedrijfDashboardLayout>
+
+  <!-- Annuleer Modal -->
+  <div v-if="showAnnuleerModal" class="modal-overlay">
+    <div class="modal-content">
+      <h3 class="modal-title">Afspraak Annuleren</h3>
+      <p>Weet u zeker dat u deze afspraak wilt annuleren? Geef hieronder een reden op voor de student.</p>
+      <div class="form-group">
+        <label for="annuleerReden">Reden voor annulering (verplicht)</label>
+        <textarea id="annuleerReden" v-model="annuleerReden" rows="4" placeholder="Bijv. wegens onvoorziene omstandigheden..."></textarea>
+        <p v-if="annuleerError" class="error-text">{{ annuleerError }}</p>
+      </div>
+      <div class="modal-actions">
+        <button class="action-btn btn-cancel-edit" @click="closeAnnuleerModal">Terug</button>
+        <button class="action-btn btn-confirm-annuleer" @click="bevestigAnnulering" :disabled="!annuleerReden.trim()">
+          Annulering Bevestigen
+        </button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
@@ -81,6 +105,10 @@ const auth = getAuth()
 const gesprekken = ref([])
 const loading = ref(true)
 const error = ref(null)
+const showAnnuleerModal = ref(false)
+const afspraakVoorAnnuleringId = ref(null)
+const annuleerReden = ref('')
+const annuleerError = ref('')
 
 onMounted(async () => {
   const user = auth.currentUser;
@@ -186,18 +214,45 @@ const markeerAlsAfgerond = async (id) => {
   }
 };
 
-const annuleerGesprek = async (id) => {
-  if (!confirm("Weet u zeker dat u deze afspraak wilt annuleren?")) return;
+const openAnnuleerModal = (id) => {
+  afspraakVoorAnnuleringId.value = id;
+  annuleerReden.value = '';
+  annuleerError.value = '';
+  showAnnuleerModal.value = true;
+};
+
+const closeAnnuleerModal = () => {
+  showAnnuleerModal.value = false;
+  afspraakVoorAnnuleringId.value = null;
+  annuleerReden.value = '';
+  annuleerError.value = '';
+};
+
+const bevestigAnnulering = async () => {
+  if (!annuleerReden.value.trim()) {
+    annuleerError.value = "Een reden opgeven is verplicht.";
+    return;
+  }
   
   try {
-    await deleteDoc(doc(db, "afspraken", id));
-    gesprekken.value = gesprekken.value.filter(g => g.id !== id);
-    alert("Afspraak succesvol geannuleerd.");
+    const afspraakRef = doc(db, "afspraken", afspraakVoorAnnuleringId.value);
+    await updateDoc(afspraakRef, {
+      status: 'geannuleerd',
+      annuleringsReden: annuleerReden.value
+    });
+    
+    // Update de lokale state
+    const index = gesprekken.value.findIndex(g => g.id === afspraakVoorAnnuleringId.value);
+    if (index !== -1) {
+      gesprekken.value[index].status = 'geannuleerd';
+    }
+    
+    closeAnnuleerModal();
   } catch (e) {
     console.error("Fout bij annuleren van afspraak: ", e);
-    alert("Kon de afspraak niet annuleren.");
+    annuleerError.value = "Kon de afspraak niet annuleren.";
   }
-}
+};
 
 function handleAvatarClick() {
   showDropdown.value = !showDropdown.value
@@ -568,8 +623,106 @@ if (typeof window !== 'undefined') {
   text-align: center;
 }
 
+.status-badge.geannuleerd {
+  background-color: #fef2f2;
+  color: #ef4444;
+  border: 1px solid #ef4444;
+}
+
 .error {
   color: red;
+}
+
+/* Modal Stijlen */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+.modal-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+  width: 90%;
+  max-width: 500px;
+}
+.modal-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+}
+.modal-content p {
+  margin-bottom: 1.5rem;
+  color: #4b5563;
+}
+.form-group {
+  margin-bottom: 1.5rem;
+}
+.form-group label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+.form-group textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  resize: vertical;
+}
+.error-text {
+  color: #ef4444;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+.action-btn {
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background-color 0.2s, box-shadow 0.2s;
+}
+
+.btn-cancel-edit {
+  background-color: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.btn-cancel-edit:hover {
+  background-color: #e5e7eb;
+}
+
+.btn-confirm-annuleer {
+  background-color: #ef4444;
+  color: white;
+}
+
+.btn-confirm-annuleer:hover {
+  background-color: #dc2626;
+}
+
+.btn-confirm-annuleer:disabled {
+  background-color: #fca5a5;
+  cursor: not-allowed;
 }
 </style>
   

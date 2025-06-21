@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { auth } from '../../firebase/config'
-import { signInWithEmailAndPassword, getAuth, GoogleAuthProvider, signInWithPopup } from 'firebase/auth'
+import { signInWithEmailAndPassword, getAuth, GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail } from 'firebase/auth'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '../../firebase/config'
 import { useRouter } from 'vue-router'
@@ -15,6 +15,13 @@ const email = ref('')
 const password = ref('')
 const error = ref('')
 const successMessage = ref('')
+
+// Password reset state
+const showResetModal = ref(false)
+const resetEmail = ref('')
+const resetError = ref('')
+const resetSuccess = ref('')
+const passwordResetSent = ref(false)
 
 const router = useRouter()
 
@@ -148,6 +155,49 @@ const handleGoogleLogin = async () => {
 const goToRegister = () => {
   window.location.href = '/register'
 }
+
+// Password reset functions
+const openResetModal = () => {
+  showResetModal.value = true
+  resetEmail.value = ''
+  resetError.value = ''
+  resetSuccess.value = ''
+  passwordResetSent.value = false
+}
+
+const closeResetModal = () => {
+  showResetModal.value = false
+  resetEmail.value = ''
+  resetError.value = ''
+  resetSuccess.value = ''
+}
+
+const handlePasswordReset = async () => {
+  resetError.value = ''
+  resetSuccess.value = ''
+
+  if (!resetEmail.value) {
+    resetError.value = 'Vul uw e-mailadres in'
+    return
+  }
+
+  try {
+    await sendPasswordResetEmail(auth, resetEmail.value)
+    resetSuccess.value = 'Een wachtwoord reset e-mail is verzonden naar uw e-mailadres. Controleer uw inbox en spam folder.'
+    passwordResetSent.value = true
+    setTimeout(() => {
+      closeResetModal()
+    }, 3000)
+  } catch (error) {
+    if (error.code === 'auth/user-not-found') {
+      resetError.value = 'U heeft geen account op deze site. Controleer uw e-mailadres of registreer u eerst.'
+    } else if (error.code === 'auth/invalid-email') {
+      resetError.value = 'Vul een geldig e-mailadres in.'
+    } else {
+      resetError.value = 'Er is een fout opgetreden. Probeer het later opnieuw.'
+    }
+  }
+}
 </script>
 
 <template>
@@ -209,12 +259,61 @@ const goToRegister = () => {
         </button>
       </form>
 
+      <!-- Wachtwoord vergeten link -->
+      <div class="forgot-password">
+        <button @click="openResetModal" class="forgot-password-btn">
+          Wachtwoord vergeten?
+        </button>
+      </div>
+
       <!-- Footer -->
       <div class="footer">
         <p>Nog geen account?</p>
         <router-link to="/register">
           <button @click="goToRegister" class="register-btn">Account aanmaken</button>
         </router-link>
+      </div>
+    </div>
+  </div>
+
+  <!-- Password Reset Modal -->
+  <div v-if="showResetModal" class="modal-overlay" @click="closeResetModal">
+    <div class="modal-content" @click.stop>
+      <div class="modal-header">
+        <h3>Wachtwoord vergeten</h3>
+        <button @click="closeResetModal" class="close-button">×</button>
+      </div>
+      <div class="modal-body">
+        <p>Vul uw e-mailadres in om een wachtwoord reset link te ontvangen.</p>
+        
+        <div v-if="resetError" class="error-box">
+          {{ resetError }}
+        </div>
+        
+        <div v-if="resetSuccess" class="success-box">
+          {{ resetSuccess }}
+        </div>
+
+        <form @submit.prevent="handlePasswordReset" class="reset-form">
+          <div>
+            <label>E-mailadres:</label>
+            <input
+              v-model="resetEmail"
+              type="email"
+              placeholder="uw@email.com"
+              :disabled="passwordResetSent"
+            />
+          </div>
+          
+          <div class="modal-actions">
+            <button type="button" @click="closeResetModal" class="cancel-btn">
+              Annuleren
+            </button>
+            <button type="submit" class="reset-btn" :disabled="passwordResetSent">
+              Reset wachtwoord
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   </div>

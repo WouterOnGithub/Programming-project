@@ -42,7 +42,10 @@
           :key="bedrijf.id"
         >
           <div class="student-info">
-            <div class="avatar">{{ bedrijf.afkorting }}</div>
+            <div class="avatar">
+              <img v-if="bedrijf.logoUrl" :src="bedrijf.logoUrl" alt="Bedrijfslogo" class="bedrijfslogo-img"/>
+              <span v-else>{{ bedrijf.afkorting }}</span>
+            </div>
             <div>
               <h3>{{ bedrijf.naam }}</h3>
               <p class="richting">{{ Array.isArray(bedrijf.sector) ? bedrijf.sector.join(', ') : bedrijf.sector }} – {{ bedrijf.locatie }}</p>
@@ -80,8 +83,8 @@
               v-for="slot in timeSlots"
               :key="slot"
               :disabled="isSlotTaken(slot)"
-              :class="['timeslot-btn', { taken: isSlotTaken(slot), selected: selectedTimeSlot === slot }]"
-              @click="selectTimeSlot(slot)"
+              :class="['timeslot-btn', { 'pauze': slot === 'Pauze', taken: isSlotTaken(slot) && slot !== 'Pauze', selected: selectedTimeSlot === slot }]"
+              @click="slot !== 'Pauze' && selectTimeSlot(slot)"
             >
               {{ slot }}
             </button>
@@ -122,20 +125,7 @@ const matchBedrijven = ref([])
 const zoekterm = ref('')
 const showTimeModal = ref(false)
 const selectedTimeSlot = ref(null)
-const timeSlots = [
-  '10:00 - 10:30',
-  '10:30 - 11:00',
-  '11:00 - 11:30',
-  '11:30 - 12:00',
-  '12:00 - 12:30',
-  '12:30 - 13:00',
-  '13:00 - 13:30',
-  '13:30 - 14:00',
-  '14:00 - 14:30',
-  '14:30 - 15:00',
-  '15:00 - 15:30',
-  '15:30 - 16:00',
-]
+const timeSlots = ref([])
 const takenSlots = ref([])
 const selectedBedrijfId = ref(null)
 const showConfirm = ref(false)
@@ -177,7 +167,8 @@ onMounted(async () => {
       sector,
       afkorting: (bedrijf.bedrijfsnaam || '??').substring(0,2).toUpperCase(),
       locatie: bedrijf.gesitueerdIn || '-',
-      status: swipe.status
+      status: swipe.status,
+      logoUrl: bedrijf.foto
     };
   });
 });
@@ -194,17 +185,100 @@ const toonProfiel = (id) => {
   router.push({ name: 'BedrijfProfielVoorStudent', params: { id: id } })
 }
 
-const planAfspraak = async (id) => {
-  selectedBedrijfId.value = id
-  selectedTimeSlot.value = null
-  // Haal reeds geboekte tijdsloten op voor dit bedrijf
-  const afsprakenSnap = await getDocs(collection(db, 'afspraken'))
-  takenSlots.value = afsprakenSnap.docs
-    .map(docu => docu.data())
-    .filter(a => a.bedrijfId === id)
-    .map(a => a.time)
-  showTimeModal.value = true
+function generateTimeSlots(startTime, endTime, durationString) {
+  const slots = [];
+  const duration = parseInt(durationString.match(/\d+/)[0], 10);
+
+  const lunchStart = 12;
+  const lunchEnd = 13;
+
+  // Hulpfunctie om tijd-string naar Date object om te zetten
+  const parseTime = (timeStr) => {
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    const date = new Date();
+    date.setHours(hours, minutes, 0, 0);
+    return date;
+  };
+
+  let currentTime = parseTime(startTime);
+  const endDateTime = parseTime(endTime);
+
+  // Afronden van de starttijd op het volgende kwartier gebaseerd op de duur
+  const startMinutes = currentTime.getMinutes();
+  const remainder = startMinutes % duration;
+  if (remainder !== 0) {
+    currentTime.setMinutes(startMinutes + (duration - remainder));
+  }
+
+  let pauzeToegevoegd = false;
+
+  while (currentTime < endDateTime) {
+    const slotStart = new Date(currentTime);
+    const slotEnd = new Date(currentTime.getTime() + duration * 60000);
+
+    const slotStartHour = slotStart.getHours();
+
+    // Check voor lunchpauze
+    if (slotStartHour >= lunchStart && slotStartHour < lunchEnd) {
+      if (!pauzeToegevoegd) {
+        slots.push('Pauze');
+        pauzeToegevoegd = true;
+      }
+      currentTime.setMinutes(currentTime.getMinutes() + duration);
+      continue;
+    }
+    
+    if (slotEnd > endDateTime) {
+      break; // Voorkom dat een slot over de eindtijd gaat
+    }
+
+    const formatTime = (date) => date.toTimeString().substring(0, 5);
+    slots.push(`${formatTime(slotStart)} - ${formatTime(slotEnd)}`);
+    
+    currentTime = slotEnd;
+  }
+
+  return slots;
 }
+
+const planAfspraak = async (id) => {
+  selectedBedrijfId.value = id;
+  selectedTimeSlot.value = null;
+
+  try {
+    // 1. Haal bedrijfsdata op voor tijden en duur
+    const bedrijfDocRef = doc(db, 'bedrijf', id);
+    const bedrijfDoc = await getDoc(bedrijfDocRef);
+
+    if (!bedrijfDoc.exists()) {
+      console.error("Bedrijf niet gevonden");
+      return;
+    }
+    const bedrijfData = bedrijfDoc.data();
+    const { starttijd, eindtijd, gesprekDuur } = bedrijfData;
+
+    if (!starttijd || !eindtijd || !gesprekDuur) {
+        console.error("Tijd of duur niet ingesteld voor dit bedrijf.");
+        // Fallback naar standaard tijden?
+        timeSlots.value = ['Geen tijden beschikbaar'];
+        showTimeModal.value = true;
+        return;
+    }
+
+    // 2. Genereer de tijdsloten
+    timeSlots.value = generateTimeSlots(starttijd, eindtijd, gesprekDuur);
+
+    // 3. Haal reeds geboekte tijdsloten op
+    const afsprakenSnap = await getDocs(
+      query(collection(db, 'afspraken'), where('bedrijfId', '==', id))
+    );
+    takenSlots.value = afsprakenSnap.docs.map(docu => docu.data().time);
+
+    showTimeModal.value = true;
+  } catch (error) {
+    console.error("Fout bij voorbereiden afspraak:", error);
+  }
+};
 
 function selectTimeSlot(slot) {
   selectedTimeSlot.value = slot
@@ -272,7 +346,8 @@ async function reloadMatches() {
         sector,
         afkorting: (bedrijf.bedrijfsnaam || '??').substring(0,2).toUpperCase(),
         locatie: bedrijf.gesitueerdIn || '-',
-        status: swipe.status
+        status: swipe.status,
+        logoUrl: bedrijf.foto
       };
     });
 }
@@ -284,7 +359,8 @@ function closeTimeModal() {
 }
 
 function isSlotTaken(slot) {
-  return takenSlots.value.includes(slot)
+  if (slot === 'Pauze') return true;
+  return takenSlots.value.includes(slot);
 }
 
 async function verwijderMatch(bedrijfId) {
@@ -615,12 +691,13 @@ const goToProfile = (bedrijfId) => {
   align-items: center;
   gap: 1.2rem;
   margin-bottom: 1rem;
+  width: 100%;
 }
 .avatar {
   background: #c20000;
   color: white;
-  width: 3.2rem;
-  height: 3.2rem;
+  width: 3.5rem;
+  height: 3.5rem;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -628,6 +705,13 @@ const goToProfile = (bedrijfId) => {
   font-weight: bold;
   font-size: 1.2rem;
   box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.bedrijfslogo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .student-info h3 {
   margin: 0;
@@ -761,6 +845,13 @@ const goToProfile = (bedrijfId) => {
 .timeslot-btn.taken {
   background-color: #f3f4f6;
   cursor: not-allowed;
+}
+
+.timeslot-btn.pauze {
+  background-color: #e5e7eb;
+  color: #6b7280;
+  cursor: not-allowed;
+  font-style: italic;
 }
 
 .modal-actions {

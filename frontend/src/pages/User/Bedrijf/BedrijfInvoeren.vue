@@ -6,6 +6,7 @@ import { getFirestore, collection, addDoc, doc, setDoc } from 'firebase/firestor
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
 import profielfoto from '/Images/profielfoto.jpg'
 import { useToast } from 'vue-toastification'
+import TimePicker from '../../../components/TimePicker.vue'
 
 const toast = useToast()
 const router = useRouter()
@@ -16,8 +17,8 @@ const storage = getStorage()
 const formData = reactive({
   bedrijfsnaam: '',
   gesitueerdIn: '',
-  starttijd: '',
-  eindtijd: '',
+  starttijd: '10:00',
+  eindtijd: '16:00',
   opZoekNaar: '',
   aangepasteZoekterm: '',
   linkedin: '',
@@ -80,6 +81,12 @@ watch(() => formData.opZoekNaar, async (val) => {
   }
 })
 
+watch(() => formData.starttijd, (newStartTime) => {
+  if (newStartTime >= formData.eindtijd) {
+    formData.eindtijd = newStartTime
+  }
+})
+
 function handleFotoUpload(e) {
   const file = e.target.files[0]
   if (file) {
@@ -131,6 +138,12 @@ async function bevestigGegevens() {
     return
   }
 
+  if (formData.starttijd >= formData.eindtijd) {
+    foutmelding.value = 'De starttijd moet voor de eindtijd liggen.'
+    toast.error('De starttijd moet voor de eindtijd liggen.')
+    return
+  }
+
   try {
     const user = auth.currentUser
     if (!user) throw new Error('Geen ingelogde gebruiker gevonden')
@@ -142,7 +155,6 @@ async function bevestigGegevens() {
       fotoUrl = await getDownloadURL(fotoRef)
     }
 
-    // GEWIJZIGD: setDoc in plaats van addDoc, met user.uid als document ID
     await setDoc(doc(db, 'bedrijf', user.uid), {
       authUid: user.uid,
       aangemaaktOp: new Date(),
@@ -162,7 +174,6 @@ async function bevestigGegevens() {
       opgerichtIn: formData.opgerichtIn,
       foto: fotoUrl,
       toestemming: formData.toestemming,
-      // NIEUW: Verificatie velden voor notification systeem
       verificatieStatus: 'wachtend op verificatie',
       afwijzingsreden: null
     })
@@ -223,25 +234,18 @@ async function bevestigGegevens() {
 
           <!-- Startuur en Einduur naast elkaar -->
           <div class="tijd-grid">
-            <div class="tijd-veld">
-              <label for="starttijd">Startuur *</label>
-              <input
-                type="time"
-                id="starttijd"
-                v-model="formData.starttijd"
-                required
-              />
-            </div>
-
-            <div class="tijd-veld">
-              <label for="eindtijd">Einduur *</label>
-              <input
-                type="time"
-                id="eindtijd"
-                v-model="formData.eindtijd"
-                required
-              />
-            </div>
+            <TimePicker
+              label="Startuur aanwezigheid *"
+              v-model="formData.starttijd"
+              min="10:00"
+              max="16:00"
+            />
+            <TimePicker
+              label="Einduur aanwezigheid *"
+              v-model="formData.eindtijd"
+              :min="formData.starttijd"
+              max="16:00"
+            />
           </div>
 
         </div>
@@ -525,14 +529,32 @@ textarea {
   }
 }
 .tijd-grid {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 1rem;
+  align-items: end;
 }
 
-.tijd-veld {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
+.tijd-veld label {
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.tijd-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 1rem;
+  background-color: #f8f9fa;
+  cursor: pointer;
+}
+
+.tijd-input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.8;
 }
 
 .chip-cloud {
