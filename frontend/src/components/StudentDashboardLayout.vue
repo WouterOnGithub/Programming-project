@@ -27,7 +27,7 @@
     <main class="dashboard-main">
       <header class="dashboard-header">
         <div>
-          <h1>Welkom terug, {{ userName }}!</h1>
+          <h1>Welkom {{ userName }}</h1>
           <p>{{ pageSubtitle }}</p>
         </div>
         <div class="dashboard-header-actions">
@@ -132,7 +132,7 @@ onMounted(async () => {
     if (docSnap.exists()) {
       const data = docSnap.data();
       userName.value = data.voornaam ? `${data.voornaam} ${data.achternaam}` : user.displayName || 'Gebruiker';
-      userFoto.value = data.foto || null;
+      userFoto.value = data.fotoUrl || null;
     }
   }
 })

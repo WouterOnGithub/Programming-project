@@ -6,7 +6,9 @@
         <p class="aantal-studenten">
           Aantal studenten ingepland: <strong>{{ gesorteerdeGesprekken.length }}</strong>
         </p>
-        <div v-if="gesorteerdeGesprekken.length === 0" class="geen-gegevens">
+        <div v-if="loading" class="geen-gegevens">Laden...</div>
+        <div v-else-if="error" class="geen-gegevens error">{{ error }}</div>
+        <div v-else-if="gesorteerdeGesprekken.length === 0" class="geen-gegevens">
           Geen geplande afspraken
         </div>
         <div v-else class="lijst">
@@ -31,8 +33,22 @@
                   <span>{{ gesprek.locatie }}</span>
                 </div>
               </div>
-              <div>
-                <button @click="annuleerGesprek(gesprek.id)" class="annuleerknop">Annuleren</button>
+              <div class="actie-knoppen">
+                <template v-if="gesprek.status !== 'afgerond'">
+                  <button @click="bekijkProfiel(gesprek.studentId)" class="profielknop">
+                    <User class="icoon" />
+                    <span>Profiel</span>
+                  </button>
+                  <button @click="markeerAlsAfgerond(gesprek.id)" class="actieknop voltooi">
+                    ✓ Afgerond
+                  </button>
+                  <button @click="annuleerGesprek(gesprek.id)" class="actieknop annuleer">Annuleren</button>
+                </template>
+                <template v-else>
+                  <div class="status-badge afgerond">
+                    ✓ Gesprek Afgerond
+                  </div>
+                </template>
               </div>
             </div>
           </div>
@@ -43,9 +59,11 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { CalendarDays, MapPin, Building, User } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
+import { getAuth } from 'firebase/auth'
+import { getFirestore, collection, query, where, getDocs, doc, getDoc, deleteDoc, updateDoc } from 'firebase/firestore'
 import BedrijfDashboardLayout from '../../../components/BedrijfDashboardLayout.vue'
 
 const navigation = [
@@ -57,17 +75,128 @@ const navigation = [
 
 const showDropdown = ref(false)
 const router = useRouter()
+const db = getFirestore()
+const auth = getAuth()
 
-const gesprekken = ref([]); // TODO: Haal echte data uit Firestore of API
+const gesprekken = ref([])
+const loading = ref(true)
+const error = ref(null)
+
+onMounted(async () => {
+  const user = auth.currentUser;
+  if (!user) {
+    error.value = "U moet ingelogd zijn om afspraken te bekijken.";
+    loading.value = false;
+    return;
+  }
+  const bedrijfId = user.uid;
+
+  try {
+    loading.value = true;
+    const afsprakenQuery = query(collection(db, "afspraken"), where("bedrijfId", "==", bedrijfId));
+    const afsprakenSnap = await getDocs(afsprakenQuery);
+
+    if (afsprakenSnap.empty) {
+      gesprekken.value = [];
+      loading.value = false;
+      return;
+    }
+
+    const afsprakenPromises = afsprakenSnap.docs
+      .filter(doc => {
+        const data = doc.data();
+        if (!data.studentUid) {
+          console.warn(`Afspraak document ${doc.id} wordt overgeslagen omdat het geen studentUid heeft.`);
+          return false;
+        }
+        return true;
+      })
+      .map(async (afspraakDoc) => {
+        const afspraakData = afspraakDoc.data();
+        
+        // Bereken duur en haal tijd op
+        const tijdString = afspraakData.time || 'N/A';
+        let duurString = 'N/A';
+
+        if (tijdString.includes(' - ')) {
+          const [start, end] = tijdString.split(' - ').map(t => t.trim());
+          const startDate = new Date(`1970-01-01T${start}`);
+          const endDate = new Date(`1970-01-01T${end}`);
+          if (!isNaN(startDate) && !isNaN(endDate)) {
+            const diffInMinutes = (endDate.getTime() - startDate.getTime()) / (1000 * 60);
+            duurString = `${diffInMinutes} min`;
+          }
+        }
+        
+        // Haal studentgegevens op
+        const studentDocRef = doc(db, 'student', afspraakData.studentUid);
+        const studentSnap = await getDoc(studentDocRef);
+        const studentData = studentSnap.exists() ? studentSnap.data() : {};
+
+        return {
+          id: afspraakDoc.id,
+          studentId: afspraakData.studentUid,
+          tijd: tijdString,
+          student: `${studentData.voornaam || 'Onbekende'} ${studentData.achternaam || 'Student'}`,
+          duur: duurString,
+          domein: studentData.domein?.join(', ') || 'Geen domein',
+          studiejaar: studentData.studiejaar || 'N/A',
+          locatie: 'Aula B - Stand 14', // of haal uit data
+          status: afspraakData.status || 'upcoming' // Status ophalen
+        };
+      });
+
+    gesprekken.value = await Promise.all(afsprakenPromises);
+
+  } catch (e) {
+    console.error("Fout bij ophalen van afspraken: ", e);
+    error.value = "Kon de afspraken niet laden.";
+  } finally {
+    loading.value = false;
+  }
+});
 
 const gesorteerdeGesprekken = computed(() =>
-  gesprekken.value.sort((a, b) => a.tijd.localeCompare(b.tijd))
+  [...gesprekken.value].sort((a, b) => a.tijd.localeCompare(b.tijd))
 )
 
-const annuleerGesprek = (id) => {
-  const student = gesprekken.value.find(g => g.id === id)?.student
-  console.log(`Automatische mail verzonden naar ${student} over annulering.`)
-  gesprekken.value = gesprekken.value.filter(g => g.id !== id)
+const bekijkProfiel = (studentId) => {
+  if (!studentId) {
+    alert("Kan profiel niet openen: student ID ontbreekt.");
+    return;
+  }
+  // Navigeer naar de nieuwe, bedrijf-specifieke profielpagina.
+  router.push(`/bedrijf/student/${studentId}`);
+};
+
+const markeerAlsAfgerond = async (id) => {
+  try {
+    const afspraakRef = doc(db, "afspraken", id);
+    await updateDoc(afspraakRef, {
+      status: 'afgerond'
+    });
+    // Update de lokale state om de UI direct bij te werken
+    const index = gesprekken.value.findIndex(g => g.id === id);
+    if (index !== -1) {
+      gesprekken.value[index].status = 'afgerond';
+    }
+  } catch (e) {
+    console.error("Fout bij bijwerken van afspraak: ", e);
+    alert("Kon de status van de afspraak niet bijwerken.");
+  }
+};
+
+const annuleerGesprek = async (id) => {
+  if (!confirm("Weet u zeker dat u deze afspraak wilt annuleren?")) return;
+  
+  try {
+    await deleteDoc(doc(db, "afspraken", id));
+    gesprekken.value = gesprekken.value.filter(g => g.id !== id);
+    alert("Afspraak succesvol geannuleerd.");
+  } catch (e) {
+    console.error("Fout bij annuleren van afspraak: ", e);
+    alert("Kon de afspraak niet annuleren.");
+  }
 }
 
 function handleAvatarClick() {
@@ -380,27 +509,67 @@ if (typeof window !== 'undefined') {
   font-size: 0.875rem;
 }
 
-.annuleerknop {
-  background: #dc2626;
-  color: white;
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 0.5rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.2s ease;
+.actie-knoppen {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
-.annuleerknop:hover {
-  background: #b91c1c;
-}
-
-.event-date-note {
-  margin-top: 0.5rem;
-  font-size: 0.9rem;
-  color: #374151;
+.profielknop {
   display: flex;
   align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  background-color: #fff;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.profielknop .icoon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.actieknop {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  border: none;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.actieknop.voltooi {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.actieknop.voltooi:hover {
+  background-color: #bbf7d0;
+}
+
+.actieknop.annuleer {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.actieknop.annuleer:hover {
+  background-color: #fecaca;
+}
+
+.status-badge.afgerond {
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  background-color: #e5e7eb;
+  color: #4b5563;
+  font-weight: 500;
+  text-align: center;
+}
+
+.error {
+  color: red;
 }
 </style>
   

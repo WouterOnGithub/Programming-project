@@ -4,14 +4,38 @@
       <section class="content-section">
         <div class="section-header">
           <h2 class="section-title">Komende Afspraken</h2>
-          <div class="filter-tabs">
-            <button class="filter-tab" :class="{ active: activeFilter === 'all' }" @click="setFilter('all')">Alle</button>
-            <button class="filter-tab" :class="{ active: activeFilter === 'upcoming' }" @click="setFilter('upcoming')">Komend</button>
-            <button class="filter-tab" :class="{ active: activeFilter === 'completed' }" @click="setFilter('completed')">Afgerond</button>
+          <div class="filter-knoppen">
+            <button 
+              @click="setFilter('all')" 
+              :class="['filter-knop', { 'actief': activeFilter === 'all' }]">
+              Alle
+            </button>
+            <button 
+              @click="setFilter('upcoming')" 
+              :class="['filter-knop', { 'actief': activeFilter === 'upcoming' }]">
+              Komend
+            </button>
+            <button 
+              @click="setFilter('afgerond')" 
+              :class="['filter-knop', { 'actief': activeFilter === 'afgerond' }]">
+              Afgerond
+            </button>
           </div>
         </div>
 
-        <div v-if="filteredAppointments.length" class="appointments-list">
+        <div v-if="loading" class="empty-state">
+          <p>Afspraken worden geladen...</p>
+        </div>
+        <div v-else-if="error" class="empty-state">
+          <h3>Er is een fout opgetreden</h3>
+          <p>{{ error }}</p>
+        </div>
+        <div v-else-if="filteredAppointments.length === 0" class="empty-state">
+          <div class="empty-state-icon">📭</div>
+          <h3>Geen afspraken</h3>
+          <p>U heeft geen afspraken die voldoen aan dit filter.</p>
+        </div>
+        <div v-else class="appointments-list">
           <div v-for="appointment in filteredAppointments" :key="appointment.id" class="appointment-card">
             <div class="appointment-header">
               <div class="company-info">
@@ -56,12 +80,6 @@
             </div>
           </div>
         </div>
-
-        <div v-else class="empty-state">
-          <div class="empty-state-icon">📭</div>
-          <h3>Er is een fout opgetreden bij het ophalen van de afspraken</h3>
-          <p>Geen afspraken gevonden voor dit filter.</p>
-        </div>
       </section>
 
       <!-- Modal voor tijdslot selectie -->
@@ -94,7 +112,7 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import StudentDashboardLayout from '../../components/StudentDashboardLayout.vue'
 import { getAuth } from 'firebase/auth';
-import { getFirestore, collection, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { getFirestore, collection, getDocs, updateDoc, doc, deleteDoc, query, where, documentId } from 'firebase/firestore';
 
 const db = getFirestore();
 const auth = getAuth();
@@ -108,45 +126,81 @@ const navigation = [
 
 const activeFilter = ref('all');
 const appointments = ref([]);
+const loading = ref(true);
+const error = ref(null);
 const route = useRoute();
 
-onMounted(async () => {
-  let studentId = auth.currentUser?.uid;
-  if (!studentId) {
-    await new Promise(resolve => {
-      const unsub = auth.onAuthStateChanged(user => {
-        studentId = user?.uid;
-        unsub();
-        resolve();
-      });
-    });
-  }
-  if (!studentId) return;
-  const afsprakenSnap = await getDocs(collection(db, 'afspraken'));
-  const bedrijvenSnap = await getDocs(collection(db, 'bedrijf'));
-  const bedrijvenMap = {};
-  bedrijvenSnap.forEach(docu => { bedrijvenMap[docu.id] = docu.data(); });
+const setFilter = (filter) => {
+  activeFilter.value = filter;
+};
 
-  appointments.value = afsprakenSnap.docs
-    .map(docu => {
+onMounted(async () => {
+  try {
+    loading.value = true;
+    error.value = null;
+    let studentId = auth.currentUser?.uid;
+
+    if (!studentId) {
+      await new Promise((resolve, reject) => {
+        const unsub = auth.onAuthStateChanged(user => {
+          unsub();
+          if (user) {
+            studentId = user.uid;
+            resolve();
+          } else {
+            reject(new Error("Gebruiker niet ingelogd."));
+          }
+        });
+      });
+    }
+    
+    // 1. Haal alleen de afspraken voor de huidige student op
+    const afsprakenQuery = query(collection(db, 'afspraken'), where('studentUid', '==', studentId));
+    const afsprakenSnap = await getDocs(afsprakenQuery);
+
+    if (afsprakenSnap.empty) {
+      appointments.value = [];
+      loading.value = false;
+      return;
+    }
+
+    // 2. Verzamel de unieke bedrijf ID's van die afspraken
+    const bedrijfIds = [...new Set(afsprakenSnap.docs.map(doc => doc.data().bedrijfId).filter(Boolean))];
+    const bedrijvenMap = {};
+
+    // 3. Haal alleen de benodigde bedrijfsdata op
+    if (bedrijfIds.length > 0) {
+      const bedrijvenQuery = query(collection(db, 'bedrijf'), where(documentId(), 'in', bedrijfIds));
+      const bedrijvenSnap = await getDocs(bedrijvenQuery);
+      bedrijvenSnap.forEach(docu => { bedrijvenMap[docu.id] = docu.data(); });
+    }
+
+    // 4. Combineer de data
+    appointments.value = afsprakenSnap.docs.map(docu => {
       const data = docu.data();
       const bedrijf = bedrijvenMap[data.bedrijfId] || {};
       return {
         id: docu.id,
         ...data,
-        company: bedrijf.bedrijfsnaam || 'Onbekend',
-        location: bedrijf.gesitueerdIn || '-',
-        duration: bedrijf.gesprekDuur || '-',
+        status: data.status || 'upcoming',
+        company: bedrijf.bedrijfsnaam || 'Onbekend Bedrijf',
+        location: bedrijf.gesitueerdIn || 'Onbekend',
+        duration: data.duur || '10 min',
         avatar: (bedrijf.bedrijfsnaam || '?')[0]
       };
-    })
-    .filter(a => a.studentUid === studentId);
+    });
+  } catch (e) {
+    console.error("Fout bij ophalen van afspraken:", e);
+    error.value = "De afspraken konden niet geladen worden. Probeer het later opnieuw.";
+  } finally {
+    loading.value = false;
+  }
 });
 
 const filteredAppointments = computed(() => {
   if (activeFilter.value === 'all') return appointments.value;
   if (activeFilter.value === 'upcoming') return appointments.value.filter(a => a.status === 'upcoming');
-  if (activeFilter.value === 'completed') return appointments.value.filter(a => a.status === 'completed');
+  if (activeFilter.value === 'afgerond') return appointments.value.filter(a => a.status === 'afgerond');
   return appointments.value;
 });
 
@@ -232,7 +286,7 @@ const isStudent = () => true;
 function getStatusText(status) {
   return {
     upcoming: 'Komend',
-    completed: 'Afgerond',
+    afgerond: 'Afgerond',
     geannuleerd: 'Geannuleerd'
   }[status] || status;
 }
@@ -424,37 +478,34 @@ function formatDate(dateString) {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 30px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 1.5rem;
 }
 .section-title {
   font-size: 20px;
   font-weight: 600;
   color: #1f2937;
 }
-.filter-tabs {
+.filter-knoppen {
   display: flex;
-  gap: 8px;
+  gap: 0.5rem;
 }
-.filter-tab {
-  padding: 8px 20px;
+.filter-knop {
+  padding: 0.5rem 1rem;
   border: 1px solid #d1d5db;
-  background: white;
-  border-radius: 6px;
-  font-size: 14px;
+  border-radius: 0.375rem;
+  background-color: #fff;
+  color: #374151;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
-  color: #374151;
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
 }
-.filter-tab.active {
-  background: #dc2626;
-  color: white;
-  border-color: #dc2626;
+.filter-knop:hover {
+  background-color: #f3f4f6;
 }
-.filter-tab:hover:not(.active) {
-  background: #f3f4f6;
+.filter-knop.actief {
+  background-color: #c20000;
+  color: #fff;
+  border-color: #c20000;
 }
 .appointments-list {
   display: flex;
@@ -508,20 +559,28 @@ function formatDate(dateString) {
   font-weight: 500;
 }
 .status-badge {
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 12px;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.8rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 .status-badge.upcoming {
-  background: #d1fae5;
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+.status-badge.afgerond {
+  background-color: #d1fae5;
   color: #065f46;
 }
-.status-badge.completed {
-  background: #dbeafe;
-  color: #1e40af;
+.status-badge.geannuleerd {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+/* Fallback voor onbekende status */
+.status-badge:not(.upcoming):not(.afgerond):not(.geannuleerd) {
+    background-color: #e5e7eb;
+    color: #4b5563;
 }
 .appointment-details {
   display: grid;

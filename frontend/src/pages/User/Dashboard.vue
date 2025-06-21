@@ -21,16 +21,6 @@
                 <i :class="stat.icon"></i>
               </div>
             </div>
-            <div class="stat-card-bottom">
-              <i v-if="stat.trend === 'up'" class="fas fa-arrow-up text-green-600"></i>
-              <i v-else-if="stat.trend === 'down'" class="fas fa-arrow-down text-red-600"></i>
-              <span :class="{
-                'text-green-600': stat.trend === 'up',
-                'text-red-600': stat.trend === 'down',
-                'text-muted': stat.trend === 'neutral'
-              }">{{ stat.change }}</span>
-              <span class="text-muted">vs vorige week</span>
-            </div>
           </template>
         </div>
       </section>

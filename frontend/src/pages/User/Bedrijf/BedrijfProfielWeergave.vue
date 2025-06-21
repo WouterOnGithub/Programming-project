@@ -10,7 +10,8 @@
             <h1>{{ bedrijf?.bedrijfsnaam || 'Bedrijfsnaam' }}</h1>
             <p>{{ bedrijf?.gesitueerdIn }}</p>
           </div>
-          <router-link to="/WijzigBd" class="wijzig-knop">Wijzig</router-link>
+          <router-link v-if="!route.params.id" to="/WijzigBd" class="wijzig-knop">Wijzig</router-link>
+          <button v-else @click="goBack" class="wijzig-knop">Terug</button>
         </div>
 
         <div v-if="loading" class="section-card">Laden...</div>
@@ -23,7 +24,7 @@
           <div class="section-card">
             <h2>Informatie</h2>
             <ul class="info-list">
-              <li><strong>Op zoek naar:</strong> {{ bedrijf?.opZoekNaar?.join ? bedrijf.opZoekNaar.join(', ') : bedrijf.opZoekNaar }}</li>
+              <li><strong>Op zoek naar:</strong> {{ Array.isArray(bedrijf?.opZoekNaar) ? bedrijf.opZoekNaar.join(', ') : bedrijf?.opZoekNaar }}</li>
               <li><strong>Gesprek duurt:</strong> {{ bedrijf?.gesprekDuur }}</li>
               <li><strong>Aanwezig van:</strong> {{ bedrijf?.starttijd }} tot {{ bedrijf?.eindtijd }}</li>
               <li><strong>Locatie stand:</strong> {{ bedrijf?.gesitueerdIn }}</li>
@@ -84,13 +85,14 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { getAuth } from 'firebase/auth'
-import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore'
+import { getFirestore, collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore'
 import profielfoto from '/Images/profielfoto.jpg'
 import BedrijfDashboardLayout from '../../../components/BedrijfDashboardLayout.vue'
 
 const router = useRouter()
+const route = useRoute();
 const showDropdown = ref(false)
 const bedrijf = ref(null)
 const loading = ref(true)
@@ -99,24 +101,46 @@ const error = ref(null)
 const db = getFirestore()
 const auth = getAuth()
 
+const goBack = () => {
+  router.back();
+};
+
 onMounted(async () => {
-  const user = auth.currentUser
-  if (!user) {
-    error.value = 'Niet ingelogd.'
-    loading.value = false
-    return
-  }
-  try {
-    const q = query(collection(db, 'bedrijf'), where('authUid', '==', user.uid))
-    const snapshot = await getDocs(q)
-    if (!snapshot.empty) {
-      bedrijf.value = snapshot.docs[0].data()
-    } else {
-      error.value = 'Geen bedrijfsprofiel gevonden.'
+  const user = auth.currentUser;
+  const bedrijfId = route.params.id;
+
+  if (bedrijfId) {
+    // Scenario 1: Haal specifiek bedrijfsprofiel op basis van ID uit URL
+    try {
+      const bedrijfDocRef = doc(db, 'bedrijf', bedrijfId);
+      const bedrijfSnap = await getDoc(bedrijfDocRef);
+      if (bedrijfSnap.exists()) {
+        bedrijf.value = bedrijfSnap.data();
+      } else {
+        error.value = 'Dit bedrijfsprofiel kon niet worden gevonden.';
+      }
+    } catch (e) {
+      error.value = 'Fout bij ophalen van bedrijfsprofiel.';
+    } finally {
+      loading.value = false;
     }
-  } catch (e) {
-    error.value = 'Fout bij ophalen bedrijfsprofiel.'
-  } finally {
+  } else if (user) {
+    // Scenario 2: Huidige logica voor ingelogd bedrijf
+    try {
+      const q = query(collection(db, 'bedrijf'), where('authUid', '==', user.uid))
+      const snapshot = await getDocs(q)
+      if (!snapshot.empty) {
+        bedrijf.value = snapshot.docs[0].data()
+      } else {
+        error.value = 'Geen bedrijfsprofiel gevonden.'
+      }
+    } catch (e) {
+      error.value = 'Fout bij ophalen bedrijfsprofiel.'
+    } finally {
+      loading.value = false
+    }
+  } else {
+    error.value = 'Niet ingelogd en geen profiel-ID opgegeven.'
     loading.value = false
   }
 })

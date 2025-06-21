@@ -39,7 +39,7 @@
       <div class="profile-section">
         <h3>Informatie</h3>
         <ul class="profile-info-list">
-          <li><strong>Op zoek naar:</strong> {{ company.opZoekNaar && company.opZoekNaar.length ? (Array.isArray(company.opZoekNaar) ? company.opZoekNaar.join(', ') : company.opZoekNaar) : '' }}</li>
+          <li><strong>Op zoek naar:</strong> {{ Array.isArray(company.opZoekNaar) ? company.opZoekNaar.join(', ') : company.opZoekNaar }}</li>
           <li><strong>Gesprek duurt:</strong> {{ company.gesprekDuur }}</li>
           <li><strong>Aanwezig van:</strong> {{ company.starttijd }} tot {{ company.eindtijd }}</li>
           <li><strong>Locatie stand:</strong> {{ company.gesitueerdIn }}</li>
@@ -52,8 +52,8 @@
       <div class="profile-section">
         <h3>Vacature informatie</h3>
         <ul class="profile-info-list">
-          <li><strong>Op zoek naar:</strong> {{ company.opZoekNaar && company.opZoekNaar.length ? (Array.isArray(company.opZoekNaar) ? company.opZoekNaar.join(', ') : company.opZoekNaar) : '' }}</li>
-          <li><strong>Type posities:</strong> {{ company.jobTypes && company.jobTypes.length ? (Array.isArray(company.jobTypes) ? company.jobTypes.join(', ') : company.jobTypes) : '' }}</li>
+          <li><strong>Op zoek naar:</strong> {{ Array.isArray(company.opZoekNaar) ? company.opZoekNaar.join(', ') : company.opZoekNaar }}</li>
+          <li><strong>Type posities:</strong> {{ Array.isArray(company.jobTypes) ? company.jobTypes.join(', ') : company.jobTypes }}</li>
         </ul>
       </div>
       <div class="profile-section">
@@ -97,7 +97,7 @@
       <div class="profile-section">
         <h3>Details</h3>
         <ul>
-          <li><strong>Op zoek naar:</strong> {{ company.opZoekNaar }}</li>
+          <li><strong>Op zoek naar:</strong> {{ Array.isArray(company.opZoekNaar) ? company.opZoekNaar.join(', ') : company.opZoekNaar }}</li>
           <li><strong>Gesprek duurt:</strong> {{ company.gesprekDuur }}</li>
           <li><strong>Aanwezig van:</strong> {{ company.starttijd }} tot {{ company.eindtijd }}</li>
           <li><strong>Over ons:</strong> {{ company.overOns }}</li>

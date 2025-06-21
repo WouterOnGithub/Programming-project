@@ -97,128 +97,119 @@ export default {
     const jobs = ref([]);
     const loading = ref(true);
     const error = ref(null);
-    const swipedIds = ref(new Set());
-    const favorietIds = ref(new Set());
+    const currentUser = ref(null);
 
-    // Haal geswipete en favoriete bedrijven op
-    const loadSwipesAndFavorieten = async (studentId) => {
-      // Swipes
-      const swipesSnap = await getDocs(collection(db, 'student', studentId, 'swipes'));
-      swipesSnap.forEach(docu => {
-        const d = docu.data();
-        if ((d.status === 'interessant' || d.status === 'niet_interessant')) {
-          swipedIds.value.add(d.bedrijfUid);
-        }
-      });
-      // Favorieten
-      const favSnap = await getDocs(collection(db, 'student_favorieten'));
-      favSnap.forEach(docu => {
-        const d = docu.data();
-        if (d.studentUid === studentId) {
-          favorietIds.value.add(d.bedrijfUid);
-        }
-      });
+    const handleSwipe = async (collectionName, job, data) => {
+      if (!currentUser.value?.uid || !job?.id) {
+        console.error("Kan niet swipen: gebruiker of job niet gevonden.", { uid: currentUser.value?.uid, jobId: job?.id });
+        error.value = `Kon actie niet verwerken. Probeer opnieuw in te loggen.`;
+        return;
+      }
+      const { uid: studentId } = currentUser.value;
+      const { id: bedrijfId } = job;
+
+      try {
+        const docRef = doc(db, 'student', studentId, collectionName, bedrijfId);
+        await setDoc(docRef, data);
+      } catch (e) {
+        console.error(`Fout bij opslaan van ${collectionName}:`, e);
+        error.value = `Kon actie niet verwerken. Probeer opnieuw.`;
+      }
     };
 
-    const loadCompanies = async (studentId) => {
+    const loadInitialData = async (user) => {
+      if (!user) {
+        loading.value = false;
+        error.value = "Geen gebruiker gevonden. Log in om te swipen.";
+        return;
+      }
+      currentUser.value = user;
+      const studentId = user.uid;
+
       try {
         loading.value = true;
-        await loadSwipesAndFavorieten(studentId);
+        const swipedIds = new Set();
+        
+        const swipesSnap = await getDocs(collection(db, 'student', studentId, 'swipes'));
+        swipesSnap.forEach(doc => swipedIds.add(doc.id));
+        
+        const favSnap = await getDocs(collection(db, 'student', studentId, 'favorieten'));
+        favSnap.forEach(doc => swipedIds.add(doc.id));
+
         const companiesSnap = await getDocs(collection(db, 'bedrijf'));
         jobs.value = companiesSnap.docs
-          .map(doc => {
-            const data = doc.data();
-            return {
-              id: doc.id,
-              bedrijfUid: doc.id,
-              company: data.bedrijfsnaam || 'Onbekend',
-              title: data.opZoekNaar || 'Stageplaats',
-              location: data.gesitueerdIn || '-',
-              type: data.gesprekDuur || 'Stage',
-              description: data.overOns || 'Geen beschrijving beschikbaar',
-              duration: data.gesprekDuur ? `${data.gesprekDuur} min` : '10 min',
-              schedule: data.starttijd && data.eindtijd ? `${data.starttijd} - ${data.eindtijd}` : '-',
-              skills: data.skills || [],
-              linkedinUrl: data.linkedin || '#',
-              logo: data.foto || null
-            };
-          })
-          .filter(job => !swipedIds.value.has(job.bedrijfUid) && !favorietIds.value.has(job.bedrijfUid));
+          .map(doc => ({
+            id: doc.id,
+            bedrijfUid: doc.id,
+            company: doc.data().bedrijfsnaam || 'Onbekend',
+            title: doc.data().opZoekNaar || 'Stageplaats',
+            location: doc.data().gesitueerdIn || '-',
+            type: doc.data().gesprekDuur || 'Stage',
+            description: doc.data().overOns || 'Geen beschrijving beschikbaar',
+            duration: doc.data().gesprekDuur ? `${doc.data().gesprekDuur} min` : '10 min',
+            schedule: doc.data().starttijd && doc.data().eindtijd ? `${doc.data().starttijd} - ${doc.data().eindtijd}` : '-',
+            skills: doc.data().skills || [],
+            linkedinUrl: doc.data().linkedin || '#',
+            logo: doc.data().foto || null
+          }))
+          .filter(job => !swipedIds.has(job.bedrijfUid));
       } catch (err) {
-        error.value = 'Fout bij laden van bedrijven';
+        console.error("Fout bij laden van bedrijven:", err);
+        error.value = 'Fout bij laden van bedrijven.';
       } finally {
         loading.value = false;
       }
     };
 
-    onMounted(async () => {
-      let studentId = null;
-      if (auth.currentUser) {
-        studentId = auth.currentUser.uid;
-      } else {
-        await new Promise(resolve => onAuthStateChanged(auth, user => { studentId = user?.uid; resolve(); }));
-      }
-      if (studentId) {
-        await loadCompanies(studentId);
-      }
+    onMounted(() => {
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          loadInitialData(user);
+        } else {
+          currentUser.value = null;
+          loading.value = false;
+          jobs.value = [];
+          error.value = "Log in om bedrijven te swipen.";
+        }
+      });
     });
 
     const currentJob = computed(() => jobs.value[0]);
 
     const nextJob = () => {
-      jobs.value.shift();
-      animateReject.value = false;
-      animateAccept.value = false;
+      setTimeout(() => {
+        jobs.value.shift();
+        animateReject.value = false;
+        animateAccept.value = false;
+      }, 300); // Wacht tot animatie klaar is
     };
 
-    const rejectJob = async () => {
+    const rejectJob = () => {
       animateReject.value = true;
-      let studentId = auth.currentUser?.uid;
-      if (!studentId) {
-        await new Promise(resolve => onAuthStateChanged(auth, user => { studentId = user?.uid; resolve(); }));
-      }
-      if (studentId && currentJob.value) {
-        await setDoc(doc(db, 'student', studentId, 'swipes', currentJob.value.id), {
-          studentUid: studentId,
-          bedrijfUid: currentJob.value.id,
-          bedrijfEmail: currentJob.value.email || currentJob.value.emailadres || currentJob.value.emailBedrijf || '',
-          status: 'niet_interessant',
-          timestamp: serverTimestamp()
-        });
-      }
-      setTimeout(() => { nextJob(); }, 300);
+      handleSwipe('swipes', currentJob.value, {
+        bedrijfUid: currentJob.value.id,
+        status: 'niet_interessant',
+        timestamp: serverTimestamp()
+      });
+      nextJob();
     };
 
-    const acceptJob = async () => {
+    const acceptJob = () => {
       animateAccept.value = true;
-      let studentId = auth.currentUser?.uid;
-      if (!studentId) {
-        await new Promise(resolve => onAuthStateChanged(auth, user => { studentId = user?.uid; resolve(); }));
-      }
-      if (studentId && currentJob.value) {
-        await setDoc(doc(db, 'student', studentId, 'swipes', currentJob.value.id), {
-          studentUid: studentId,
-          bedrijfUid: currentJob.value.id,
-          bedrijfEmail: currentJob.value.email || currentJob.value.emailadres || currentJob.value.emailBedrijf || '',
-          status: 'interessant',
-          timestamp: serverTimestamp()
-        });
-      }
-      setTimeout(() => { nextJob(); }, 300);
+      handleSwipe('swipes', currentJob.value, {
+        bedrijfUid: currentJob.value.id,
+        status: 'interessant',
+        timestamp: serverTimestamp()
+      });
+      nextJob();
     };
 
-    const favoriteJob = async () => {
-      let studentId = auth.currentUser?.uid;
-      if (!studentId) {
-        await new Promise(resolve => onAuthStateChanged(auth, user => { studentId = user?.uid; resolve(); }));
-      }
-      if (studentId && currentJob.value) {
-        await setDoc(doc(db, 'student_favorieten', `${studentId}_${currentJob.value.id}`), {
-          studentUid: studentId,
-          bedrijfUid: currentJob.value.id,
-          timestamp: serverTimestamp()
-        });
-      }
+    const favoriteJob = () => {
+      // Optioneel: animatie voor favoriet
+      handleSwipe('favorieten', currentJob.value, {
+        bedrijfUid: currentJob.value.id,
+        timestamp: serverTimestamp()
+      });
       nextJob();
     };
 
