@@ -6,20 +6,24 @@
       <div class="swiping-content">
         <div v-if="currentJob" class="job-card-container">
           <div class="job-card" :class="{ 'animate-reject': animateReject, 'animate-accept': animateAccept }">
+            <button class="action-btn favorite-btn" @click="favoriteJob">
+              <span class="btn-icon">★</span>
+            </button>
             <div class="left-section">
               <div class="company-logo">{{ currentJob.company }}</div>
               <h1 class="company-name">{{ currentJob.company }}</h1>
               <h2 class="job-title">{{ currentJob.title }}</h2>
               <div class="location">{{ currentJob.location }}</div>
-              <span class="stage-badge">{{ currentJob.type }}</span>
 
-              <div class="linkedin-section">
+              <div class="links-section">
                 <a :href="currentJob.linkedinUrl" target="_blank" class="linkedin-link">Bekijk op LinkedIn</a>
+                <button @click="viewProfile(currentJob.id)" class="view-more-btn">View More</button>
               </div>
             </div>
 
             <div class="right-section">
               <div class="content-area">
+                <h3 class="intro-title">Introductie</h3>
                 <p class="description">{{ currentJob.description }}</p>
 
                 <div class="job-details">
@@ -46,15 +50,10 @@
               <div class="action-buttons">
                 <button class="action-btn reject-btn" @click="rejectJob">
                   <span class="btn-icon">✕</span>
-                  Niet interessant
+                  No match
                 </button>
                 <button class="action-btn accept-btn" @click="acceptJob">
-                  <span class="btn-icon">♥</span>
-                  Interessant!
-                </button>
-                <button class="action-btn favorite-btn" @click="favoriteJob">
-                  <span class="btn-icon">★</span>
-                  Favoriet
+                  Match
                 </button>
               </div>
             </div>
@@ -73,6 +72,7 @@
 
 <script>
 import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { db, auth } from '../../firebase/config';
 import { collection, getDocs, setDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -98,6 +98,15 @@ export default {
     const loading = ref(true);
     const error = ref(null);
     const currentUser = ref(null);
+    const router = useRouter();
+
+    const viewProfile = (bedrijfId) => {
+      if (bedrijfId) {
+        router.push({ name: 'BedrijfProfielVoorStudent', params: { id: bedrijfId } });
+      } else {
+        console.error('No company ID provided to viewProfile function');
+      }
+    };
 
     const handleSwipe = async (collectionName, job, data) => {
       if (!currentUser.value?.uid || !job?.id) {
@@ -142,7 +151,7 @@ export default {
             id: doc.id,
             bedrijfUid: doc.id,
             company: doc.data().bedrijfsnaam || 'Onbekend',
-            title: doc.data().opZoekNaar || 'Stageplaats',
+            title: Array.isArray(doc.data().opZoekNaar) ? doc.data().opZoekNaar.join(', ') : (doc.data().opZoekNaar || 'Stageplaats'),
             location: doc.data().gesitueerdIn || '-',
             type: doc.data().gesprekDuur || 'Stage',
             description: doc.data().overOns || 'Geen beschrijving beschikbaar',
@@ -222,7 +231,8 @@ export default {
       favoriteJob,
       navigation,
       loading,
-      error
+      error,
+      viewProfile
     };
   },
 };
@@ -421,9 +431,10 @@ export default {
 }
 
 .job-card {
-  background: #fff;
-  border-radius: 40px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+  position: relative;
+  background: #ffffff;
+  border-radius: 25px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.07);
   overflow: hidden;
   transition: all 0.3s ease;
   transform-style: preserve-3d;
@@ -499,41 +510,41 @@ export default {
   font-size: 18px;
 }
 
-.stage-badge {
-  display: inline-block;
-  background: linear-gradient(135deg, #fef5e7 0%, #f6e05e 100%);
-  color: #744210;
-  padding: 8px 20px;
-  border-radius: 25px;
-  font-size: 14px;
-  font-weight: 600;
-  box-shadow: 0 4px 15px rgba(246, 224, 94, 0.3);
-  margin-bottom: 20px;
-}
-
-.linkedin-link {
+.links-section {
   display: flex;
   align-items: center;
-  gap: 8px;
-  color: #0077b5;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.linkedin-link, .view-more-btn {
+  display: inline-block;
+  padding: 8px 15px;
+  border-radius: 20px;
   text-decoration: none;
   font-weight: 600;
   font-size: 14px;
-  transition: all 0.3s ease;
-  padding: 8px 15px;
-  border-radius: 12px;
-  background: rgba(0, 119, 181, 0.1);
+  transition: all 0.2s ease-in-out;
+}
+
+.linkedin-link {
+  background-color: #eef2f7;
+  color: #2d64ac;
 }
 
 .linkedin-link:hover {
-  color: #005885;
-  transform: translateY(-2px);
-  background: rgba(0, 119, 181, 0.15);
+  background-color: #dbe4f0;
 }
 
-.linkedin-link::before {
-  content: "\1F4BC";
-  font-size: 20px;
+.view-more-btn {
+  background-color: #e6f7ff;
+  color: #1890ff;
+  border: 1px solid #91d5ff;
+  cursor: pointer;
+}
+
+.view-more-btn:hover {
+  background-color: #bae7ff;
 }
 
 .description {
@@ -592,8 +603,9 @@ export default {
 }
 
 .action-btn {
-  flex: 1;
-  padding: 16px 24px;
+  flex-grow: 1;
+  max-width: 48%;
+  padding: 15px;
   border: none;
   border-radius: 50px;
   font-size: 16px;
@@ -603,22 +615,70 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  position: relative;
-  overflow: hidden;
-  min-height: 60px;
-  border: 2px solid transparent;
+  gap: 10px;
 }
 
+.favorite-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background-color: transparent;
+  color: #a0aec0;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  font-size: 24px;
+  box-shadow: none;
+  padding: 0;
+  max-width: none;
+}
+.favorite-btn .btn-icon {
+  margin: 0;
+}
+.favorite-btn:hover {
+  background-color: #fffbeb;
+  color: #f6e05e;
+  transform: translateY(-3px) scale(1.1);
+  box-shadow: 0 12px 35px rgba(246, 224, 94, 0.5);
+}
 .reject-btn {
-  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
-  color: white;
-  box-shadow: 0 10px 40px rgba(255, 107, 107, 0.4);
+  background-color: #fff1f2;
+  color: #e53e3e;
+  border: 2px solid #fed7d7;
+}
+.reject-btn:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 25px rgba(229, 62, 62, 0.2);
 }
 
 .accept-btn {
-  background: linear-gradient(135deg, #51cf66 0%, #40c057 100%);
-  color: white;
+  background-color: #f0fff4;
+  color: #38a169;
   box-shadow: 0 10px 40px rgba(81, 207, 102, 0.4);
+  border: 2px solid #c6f6d5;
+}
+.accept-btn:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 25px rgba(56, 161, 105, 0.2);
+}
+
+.intro-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  text-align: left;
+  color: #333;
+}
+
+.job-details {
+  display: flex;
+  flex-direction: column;
+  font-weight: 500;
+  line-height: 1.6;
+  text-align: left;
+}
+
+.btn-icon {
+  font-size: 18px;
 }
 </style>

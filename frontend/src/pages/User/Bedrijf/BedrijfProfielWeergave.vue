@@ -2,82 +2,57 @@
   <BedrijfDashboardLayout>
     <main class="dashboard-main">
       <section class="dashboard-card">
-        <div class="hero-banner">
-          <div class="hero-photo">
-            <img :src="bedrijf?.foto || profielfoto" alt="Bedrijfslogo" />
+        <div v-if="loading">Laden...</div>
+        <div v-else-if="error" style="color: #b80000;">{{ error }}</div>
+        <div v-else-if="bedrijf">
+          <div class="hero-banner">
+            <div class="hero-photo">
+              <img :src="bedrijf.foto || profielfoto" alt="Bedrijfslogo" />
+            </div>
+            <div class="hero-text">
+              <h1>{{ bedrijf.bedrijfsnaam || 'Bedrijfsnaam' }}</h1>
+              <p>{{ bedrijf.gesitueerdIn || '-' }}</p>
+            </div>
+            <router-link to="/WijzigBd" class="wijzig-knop">Wijzig</router-link>
           </div>
-          <div class="hero-text">
-            <h1>{{ bedrijf?.bedrijfsnaam || 'Bedrijfsnaam' }}</h1>
-            <p>{{ bedrijf?.gesitueerdIn }}</p>
-          </div>
-          <router-link v-if="!route.params.id" to="/WijzigBd" class="wijzig-knop">Wijzig</router-link>
-          <button v-else @click="goBack" class="wijzig-knop">Terug</button>
-        </div>
-
-        <div v-if="loading" class="section-card">Laden...</div>
-        <div v-else-if="error" class="section-card" style="color: #b80000;">{{ error }}</div>
-        <template v-else>
           <div class="section-card">
             <h2>Over ons</h2>
-            <p class="intro-text">{{ bedrijf?.overOns }}</p>
+            <p class="intro-text">{{ bedrijf.overOns || 'Geen informatie beschikbaar.' }}</p>
           </div>
           <div class="section-card">
             <h2>Informatie</h2>
             <ul class="info-list">
-              <li><strong>Op zoek naar:</strong> {{ Array.isArray(bedrijf?.opZoekNaar) ? bedrijf.opZoekNaar.join(', ') : bedrijf?.opZoekNaar }}</li>
-              <li><strong>Gesprek duurt:</strong> {{ bedrijf?.gesprekDuur }}</li>
-              <li><strong>Aanwezig van:</strong> {{ bedrijf?.starttijd }} tot {{ bedrijf?.eindtijd }}</li>
-              <li><strong>Locatie stand:</strong> {{ bedrijf?.gesitueerdIn }}</li>
+              <li><strong>Op zoek naar:</strong> {{ Array.isArray(bedrijf.opZoekNaar) ? bedrijf.opZoekNaar.join(', ') : bedrijf.opZoekNaar || '-' }}</li>
+              <li><strong>Gesprek duurt:</strong> {{ bedrijf.gesprekDuur || '-' }}</li>
+              <li><strong>Aanwezig van:</strong> {{ bedrijf.starttijd || '-' }} tot {{ bedrijf.eindtijd || '-' }}</li>
+              <li><strong>Locatie stand:</strong> {{ bedrijf.gesitueerdIn || '-' }}</li>
               <li>
                 <strong>LinkedIn:</strong>
-                <a :href="bedrijf?.linkedin" target="_blank">Bekijk profiel</a>
+                <a v-if="bedrijf.linkedin" :href="bedrijf.linkedin" target="_blank">Bekijk profiel</a>
+                <span v-else>-</span>
               </li>
             </ul>
           </div>
           <div class="section-card">
-            <h2>Vacature informatie</h2>
+            <h2>Contactinformatie</h2>
             <ul class="info-list">
-              <li><strong>Op zoek naar:</strong> IT-studenten, Marketing profielen</li>
-              <li><strong>Type posities:</strong> Stage, Studentenjob</li>
+              <li><strong>E-mail:</strong> {{ bedrijf.email || '-' }}</li>
+              <li><strong>Website:</strong> {{ bedrijf.website || '-' }}</li>
+              <li><strong>Telefoonnummer:</strong> {{ bedrijf.telefoonnummer || '-' }}</li>
             </ul>
           </div>
-          <!-- Contactinformatie sectie -->
-          <div class="section-card">
-            <h2>Contactinformatie</h2>
-            <div class="contactinfo-fields">
-              <div class="contactinfo-field">
-                <label for="contact-email"><strong>Contact e-mail</strong></label>
-                <input id="contact-email" type="email" :value="bedrijf?.email" readonly />
-              </div>
-              <div class="contactinfo-field">
-                <label for="contact-website"><strong>Website</strong></label>
-                <input id="contact-website" type="text" :value="bedrijf?.website" readonly />
-              </div>
-              <div class="contactinfo-field">
-                <label for="contact-telefoon"><strong>Telefoonnummer</strong></label>
-                <input id="contact-telefoon" type="text" :value="bedrijf?.telefoonnummer" readonly />
-              </div>
-            </div>
-          </div>
-          <!-- Bedrijfsdetails sectie -->
           <div class="section-card">
             <h2>Bedrijfsdetails</h2>
-            <div class="contactinfo-fields">
-              <div class="contactinfo-field">
-                <label for="bedrijf-branche"><strong>Branche</strong></label>
-                <input id="bedrijf-branche" type="text" :value="bedrijf?.branche" readonly />
-              </div>
-              <div class="contactinfo-field">
-                <label for="bedrijf-grootte"><strong>Bedrijfsgrootte</strong></label>
-                <input id="bedrijf-grootte" type="text" :value="bedrijf?.bedrijfsgrootte" readonly />
-              </div>
-              <div class="contactinfo-field">
-                <label for="bedrijf-opgericht"><strong>Opgericht in</strong></label>
-                <input id="bedrijf-opgericht" type="text" :value="bedrijf?.opgerichtIn" readonly />
-              </div>
-            </div>
+            <ul class="info-list">
+              <li><strong>Branche:</strong> {{ bedrijf.branche || '-' }}</li>
+              <li><strong>Bedrijfsgrootte:</strong> {{ bedrijf.bedrijfsgrootte || '-' }}</li>
+              <li><strong>Opgericht in:</strong> {{ bedrijf.opgerichtIn || '-' }}</li>
+            </ul>
           </div>
-        </template>
+        </div>
+        <div v-else>
+          Geen bedrijfsgegevens gevonden.
+        </div>
       </section>
     </main>
   </BedrijfDashboardLayout>
@@ -85,14 +60,13 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { getAuth } from 'firebase/auth'
-import { getFirestore, collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore'
+import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore'
 import profielfoto from '/Images/profielfoto.jpg'
 import BedrijfDashboardLayout from '../../../components/BedrijfDashboardLayout.vue'
 
 const router = useRouter()
-const route = useRoute();
 const showDropdown = ref(false)
 const bedrijf = ref(null)
 const loading = ref(true)
@@ -101,46 +75,24 @@ const error = ref(null)
 const db = getFirestore()
 const auth = getAuth()
 
-const goBack = () => {
-  router.back();
-};
-
 onMounted(async () => {
-  const user = auth.currentUser;
-  const bedrijfId = route.params.id;
-
-  if (bedrijfId) {
-    // Scenario 1: Haal specifiek bedrijfsprofiel op basis van ID uit URL
-    try {
-      const bedrijfDocRef = doc(db, 'bedrijf', bedrijfId);
-      const bedrijfSnap = await getDoc(bedrijfDocRef);
-      if (bedrijfSnap.exists()) {
-        bedrijf.value = bedrijfSnap.data();
-      } else {
-        error.value = 'Dit bedrijfsprofiel kon niet worden gevonden.';
-      }
-    } catch (e) {
-      error.value = 'Fout bij ophalen van bedrijfsprofiel.';
-    } finally {
-      loading.value = false;
+  const user = auth.currentUser
+  if (!user) {
+    error.value = 'Niet ingelogd.'
+    loading.value = false
+    return
+  }
+  try {
+    const q = query(collection(db, 'bedrijf'), where('authUid', '==', user.uid))
+    const snapshot = await getDocs(q)
+    if (!snapshot.empty) {
+      bedrijf.value = snapshot.docs[0].data()
+    } else {
+      error.value = 'Geen bedrijfsprofiel gevonden.'
     }
-  } else if (user) {
-    // Scenario 2: Huidige logica voor ingelogd bedrijf
-    try {
-      const q = query(collection(db, 'bedrijf'), where('authUid', '==', user.uid))
-      const snapshot = await getDocs(q)
-      if (!snapshot.empty) {
-        bedrijf.value = snapshot.docs[0].data()
-      } else {
-        error.value = 'Geen bedrijfsprofiel gevonden.'
-      }
-    } catch (e) {
-      error.value = 'Fout bij ophalen bedrijfsprofiel.'
-    } finally {
-      loading.value = false
-    }
-  } else {
-    error.value = 'Niet ingelogd en geen profiel-ID opgegeven.'
+  } catch (e) {
+    error.value = 'Fout bij ophalen bedrijfsprofiel.'
+  } finally {
     loading.value = false
   }
 })
