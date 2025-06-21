@@ -63,7 +63,7 @@
                 <Calendar :size="14" />
                 <span>Gesprek</span>
               </button>
-              <button class="knop-verwijder" @click="openConfirm(bedrijf.id)">
+              <button class="knop-verwijder" @click="openConfirm(bedrijf)">
                 <span>Verwijder</span>
               </button>
             </div>
@@ -95,7 +95,7 @@ import { ref, computed, onMounted } from 'vue'
 import { Heart, Calendar, User, Search, Building } from 'lucide-vue-next'
 import StudentDashboardLayout from '../../../components/StudentDashboardLayout.vue'
 import { getAuth } from 'firebase/auth'
-import { getFirestore, collection, getDocs, doc, deleteDoc } from 'firebase/firestore'
+import { getFirestore, collection, getDocs, doc, deleteDoc, query, where, documentId } from 'firebase/firestore'
 
 const db = getFirestore();
 const auth = getAuth();
@@ -103,35 +103,56 @@ const bedrijven = ref([])
 const zoekterm = ref('')
 
 onMounted(async () => {
-  let studentId = auth.currentUser?.uid;
-  if (!studentId) {
-    await new Promise(resolve => {
-      const unsub = auth.onAuthStateChanged(user => {
-        studentId = user?.uid;
-        unsub();
-        resolve();
-      });
+  try {
+    const user = await new Promise((resolve, reject) => {
+      const unsubscribe = auth.onAuthStateChanged(user => {
+        unsubscribe();
+        resolve(user);
+      }, reject);
     });
+
+    if (!user) {
+      console.log("Geen gebruiker ingelogd.");
+      return;
+    }
+    const studentId = user.uid;
+
+    // 1. Haal de favorieten van de student op (documenten met bedrijfUid)
+    const favorietenCol = collection(db, 'student', studentId, 'favorieten');
+    const favorietenSnapshot = await getDocs(favorietenCol);
+    
+    if (favorietenSnapshot.empty) {
+      console.log("Geen favorieten gevonden voor deze student.");
+      bedrijven.value = [];
+      return;
+    }
+
+    const favorieteBedrijfIds = favorietenSnapshot.docs.map(doc => doc.data().bedrijfUid);
+
+    // 2. Haal de details op van alleen de favoriete bedrijven
+    if (favorieteBedrijfIds.length > 0) {
+      const bedrijvenCol = collection(db, 'bedrijf');
+      const q = query(bedrijvenCol, where(documentId(), 'in', favorieteBedrijfIds));
+      const bedrijvenSnapshot = await getDocs(q);
+
+      bedrijven.value = bedrijvenSnapshot.docs.map(doc => {
+        const bedrijfData = doc.data();
+        return {
+          id: doc.id,
+          naam: bedrijfData.bedrijfsnaam || 'Onbekend',
+          sector: bedrijfData.sector || bedrijfData.opZoekNaar || '-',
+          afkorting: (bedrijfData.bedrijfsnaam || '??').substring(0, 2).toUpperCase(),
+          locatie: bedrijfData.gesitueerdIn || '-'
+        };
+      });
+    } else {
+      bedrijven.value = [];
+    }
+
+  } catch (error) {
+    console.error("Fout bij het ophalen van favoriete bedrijven:", error);
+    bedrijven.value = [];
   }
-  if (!studentId) return;
-  // Haal favorieten op uit subcollectie
-  const favSnap = await getDocs(collection(db, 'student', studentId, 'favorieten'));
-  const favorieten = favSnap.docs
-    .map(docu => ({ id: docu.id, ...docu.data() }));
-  // Haal bedrijven op
-  const bedrijvenSnap = await getDocs(collection(db, 'bedrijf'));
-  const bedrijvenMap = {};
-  bedrijvenSnap.forEach(docu => { bedrijvenMap[docu.id] = docu.data(); });
-  bedrijven.value = favorieten.map(fav => {
-    const bedrijf = bedrijvenMap[fav.bedrijfUid] || {};
-    return {
-      id: fav.bedrijfUid,
-      naam: bedrijf.bedrijfsnaam || 'Onbekend',
-      sector: bedrijf.sector || bedrijf.opZoekNaar || '-',
-      afkorting: (bedrijf.bedrijfsnaam || '??').substring(0,2).toUpperCase(),
-      locatie: bedrijf.gesitueerdIn || '-'
-    };
-  });
 });
 
 const gefilterdeBedrijven = computed(() =>
@@ -152,26 +173,25 @@ const planAfspraak = (id) => {
 
 const showConfirm = ref(false)
 const favorietToDelete = ref(null)
-const openConfirm = (id) => {
-  favorietToDelete.value = id
+const openConfirm = (bedrijf) => {
+  favorietToDelete.value = bedrijf
   showConfirm.value = true
 }
-const verwijderFavoriet = async (id) => {
+const verwijderFavoriet = async (bedrijf) => {
+  if (!bedrijf) return;
   let studentId = auth.currentUser?.uid;
-  if (!studentId) {
-    await new Promise(resolve => {
-      const unsub = auth.onAuthStateChanged(user => {
-        studentId = user?.uid;
-        unsub();
-        resolve();
-      });
-    });
+  if (!studentId) return;
+
+  try {
+    // Het 'id' veld van het bedrijf object is de bedrijfUid
+    await deleteDoc(doc(db, 'student', studentId, 'favorieten', bedrijf.id));
+    bedrijven.value = bedrijven.value.filter(b => b.id !== bedrijf.id)
+  } catch (error) {
+    console.error("Fout bij verwijderen van favoriet:", error);
+  } finally {
+    showConfirm.value = false
+    favorietToDelete.value = null
   }
-  // Verwijder uit subcollectie
-  await deleteDoc(doc(db, 'student', studentId, 'favorieten', id));
-  bedrijven.value = bedrijven.value.filter(b => b.id !== id)
-  showConfirm.value = false
-  favorietToDelete.value = null
 }
 </script>
   

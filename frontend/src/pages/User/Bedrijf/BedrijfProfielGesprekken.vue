@@ -6,7 +6,9 @@
         <p class="aantal-studenten">
           Aantal studenten ingepland: <strong>{{ gesorteerdeGesprekken.length }}</strong>
         </p>
-        <div v-if="gesorteerdeGesprekken.length === 0" class="geen-gegevens">
+        <div v-if="loading" class="geen-gegevens">Laden...</div>
+        <div v-else-if="error" class="geen-gegevens error">{{ error }}</div>
+        <div v-else-if="gesorteerdeGesprekken.length === 0" class="geen-gegevens">
           Geen geplande afspraken
         </div>
         <div v-else class="lijst">
@@ -31,7 +33,11 @@
                   <span>{{ gesprek.locatie }}</span>
                 </div>
               </div>
-              <div>
+              <div class="actie-knoppen">
+                <button @click="bekijkProfiel(gesprek.studentId)" class="profielknop">
+                  <User class="icoon" />
+                  <span>Profiel</span>
+                </button>
                 <button @click="annuleerGesprek(gesprek.id)" class="annuleerknop">Annuleren</button>
               </div>
             </div>
@@ -43,9 +49,11 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { CalendarDays, MapPin, Building, User } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
+import { getAuth } from 'firebase/auth'
+import { getFirestore, collection, query, where, getDocs, doc, getDoc, deleteDoc } from 'firebase/firestore'
 import BedrijfDashboardLayout from '../../../components/BedrijfDashboardLayout.vue'
 
 const navigation = [
@@ -57,17 +65,110 @@ const navigation = [
 
 const showDropdown = ref(false)
 const router = useRouter()
+const db = getFirestore()
+const auth = getAuth()
 
-const gesprekken = ref([]); // TODO: Haal echte data uit Firestore of API
+const gesprekken = ref([])
+const loading = ref(true)
+const error = ref(null)
+
+onMounted(async () => {
+  const user = auth.currentUser;
+  if (!user) {
+    error.value = "U moet ingelogd zijn om afspraken te bekijken.";
+    loading.value = false;
+    return;
+  }
+  const bedrijfId = user.uid;
+
+  try {
+    loading.value = true;
+    const afsprakenQuery = query(collection(db, "afspraken"), where("bedrijfId", "==", bedrijfId));
+    const afsprakenSnap = await getDocs(afsprakenQuery);
+
+    if (afsprakenSnap.empty) {
+      gesprekken.value = [];
+      loading.value = false;
+      return;
+    }
+
+    const afsprakenPromises = afsprakenSnap.docs
+      .filter(doc => {
+        const data = doc.data();
+        if (!data.studentUid) {
+          console.warn(`Afspraak document ${doc.id} wordt overgeslagen omdat het geen studentUid heeft.`);
+          return false;
+        }
+        return true;
+      })
+      .map(async (afspraakDoc) => {
+        const afspraakData = afspraakDoc.data();
+        
+        // Bereken duur en haal tijd op
+        const tijdString = afspraakData.time || 'N/A';
+        let duurString = 'N/A';
+
+        if (tijdString.includes(' - ')) {
+          const [start, end] = tijdString.split(' - ').map(t => t.trim());
+          const startDate = new Date(`1970-01-01T${start}`);
+          const endDate = new Date(`1970-01-01T${end}`);
+          if (!isNaN(startDate) && !isNaN(endDate)) {
+            const diffInMinutes = (endDate.getTime() - startDate.getTime()) / (1000 * 60);
+            duurString = `${diffInMinutes} min`;
+          }
+        }
+        
+        // Haal studentgegevens op
+        const studentDocRef = doc(db, 'student', afspraakData.studentUid);
+        const studentSnap = await getDoc(studentDocRef);
+        const studentData = studentSnap.exists() ? studentSnap.data() : {};
+
+        return {
+          id: afspraakDoc.id,
+          studentId: afspraakData.studentUid,
+          tijd: tijdString,
+          student: `${studentData.voornaam || 'Onbekende'} ${studentData.achternaam || 'Student'}`,
+          duur: duurString,
+          domein: studentData.domein?.join(', ') || 'Geen domein',
+          studiejaar: studentData.studiejaar || 'N/A',
+          locatie: 'Aula B - Stand 14', // of haal uit data
+        };
+      });
+
+    gesprekken.value = await Promise.all(afsprakenPromises);
+
+  } catch (e) {
+    console.error("Fout bij ophalen van afspraken: ", e);
+    error.value = "Kon de afspraken niet laden.";
+  } finally {
+    loading.value = false;
+  }
+});
 
 const gesorteerdeGesprekken = computed(() =>
-  gesprekken.value.sort((a, b) => a.tijd.localeCompare(b.tijd))
+  [...gesprekken.value].sort((a, b) => a.tijd.localeCompare(b.tijd))
 )
 
-const annuleerGesprek = (id) => {
-  const student = gesprekken.value.find(g => g.id === id)?.student
-  console.log(`Automatische mail verzonden naar ${student} over annulering.`)
-  gesprekken.value = gesprekken.value.filter(g => g.id !== id)
+const bekijkProfiel = (studentId) => {
+  if (!studentId) {
+    alert("Kan profiel niet openen: student ID ontbreekt.");
+    return;
+  }
+  // Navigeer naar de nieuwe, bedrijf-specifieke profielpagina.
+  router.push(`/bedrijf/student/${studentId}`);
+};
+
+const annuleerGesprek = async (id) => {
+  if (!confirm("Weet u zeker dat u deze afspraak wilt annuleren?")) return;
+  
+  try {
+    await deleteDoc(doc(db, "afspraken", id));
+    gesprekken.value = gesprekken.value.filter(g => g.id !== id);
+    alert("Afspraak succesvol geannuleerd.");
+  } catch (e) {
+    console.error("Fout bij annuleren van afspraak: ", e);
+    alert("Kon de afspraak niet annuleren.");
+  }
 }
 
 function handleAvatarClick() {
@@ -380,6 +481,30 @@ if (typeof window !== 'undefined') {
   font-size: 0.875rem;
 }
 
+.actie-knoppen {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.profielknop {
+  background-color: #c82333; /* Rood */
+  color: white;
+  border: none;
+  padding: 0.4rem 0.8rem; /* Iets kleiner gemaakt */
+  border-radius: 0.375rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: background-color 0.2s;
+  font-size: 0.875rem; /* Kleinere tekst */
+}
+
+.profielknop:hover {
+  background-color: #a21b29; /* Donkerder rood */
+}
+
 .annuleerknop {
   background: #dc2626;
   color: white;
@@ -401,6 +526,10 @@ if (typeof window !== 'undefined') {
   color: #374151;
   display: flex;
   align-items: center;
+}
+
+.error {
+  color: red;
 }
 </style>
   
