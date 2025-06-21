@@ -514,7 +514,7 @@ if (typeof window !== 'undefined') {
 
 .geen-gegevens {
   text-align: center;
-  padding: 2rem;
+  padding: 3rem;
   color: #6b7280;
 }
 
@@ -756,28 +756,36 @@ if (typeof window !== 'undefined') {
   align-items: center;
   margin-bottom: 1.5rem;
   flex-wrap: wrap;
-  gap: 1rem;
 }
+
 .filter-knoppen {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.75rem;
+  justify-content: flex-start;
 }
+
 .filter-knop {
-  padding: 0.5rem 1rem;
+  padding: 0.5rem 1.25rem;
+  border-radius: 8px;
   border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
   background-color: #fff;
-  color: #374151;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  font-size: 0.875rem;
 }
-.filter-knop:hover { background-color: #f3f4f6; }
+
 .filter-knop.actief {
   background-color: #c20000;
-  color: #fff;
+  color: white;
   border-color: #c20000;
 }
+
+.filter-knop:not(.actief):hover {
+  background-color: #f3f4f6;
+  border-color: #9ca3af;
+}
+
 .cancellation-reason {
   background-color: #fef2f2;
   border: 1px solid #fecaca;
