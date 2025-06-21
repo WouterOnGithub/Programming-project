@@ -250,21 +250,23 @@ const handlePasswordReset = async () => {
           <input v-model="password" type="password" placeholder="Uw wachtwoord" />
         </div>
 
-        <button type="submit" class="login-btn">
-          Inloggen als {{ isStudent() ? 'Student' : isBedrijf() ? 'Bedrijf' : 'Administrator' }}
-        </button>
-        <button type="button" class="google-login-btn" @click="handleGoogleLogin">
-          <img src="/Images/google-logo.png" alt="Google logo" class="google-icon" />
-          <span>Inloggen met Google</span>
-        </button>
+        <button type="submit" class="login-btn">Login</button>
       </form>
 
-      <!-- Wachtwoord vergeten link -->
-      <div class="forgot-password">
-        <button @click="openResetModal" class="forgot-password-btn">
-          Wachtwoord vergeten?
-        </button>
+      <!-- Divider -->
+      <div class="divider">
+        <span class="divider-text">OF</span>
       </div>
+
+      <!-- Google Login -->
+      <button @click="handleGoogleLogin" class="google-login-btn">
+        <img src="/Images/google-logo.png" alt="Google logo" />
+        Log in met Google
+      </button>
+
+      <button @click="openResetModal" class="forgot-password-btn">
+        🔑 Wachtwoord vergeten?
+      </button>
 
       <!-- Footer -->
       <div class="footer">

@@ -144,6 +144,28 @@ body, .login-page {
   background: #a50000;
 }
 
+.divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 25px 0;
+  color: #888;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.divider-text {
+  padding: 0 1em;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+}
+
 /* Forgot Password Button */
 .forgot-password {
   text-align: center;
@@ -151,17 +173,26 @@ body, .login-page {
 }
 
 .forgot-password-btn {
-  background: none;
-  border: none;
+  width: 100%;
+  background: #f8f9fa;
+  border: 2px solid #e9ecef;
   color: #c20000;
-  text-decoration: underline;
   cursor: pointer;
-  font-size: 0.9rem;
-  transition: color 0.3s ease;
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 12px 20px;
+  border-radius: 8px;
+  margin: 20px 0;
+  transition: all 0.3s ease;
+  text-decoration: none;
 }
 
 .forgot-password-btn:hover {
-  color: #a50000;
+  background: #c20000;
+  color: white;
+  border-color: #c20000;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(194, 0, 0, 0.2);
 }
  
 .footer {

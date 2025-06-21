@@ -20,10 +20,11 @@ export class NotificationService {
         doc, 
         updateDoc,
         addDoc,
-        serverTimestamp 
+        serverTimestamp,
+        deleteDoc
       } = await import('firebase/firestore')
       
-      return { db, collection, onSnapshot, query, where, orderBy, doc, updateDoc, addDoc, serverTimestamp }
+      return { db, collection, onSnapshot, query, where, orderBy, doc, updateDoc, addDoc, serverTimestamp, deleteDoc }
     } catch (error) {
       console.error('Error loading Firebase services:', error)
       throw error
@@ -158,6 +159,13 @@ export class NotificationService {
     } catch (error) {
       console.error('Error during cleanup:', error)
     }
+  }
+
+  // Nieuwe functie om een notificatie te verwijderen
+  async deleteNotification(notificationId) {
+    const { db, deleteDoc } = await this.getFirebaseServices()
+    const notificationRef = doc(db, 'notifications', notificationId)
+    await deleteDoc(notificationRef)
   }
 }
 

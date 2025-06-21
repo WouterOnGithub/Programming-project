@@ -12,14 +12,25 @@
       </header>
 
       <section class="dashboard-card">
-        <h2 class="subtitel">Geplande Afspraken</h2>
-        <p class="aantal-studenten">
-          Aantal studenten ingepland: <strong>{{ gesorteerdeGesprekken.length }}</strong>
-        </p>
+        <div class="header-flex">
+          <div>
+            <h2 class="subtitel">Geplande Afspraken</h2>
+            <p class="aantal-studenten">
+              Aantal studenten: <strong>{{ gesorteerdeGesprekken.length }}</strong>
+            </p>
+          </div>
+          <div class="filter-knoppen">
+            <button @click="setFilter('all')" :class="['filter-knop', { 'actief': activeFilter === 'all' }]">Alle</button>
+            <button @click="setFilter('upcoming')" :class="['filter-knop', { 'actief': activeFilter === 'upcoming' }]">Komend</button>
+            <button @click="setFilter('afgerond')" :class="['filter-knop', { 'actief': activeFilter === 'afgerond' }]">Afgerond</button>
+            <button @click="setFilter('geannuleerd')" :class="['filter-knop', { 'actief': activeFilter === 'geannuleerd' }]">Geannuleerd</button>
+          </div>
+        </div>
+        
         <div v-if="loading" class="geen-gegevens">Laden...</div>
         <div v-else-if="error" class="geen-gegevens error">{{ error }}</div>
         <div v-else-if="gesorteerdeGesprekken.length === 0" class="geen-gegevens">
-          Geen geplande afspraken
+          Geen afspraken die voldoen aan dit filter.
         </div>
         <div v-else class="lijst">
           <div v-for="gesprek in gesorteerdeGesprekken" :key="gesprek.id" class="kaart">
@@ -55,8 +66,9 @@
                   <button @click="openAnnuleerModal(gesprek.id)" class="actieknop annuleer">Annuleren</button>
                 </template>
                 <template v-else-if="gesprek.status === 'geannuleerd'">
-                  <div class="status-badge geannuleerd">
-                    Geannuleerd
+                  <div class="cancellation-reason">
+                    <div class="reason-header">Geannuleerd:</div>
+                    <p class="reason-text">"{{ gesprek.annuleringsReden }}"</p>
                   </div>
                 </template>
                 <template v-else>
@@ -149,6 +161,7 @@ const showAnnuleerModal = ref(false)
 const afspraakVoorAnnuleringId = ref(null)
 const annuleerReden = ref('')
 const annuleerError = ref('')
+const activeFilter = ref('all')
 
 onMounted(async () => {
   const user = auth.currentUser;
@@ -186,14 +199,11 @@ onMounted(async () => {
         const tijdString = afspraakData.time || 'N/A';
         let duurString = 'N/A';
 
-        if (tijdString.includes(' - ')) {
-          const [start, end] = tijdString.split(' - ').map(t => t.trim());
-          const startDate = new Date(`1970-01-01T${start}`);
-          const endDate = new Date(`1970-01-01T${end}`);
-          if (!isNaN(startDate) && !isNaN(endDate)) {
-            const diffInMinutes = (endDate.getTime() - startDate.getTime()) / (1000 * 60);
-            duurString = `${diffInMinutes} min`;
-          }
+        // Haal bedrijfsgegevens op voor duur
+        const bedrijfDocRef = doc(db, 'bedrijf', bedrijfId);
+        const bedrijfSnap = await getDoc(bedrijfDocRef);
+        if (bedrijfSnap.exists()) {
+          duurString = bedrijfSnap.data().gesprekDuur || 'N/A';
         }
         
         // Haal studentgegevens op
@@ -207,10 +217,11 @@ onMounted(async () => {
           tijd: tijdString,
           student: `${studentData.voornaam || 'Onbekende'} ${studentData.achternaam || 'Student'}`,
           duur: duurString,
-          domein: studentData.domein?.join(', ') || 'Geen domein',
+          domein: Array.isArray(studentData.domein) ? studentData.domein.join(', ') : (studentData.domein || 'Geen domein'),
           studiejaar: studentData.studiejaar || 'N/A',
-          locatie: 'Aula B - Stand 14', // of haal uit data
-          status: afspraakData.status || 'upcoming' // Status ophalen
+          locatie: 'Aula B - Stand 14',
+          status: afspraakData.status || 'upcoming',
+          annuleringsReden: afspraakData.annuleringsReden || 'Geen reden opgegeven.'
         };
       });
 
@@ -224,38 +235,29 @@ onMounted(async () => {
   }
 });
 
+const gefilterdeGesprekken = computed(() => {
+  if (activeFilter.value === 'all') {
+    return gesprekken.value;
+  }
+  return gesprekken.value.filter(g => g.status === activeFilter.value);
+});
+
 const gesorteerdeGesprekken = computed(() =>
-  [...gesprekken.value].sort((a, b) => a.tijd.localeCompare(b.tijd))
-)
+  [...gefilterdeGesprekken.value].sort((a, b) => {
+    // Sorteer eerst op status ('upcoming' eerst)
+    if (a.status === 'upcoming' && b.status !== 'upcoming') return -1;
+    if (a.status !== 'upcoming' && b.status === 'upcoming') return 1;
+    // Sorteer daarna op tijd
+    return a.tijd.localeCompare(b.tijd);
+  })
+);
 
 const bekijkProfiel = (studentId) => {
-  if (!studentId) {
-    alert("Kan profiel niet openen: student ID ontbreekt.");
-    return;
-  }
-  // Navigeer naar de nieuwe, bedrijf-specifieke profielpagina.
-  router.push(`/bedrijf/student/${studentId}`);
-};
+  router.push({ name: 'StudentProfielVoorBedrijf', params: { id: studentId } })
+}
 
-const markeerAlsAfgerond = async (id) => {
-  try {
-    const afspraakRef = doc(db, "afspraken", id);
-    await updateDoc(afspraakRef, {
-      status: 'afgerond'
-    });
-    // Update de lokale state om de UI direct bij te werken
-    const index = gesprekken.value.findIndex(g => g.id === id);
-    if (index !== -1) {
-      gesprekken.value[index].status = 'afgerond';
-    }
-  } catch (e) {
-    console.error("Fout bij bijwerken van afspraak: ", e);
-    alert("Kon de status van de afspraak niet bijwerken.");
-  }
-};
-
-const openAnnuleerModal = (id) => {
-  afspraakVoorAnnuleringId.value = id;
+const openAnnuleerModal = (afspraakId) => {
+  afspraakVoorAnnuleringId.value = afspraakId;
   annuleerReden.value = '';
   annuleerError.value = '';
   showAnnuleerModal.value = true;
@@ -263,267 +265,141 @@ const openAnnuleerModal = (id) => {
 
 const closeAnnuleerModal = () => {
   showAnnuleerModal.value = false;
-  afspraakVoorAnnuleringId.value = null;
-  annuleerReden.value = '';
-  annuleerError.value = '';
 };
 
 const bevestigAnnulering = async () => {
   if (!annuleerReden.value.trim()) {
-    annuleerError.value = "Een reden opgeven is verplicht.";
+    annuleerError.value = 'Een reden is verplicht.';
     return;
   }
   
+  const afspraakId = afspraakVoorAnnuleringId.value;
   try {
-    const afspraakRef = doc(db, "afspraken", afspraakVoorAnnuleringId.value);
-    await updateDoc(afspraakRef, {
+    const afspraakDocRef = doc(db, 'afspraken', afspraakId);
+    await updateDoc(afspraakDocRef, {
       status: 'geannuleerd',
       annuleringsReden: annuleerReden.value
     });
     
-    // Update de lokale state
-    const index = gesprekken.value.findIndex(g => g.id === afspraakVoorAnnuleringId.value);
+    // Update de lokale data
+    const index = gesprekken.value.findIndex(g => g.id === afspraakId);
     if (index !== -1) {
       gesprekken.value[index].status = 'geannuleerd';
+      gesprekken.value[index].annuleringsReden = annuleerReden.value;
     }
-    
     closeAnnuleerModal();
-  } catch (e) {
-    console.error("Fout bij annuleren van afspraak: ", e);
-    annuleerError.value = "Kon de afspraak niet annuleren.";
+  } catch (error) {
+    console.error("Fout bij annuleren afspraak:", error);
+    annuleerError.value = 'Kon de afspraak niet annuleren. Probeer het opnieuw.';
   }
+};
+
+const markeerAlsAfgerond = async (id) => {
+  try {
+    await updateDoc(doc(db, 'afspraken', id), {
+      status: 'afgerond'
+    });
+    const index = gesprekken.value.findIndex(g => g.id === id);
+    if (index !== -1) {
+      gesprekken.value[index].status = 'afgerond';
+    }
+  } catch (err) {
+    console.error("Fout bij markeren als afgerond:", err);
+  }
+}
+
+const setFilter = (filter) => {
+  activeFilter.value = filter;
 };
 </script>
 
 <style scoped>
-.dashboard-container {
-  display: flex;
-  min-height: 100vh;
-  background: #f8f9fa;
-  gap: 1rem;
-}
-
-.same-height {
-  min-height: 6.5rem;
-  display: flex;
-  align-items: center;
-}
-
+/* Stijlen voor mobiel en desktop, inclusief de nieuwe responsive code */
 .dashboard-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.sidebar-nav {
-  width: 16rem;
-  background: #fff;
-  border-right: 1px solid #e5e7eb;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-.sidebar-header {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1.5rem 1rem 1rem 1rem;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.sidebar-logo {
-  width: 2rem;
-  height: 2rem;
-  background: #c20000;
-  color: #fff;
-  border-radius: 0.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.2rem;
-}
-
-.sidebar-title {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #111827;
-}
-
-.sidebar-subtitle {
-  font-size: 0.8rem;
-  color: #6b7280;
-}
-
-.sidebar-menu {
-  flex: 1;
-  padding: 1rem 0.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.sidebar-link {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.6rem 1rem;
-  border-radius: 0.5rem;
-  color: #6b7280;
-  text-decoration: none;
-  font-weight: 500;
-  transition: background 0.2s, color 0.2s;
-}
-
-.sidebar-link[data-actief="true"] {
-  background: #e5e7eb;
-  color: #c20000;
-  font-weight: bold;
-  border-left: 4px solid #c20000;
-  padding-left: 0.75rem;
-}
-
-.sidebar-user {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
   padding: 1rem;
-  border-top: 1px solid #e5e7eb;
-  background: #f9fafb;
-}
-
-.sidebar-user-avatar {
-  width: 2rem;
-  height: 2rem;
-  background: #c20000;
-  color: #fff;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1rem;
-}
-
-.sidebar-user-name {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #111827;
-}
-
-.sidebar-user-role {
-  font-size: 0.8rem;
-  color: #6b7280;
-}
-
-.dashboard-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: #fff;
-  border-bottom: 1px solid #e5e7eb;
-  padding: 1.5rem 2rem;
-}
-
-.dashboard-header h1 {
-  font-size: 1.3rem;
-  font-weight: 600;
-  color: #c20000;
-}
-
-.dashboard-header p {
-  color: #6b7280;
-  font-size: 0.95rem;
-}
-
-.dashboard-profile-avatar {
-  width: 2rem;
-  height: 2rem;
-  background: #c20000;
-  color: #fff;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1rem;
-  font-weight: 600;
-  transition: transform 0.18s cubic-bezier(0.4,0,0.2,1), box-shadow 0.18s cubic-bezier(0.4,0,0.2,1);
-  cursor: pointer;
-}
-
-.dashboard-profile-avatar:hover {
-  transform: scale(1.12);
-  box-shadow: 0 4px 16px rgba(194,0,0,0.18);
-}
-
-.profile-dropdown {
-  position: absolute;
-  top: 3.5rem;
-  right: 0.5rem;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.5rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  z-index: 10;
-  min-width: 120px;
-  padding: 0.5rem 0;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-}
-
-.dropdown-item {
-  background: none;
-  border: none;
-  color: #c20000;
-  font-weight: 500;
-  text-align: left;
-  padding: 0.7rem 1.2rem;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.dropdown-item:hover {
-  background: #f3f4f6;
+  background: #f8f9fa;
+  flex: 1;
 }
 
 .dashboard-card {
   background: #fff;
-  border-radius: 0.75rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
-  padding: 1.5rem;
-  margin: 2rem;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
 }
 
 .subtitel {
-  font-size: 1.25rem;
+  font-size: 1.5rem;
   font-weight: 600;
-  color: #111827;
-  margin-bottom: 1rem;
+  color: #c20000;
+  margin: 0;
 }
 
 .aantal-studenten {
-  font-size: 1rem;
+  color: #6b7280;
+}
+
+.filter-knoppen {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.filter-knop {
+  padding: 0.5rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  background-color: #fff;
   color: #374151;
-  margin-bottom: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filter-knop:hover {
+  background-color: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.filter-knop.actief {
+  background-color: #c20000;
+  color: #fff;
+  border-color: #c20000;
 }
 
 .geen-gegevens {
   text-align: center;
-  padding: 2rem;
+  padding: 3rem 1rem;
   color: #6b7280;
+}
+
+.geen-gegevens.error {
+  color: #ef4444;
 }
 
 .lijst {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.5rem;
 }
 
 .kaart {
-  background: #f9fafb;
   border: 1px solid #e5e7eb;
-  border-radius: 0.75rem;
-  padding: 1.25rem;
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: all 0.2s ease;
+}
+
+.kaart:hover {
+  border-color: #c20000;
+  box-shadow: 0 4px 12px rgba(194,0,0,0.1);
 }
 
 .rij {
@@ -531,75 +407,80 @@ const bevestigAnnulering = async () => {
   align-items: center;
 }
 
-.ruimte {
-  gap: 0.75rem;
-}
-
 .ruimte-tussen {
   justify-content: space-between;
 }
 
-.flex-1 {
-  flex: 1;
+.ruimte {
+  gap: 1rem;
 }
 
 .mb {
   margin-bottom: 0.5rem;
 }
 
+.flex-1 {
+  flex: 1;
+}
+
 .tijd-label {
-  display: flex;
-  align-items: center;
-  font-weight: 500;
-  color: #111827;
-  background: #f3f4f6;
-  padding: 0.25rem 0.75rem;
-  border-radius: 0.5rem;
-  font-size: 0.875rem;
+  background: #fff5f5;
+  color: #c20000;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
 }
 
 .naam {
-  font-size: 1.125rem;
+  font-size: 1.1rem;
   font-weight: 600;
-  color: #111827;
+  color: #1f2937;
+  margin: 0;
 }
 
 .duur {
-  font-size: 0.875rem;
+  font-size: 0.9rem;
   color: #6b7280;
-  background: #f3f4f6;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.25rem;
 }
 
 .richting {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #dc2626;
+  font-size: 0.9rem;
+  color: #4b5563;
 }
 
 .locatie {
-  gap: 0.4rem;
   color: #6b7280;
-  font-size: 0.875rem;
+  gap: 0.5rem;
+}
+
+.locatie .icoon {
+  width: 1rem;
+  height: 1rem;
 }
 
 .actie-knoppen {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  align-items: flex-end;
+}
+
+.actieknop, .profielknop {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
 .profielknop {
+  background: #f3f4f6;
+  color: #374151;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  border: 1px solid #d1d5db;
-  background-color: #fff;
-  font-weight: 500;
-  cursor: pointer;
 }
 
 .profielknop .icoon {
@@ -607,168 +488,157 @@ const bevestigAnnulering = async () => {
   height: 1rem;
 }
 
-.actieknop {
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  border: none;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s;
+.profielknop:hover {
+  background: #e5e7eb;
 }
 
 .actieknop.voltooi {
-  background-color: #dcfce7;
+  background: #dcfce7;
   color: #166534;
 }
 
 .actieknop.voltooi:hover {
-  background-color: #bbf7d0;
+  background: #bbf7d0;
 }
 
 .actieknop.annuleer {
-  background-color: #fee2e2;
+  background: #fee2e2;
   color: #991b1b;
 }
 
 .actieknop.annuleer:hover {
-  background-color: #fecaca;
+  background: #fecaca;
 }
 
 .status-badge.afgerond {
+  background: #dcfce7;
+  color: #166534;
   padding: 0.5rem 1rem;
-  border-radius: 9999px;
-  background-color: #e5e7eb;
-  color: #4b5563;
+  border-radius: 8px;
   font-weight: 500;
-  text-align: center;
 }
 
-.status-badge.geannuleerd {
+.cancellation-reason {
   background-color: #fef2f2;
-  color: #ef4444;
-  border: 1px solid #ef4444;
+  border: 1px solid #fecaca;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  max-width: 250px;
 }
 
-.error {
-  color: red;
+.reason-header {
+  font-weight: 600;
+  color: #b91c1c;
+  margin-bottom: 0.5rem;
 }
 
-/* Modal Stijlen */
+.reason-text {
+  margin: 0;
+  color: #dc2626;
+  font-style: italic;
+  font-size: 0.9rem;
+}
+
+/* Modal Styles */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.6);
+  background: rgba(0,0,0,0.5);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
 }
 .modal-content {
-  background: white;
+  background: #fff;
   padding: 2rem;
-  border-radius: 0.75rem;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+  border-radius: 12px;
   width: 90%;
   max-width: 500px;
 }
 .modal-title {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 600;
-  margin-top: 0;
-  margin-bottom: 0.5rem;
-}
-.modal-content p {
-  margin-bottom: 1.5rem;
-  color: #4b5563;
+  color: #c20000;
+  margin-bottom: 1rem;
 }
 .form-group {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
 }
 .form-group label {
   display: block;
-  font-weight: 500;
   margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #374151;
 }
 .form-group textarea {
   width: 100%;
   padding: 0.75rem;
   border: 1px solid #d1d5db;
-  border-radius: 0.5rem;
+  border-radius: 8px;
   font-size: 1rem;
-  resize: vertical;
 }
 .error-text {
   color: #ef4444;
-  font-size: 0.875rem;
+  font-size: 0.9rem;
   margin-top: 0.25rem;
 }
 .modal-actions {
   display: flex;
   justify-content: flex-end;
   gap: 1rem;
+  margin-top: 1.5rem;
 }
-
 .action-btn {
   padding: 0.6rem 1.2rem;
-  border: none;
-  border-radius: 0.5rem;
+  border: 1px solid;
+  border-radius: 8px;
   font-weight: 600;
-  font-size: 0.95rem;
   cursor: pointer;
-  transition: background-color 0.2s, box-shadow 0.2s;
+  transition: all 0.2s;
 }
-
 .btn-cancel-edit {
-  background-color: #f3f4f6;
+  background: #f3f4f6;
+  border-color: #d1d5db;
   color: #374151;
-  border: 1px solid #d1d5db;
 }
-
 .btn-cancel-edit:hover {
-  background-color: #e5e7eb;
+  background: #e5e7eb;
 }
-
 .btn-confirm-annuleer {
-  background-color: #ef4444;
-  color: white;
+  background: #c20000;
+  border-color: #c20000;
+  color: #fff;
 }
-
-.btn-confirm-annuleer:hover {
-  background-color: #dc2626;
-}
-
 .btn-confirm-annuleer:disabled {
-  background-color: #fca5a5;
+  background: #e5e7eb;
+  border-color: #e5e7eb;
   cursor: not-allowed;
 }
-
-/* =================================== */
-/* === MOBILE RESPONSIVE STYLES === */
-/* =================================== */
-
-/* Hide mobile elements on desktop by default */
-.mobile-header,
-.mobile-sidebar,
-.sidebar-overlay {
-  display: none;
+.btn-confirm-annuleer:not(:disabled):hover {
+  background: #a50000;
 }
 
+/* Responsive & Mobile Styles */
+.mobile-header, .mobile-sidebar, .sidebar-overlay { display: none; }
+
 @media (max-width: 768px) {
-  /* Hide desktop-specific elements */
-  :deep(.sidebar-nav),
-  :deep(.dashboard-header) {
+  :deep(.sidebar-nav), :deep(.dashboard-header) {
     display: none !important;
   }
-
-  /* Show mobile-specific elements */
-  .mobile-header {
+  .mobile-header, .mobile-sidebar {
     display: flex;
   }
-
-  /* Mobile Header */
+  .dashboard-main {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    background-color: #f8f9fa;
+    gap: 1rem;
+  }
   .mobile-header {
     background: #fff;
     padding: 1rem 1.5rem;
@@ -778,11 +648,7 @@ const bevestigAnnulering = async () => {
     border-radius: 0.75rem;
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);
   }
-
-  .mobile-logo {
-    height: 42px;
-  }
-
+  .mobile-logo { height: 42px; }
   .hamburger-menu {
     background: none;
     border: none;
@@ -795,7 +661,6 @@ const bevestigAnnulering = async () => {
     height: 21px;
     z-index: 1002;
   }
-
   .hamburger-menu span {
     display: block;
     width: 100%;
@@ -803,8 +668,6 @@ const bevestigAnnulering = async () => {
     background-color: #c20000;
     border-radius: 2px;
   }
-
-  /* Mobile Sidebar */
   .mobile-sidebar {
     position: fixed;
     top: 0;
@@ -814,43 +677,20 @@ const bevestigAnnulering = async () => {
     background: #fff;
     z-index: 1001;
     transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    display: flex;
     flex-direction: column;
-    border-bottom: 1px solid #e5e7eb;
+    border-right: 1px solid #e5e7eb;
   }
-
-  .mobile-sidebar.is-open {
-    left: 0;
-  }
-
+  .mobile-sidebar.is-open { left: 0; }
   .mobile-sidebar-header {
     display: flex;
     flex-direction: column;
     padding: 1.5rem;
     border-bottom: 1px solid #e5e7eb;
   }
-  
-  .sidebar-header-content {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-  }
-  
-  .sidebar-header-logo {
-    height: 36px;
-  }
-  
-  .sidebar-header-text h3 {
-    font-size: 1.2rem;
-    font-weight: 600;
-    color: #111827;
-  }
-  
-  .sidebar-header-text p {
-    font-size: 0.9rem;
-    color: #6b7280;
-  }
-
+  .sidebar-header-content { display: flex; align-items: center; gap: 1rem; }
+  .sidebar-header-logo { height: 36px; }
+  .sidebar-header-text h3 { font-size: 1.2rem; font-weight: 600; color: #111827; }
+  .sidebar-header-text p { font-size: 0.9rem; color: #6b7280; }
   .close-sidebar-btn {
     background: none;
     border: none;
@@ -862,85 +702,57 @@ const bevestigAnnulering = async () => {
     align-self: flex-end;
     margin-bottom: 1rem;
   }
-
   .close-sidebar-btn span {
     display: block;
     position: absolute;
     width: 100%;
-    height: 3px;
+    height: 2.5px;
     background-color: #c20000;
     border-radius: 2px;
     top: 50%;
     left: 0;
   }
-
-  .close-sidebar-btn span:first-child {
-    transform: translateY(-50%) rotate(45deg);
-  }
-
-  .close-sidebar-btn span:last-child {
-    transform: translateY(-50%) rotate(-45deg);
-  }
-
-  .mobile-nav {
-    padding: 1rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
+  .close-sidebar-btn span:first-child { transform: translateY(-50%) rotate(45deg); }
+  .close-sidebar-btn span:last-child { transform: translateY(-50%) rotate(-45deg); }
+  .mobile-nav { padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
   .mobile-nav-link {
     padding: 0.8rem 1.2rem;
     border-radius: 0.5rem;
     color: #6b7280;
     font-weight: 500;
     text-decoration: none;
-    transition: color 0.2s, background-color 0.2s;
+    transition: all 0.2s;
   }
-
-  .mobile-nav-link:hover {
-    color: #c20000;
-    background-color: #f3f4f6;
-  }
-
-  .mobile-nav-link.active-link {
-    background: #f3f4f6;
-    color: #c20000;
-    font-weight: 600;
-  }
-
+  .mobile-nav-link:hover { color: #c20000; background-color: #f3f4f6; }
+  .mobile-nav-link.active-link { background: #f3f4f6; color: #c20000; font-weight: 600; }
   .sidebar-overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0,0,0,0.5);
     z-index: 1000;
+    display: none;
   }
-
-  .dashboard-main {
-    padding: 0;
-    background-color: #f8f9fa;
-  }
-
+  .mobile-sidebar.is-open + .sidebar-overlay { display: block; }
+  
   .dashboard-card {
-    margin: 1.5rem;
+    margin: 0 1.5rem 1.5rem;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
   }
-
-  .kaart .rij.ruimte-tussen {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 1rem;
-  }
+  .header-flex { flex-direction: column; align-items: flex-start; gap: 1rem; }
+  .rij.ruimte-tussen { flex-direction: column; align-items: flex-start; gap: 1rem; }
+  .actie-knoppen { align-items: flex-start; width: 100%; }
+  .actie-knoppen > * { width: 100%; text-align: center; }
+  .profielknop { justify-content: center; }
+  .cancellation-reason { max-width: 100%; }
 }
 
 @media (min-width: 769px) {
-  .mobile-header,
-  .mobile-sidebar,
-  .sidebar-overlay {
-    display: none !important;
-  }
+  .mobile-header, .mobile-sidebar, .sidebar-overlay { display: none !important; }
 }
 </style>
+  
   

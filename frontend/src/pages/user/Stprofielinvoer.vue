@@ -354,7 +354,7 @@ async function bevestigGegevens() {
 
         <div class="form-group-full">
           <input type="checkbox" id="toestemming" v-model="toestemming" required>
-          <label for="toestemming">Ik geef toestemming...</label>
+          <label for="toestemming">Ik geef toestemming dat mijn ingevulde gegevens gebruikt mogen worden in het kader van deze toepassing. *</label>
         </div>
 
         <div v-if="isUploading" class="form-group-full">

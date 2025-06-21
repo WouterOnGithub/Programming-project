@@ -25,21 +25,25 @@
           v-for="notification in notifications" 
           :key="notification.id"
           :class="['notification-item', { unread: !notification.read }]"
-          @click="markAsRead(notification.id)"
         >
-          <div class="notification-icon">
-            <span v-if="notification.type === 'verification_approved'">✅</span>
-            <span v-else-if="notification.type === 'verification_rejected'">❌</span>
-            <span v-else>📢</span>
+          <div class="notification-main-content" @click="markAsRead(notification.id)">
+            <div class="notification-icon">
+              <span v-if="notification.type === 'verification_approved'">✅</span>
+              <span v-else-if="notification.type === 'verification_rejected'">❌</span>
+              <span v-else>📢</span>
+            </div>
+            
+            <div class="notification-content">
+              <h4>{{ notification.title }}</h4>
+              <p>{{ notification.message }}</p>
+              <span class="notification-time">{{ formatTime(notification.createdAt) }}</span>
+            </div>
+            
+            <div v-if="!notification.read" class="unread-indicator"></div>
           </div>
-          
-          <div class="notification-content">
-            <h4>{{ notification.title }}</h4>
-            <p>{{ notification.message }}</p>
-            <span class="notification-time">{{ formatTime(notification.createdAt) }}</span>
-          </div>
-          
-          <div v-if="!notification.read" class="unread-indicator"></div>
+          <button @click.stop="deleteNotification(notification.id)" class="delete-notification-btn" title="Verwijder melding">
+            &times;
+          </button>
         </div>
       </div>
 
@@ -152,6 +156,14 @@ export default {
       console.log('Navigate to all notifications')
     }
 
+    const deleteNotification = async (notificationId) => {
+      try {
+        await notificationService.deleteNotification(notificationId)
+      } catch (error) {
+        console.error('Error deleting notification:', error)
+      }
+    }
+
     onMounted(() => {
       loadNotifications()
     })
@@ -176,7 +188,8 @@ export default {
       markAsRead,
       markAllAsRead,
       formatTime,
-      showAllNotifications
+      showAllNotifications,
+      deleteNotification
     }
   }
 }
@@ -297,8 +310,8 @@ export default {
 
 .notification-item {
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
   padding: 16px 20px;
   border-bottom: 1px solid #f0f0f0;
   cursor: pointer;
@@ -379,6 +392,34 @@ export default {
 
 .view-all-btn:hover {
   background: #e3f2fd;
+}
+
+.notification-main-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-grow: 1;
+  cursor: pointer;
+}
+
+.delete-notification-btn {
+  background: transparent;
+  border: none;
+  color: #aaa;
+  font-size: 1.5rem;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 0.5rem;
+  line-height: 1;
+  border-radius: 50%;
+  transition: background-color 0.2s, color 0.2s;
+  flex-shrink: 0;
+  margin-left: 0.5rem;
+}
+
+.delete-notification-btn:hover {
+  background-color: #f0f0f0;
+  color: #333;
 }
 
 /* Responsive */

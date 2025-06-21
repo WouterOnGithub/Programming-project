@@ -23,7 +23,7 @@ StprofielWijizig.vue  RANIA
         </div>
         <div class="banner-text">
           <h2>{{ voornaam }} {{ achternaam }}</h2>
-          <p>{{ domein }} – {{ studiejaar }}</p>
+          <p>{{ Array.isArray(domein) ? domein.join(', ') : domein }} – {{ studiejaar }}</p>
         </div>
       </section>
 

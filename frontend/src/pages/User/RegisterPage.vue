@@ -257,9 +257,14 @@ const goToLogin = () => {
         <button type="submit" class="register-btn">
           {{ isStudent() ? 'Registreer als Student' : 'Registreer als Bedrijf' }}
         </button>
+
+        <div class="divider">
+          <span class="divider-text">OF</span>
+        </div>
+        
         <button type="button" class="google-login-btn" @click="handleGoogleRegister">
           <img src="/Images/google-logo.png" alt="Google logo" class="google-icon" />
-          <span>Inloggen met Google</span>
+          <span>Registreer met Google</span>
         </button>
       </form>
 
