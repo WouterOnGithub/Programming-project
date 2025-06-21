@@ -7,44 +7,88 @@
         placeholder="Zoek bedrijf..."
         class="search-input"
         @input="handleSearch"
-        @focus="showResults = true"
+        @focus="handleFocus"
         @blur="handleBlur"
+        @keydown="handleKeydown"
       />
       <div class="search-icon">🔍</div>
+      <div v-if="searchQuery" class="clear-button" @click="clearSearch">×</div>
     </div>
     
+    <!-- Search results -->
     <div v-if="showResults && filteredCompanies.length > 0" class="search-results">
+      <div class="results-header">
+        <span>{{ filteredCompanies.length }} resultaten</span>
+      </div>
       <div
         v-for="company in filteredCompanies"
         :key="company.id"
         class="search-result-item"
         @mousedown="selectCompany(company)"
+        @click="selectCompany(company)"
       >
         <div class="company-info">
           <div class="company-logo">
-            <img v-if="company.logo" :src="company.logo" :alt="company.bedrijfsnaam || company.name" />
-            <div v-else class="logo-placeholder">{{ (company.bedrijfsnaam || company.name).charAt(0) }}</div>
+            <img v-if="company.foto" :src="company.foto" :alt="getCompanyName(company)" />
+            <div v-else class="logo-placeholder">{{ getCompanyInitial(company) }}</div>
           </div>
           <div class="company-details">
-            <h4>{{ company.bedrijfsnaam || company.name }}</h4>
-            <p>{{ company.industry || company.branche }}</p>
+            <h4>{{ getCompanyName(company) }}</h4>
+            <p>{{ getCompanyIndustry(company) }}</p>
+            <small v-if="company.gesitueerdIn">{{ company.gesitueerdIn }}</small>
           </div>
         </div>
         <div class="location-status">
-          <span v-if="hasLocation(company)" class="status-badge located">📍 Geplaatst</span>
-          <span v-else class="status-badge not-located">📍 Niet geplaatst</span>
+          <span v-if="hasLocation(company)" class="status-badge located">Geplaatst</span>
+          <span v-else class="status-badge not-located">Niet geplaatst</span>
         </div>
       </div>
     </div>
     
-    <div v-if="showResults && searchQuery && filteredCompanies.length === 0" class="no-results">
+    <!-- No results -->
+    <div v-else-if="showResults && searchQuery && filteredCompanies.length === 0" class="no-results">
       <p>Geen bedrijven gevonden voor "{{ searchQuery }}"</p>
+    </div>
+    
+    <!-- No companies loaded -->
+    <div v-else-if="showResults && !searchQuery && companies.length === 0" class="no-results">
+      <p>Geen bedrijven geladen</p>
+    </div>
+    
+    <!-- Initial state -->
+    <div v-else-if="showResults && !searchQuery && companies.length > 0" class="search-results">
+      <div class="results-header">
+        <span>Alle bedrijven ({{ companies.length }})</span>
+      </div>
+      <div
+        v-for="company in companies.slice(0, 10)"
+        :key="company.id"
+        class="search-result-item"
+        @mousedown="selectCompany(company)"
+        @click="selectCompany(company)"
+      >
+        <div class="company-info">
+          <div class="company-logo">
+            <img v-if="company.foto" :src="company.foto" :alt="getCompanyName(company)" />
+            <div v-else class="logo-placeholder">{{ getCompanyInitial(company) }}</div>
+          </div>
+          <div class="company-details">
+            <h4>{{ getCompanyName(company) }}</h4>
+            <p>{{ getCompanyIndustry(company) }}</p>
+            <small v-if="company.gesitueerdIn">{{ company.gesitueerdIn }}</small>
+          </div>
+        </div>
+        <div class="location-status">
+          <span v-if="hasLocation(company)" class="status-badge located">Geplaatst</span>
+          <span v-else class="status-badge not-located">Niet geplaatst</span>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
 
 export default {
   name: 'CompanySearch',
@@ -63,18 +107,40 @@ export default {
     const searchQuery = ref('')
     const showResults = ref(false)
     
+    // Helper functions for company data
+    const getCompanyName = (company) => {
+      return company.bedrijfsnaam || company.name || 'Onbekend bedrijf'
+    }
+    
+    const getCompanyIndustry = (company) => {
+      return company.branche || company.industry || 'Geen branche'
+    }
+    
+    const getCompanyInitial = (company) => {
+      const name = getCompanyName(company)
+      return name.charAt(0).toUpperCase()
+    }
+    
     const filteredCompanies = computed(() => {
       if (!searchQuery.value.trim()) {
-        return props.companies.slice(0, 10) // Show first 10 companies when no search
+        return props.companies.slice(0, 10)
       }
       
-      const query = searchQuery.value.toLowerCase()
-      return props.companies.filter(company => {
-        const companyName = company.bedrijfsnaam || company.name
-        const companyIndustry = company.industry || company.branche
-        return companyName.toLowerCase().includes(query) ||
-               companyIndustry.toLowerCase().includes(query)
-      }).slice(0, 10) // Limit to 10 results
+      const query = searchQuery.value.toLowerCase().trim()
+      
+      const filtered = props.companies.filter(company => {
+        const companyName = getCompanyName(company).toLowerCase()
+        const companyIndustry = getCompanyIndustry(company).toLowerCase()
+        const companyLocation = (company.gesitueerdIn || '').toLowerCase()
+        
+        const nameMatch = companyName.includes(query)
+        const industryMatch = companyIndustry.includes(query)
+        const locationMatch = companyLocation.includes(query)
+        
+        return nameMatch || industryMatch || locationMatch
+      })
+      
+      return filtered.slice(0, 10)
     })
     
     const hasLocation = (company) => {
@@ -85,15 +151,31 @@ export default {
       showResults.value = true
     }
     
+    const handleFocus = () => {
+      showResults.value = true
+    }
+    
     const handleBlur = () => {
       // Delay hiding results to allow click events to fire
       setTimeout(() => {
         showResults.value = false
-      }, 200)
+      }, 300)
+    }
+    
+    const handleKeydown = (event) => {
+      if (event.key === 'Escape') {
+        showResults.value = false
+        searchQuery.value = ''
+      }
+    }
+    
+    const clearSearch = () => {
+      searchQuery.value = ''
+      showResults.value = false
     }
     
     const selectCompany = (company) => {
-      searchQuery.value = company.bedrijfsnaam || company.name
+      searchQuery.value = getCompanyName(company)
       showResults.value = false
       emit('select-company', company)
     }
@@ -105,13 +187,34 @@ export default {
       }
     })
     
+    // Watch for changes in companies prop
+    watch(() => props.companies, (newCompanies) => {
+      // Force recomputation of filtered companies
+      if (showResults.value) {
+        showResults.value = false
+        setTimeout(() => {
+          showResults.value = true
+        }, 100)
+      }
+    }, { immediate: true, deep: true })
+    
+    onMounted(async () => {
+      await nextTick()
+    })
+    
     return {
       searchQuery,
       showResults,
       filteredCompanies,
       hasLocation,
+      getCompanyName,
+      getCompanyIndustry,
+      getCompanyInitial,
       handleSearch,
+      handleFocus,
       handleBlur,
+      handleKeydown,
+      clearSearch,
       selectCompany
     }
   }
@@ -155,6 +258,26 @@ export default {
   pointer-events: none;
 }
 
+.clear-button {
+  position: absolute;
+  right: 15px;
+  color: #6c757d;
+  font-size: 1.2rem;
+  cursor: pointer;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.clear-button:hover {
+  background: #f0f0f0;
+  color: #333;
+}
+
 .search-results {
   position: absolute;
   top: 100%;
@@ -163,11 +286,21 @@ export default {
   background: white;
   border: 1px solid #e1e5e9;
   border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   max-height: 400px;
   overflow-y: auto;
-  z-index: 1000;
+  z-index: 9999;
   margin-top: 4px;
+  min-width: 300px;
+}
+
+.results-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f3f4;
+  background: #f8f9fa;
+  font-size: 0.85rem;
+  color: #666;
+  font-weight: 500;
 }
 
 .search-result-item {
@@ -204,12 +337,13 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .company-logo img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
 }
 
 .logo-placeholder {
@@ -240,12 +374,17 @@ export default {
 }
 
 .company-details p {
-  margin: 0;
+  margin: 0 0 2px 0;
   color: #666;
   font-size: 0.85rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.company-details small {
+  color: #999;
+  font-size: 0.75rem;
 }
 
 .location-status {

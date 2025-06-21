@@ -16,6 +16,141 @@
       </div>
     </div>
 
+    <div class="main-content">
+      <div class="grondplan-container" :class="{ 'vertical-layout': isVerticalMap }">
+        <div v-if="loading" class="loading-overlay">
+          <div class="loading-spinner"></div>
+          <p>Grondplan laden...</p>
+        </div>
+        
+        <div v-else-if="!currentGrondplan" class="no-grondplan">
+          <div class="empty-state">
+            <div class="empty-icon">📍</div>
+            <h3>Geen grondplan beschikbaar</h3>
+            <p>Upload een grondplan om te beginnen</p>
+            <button @click="showUploadModal = true" class="upload-button-secondary">
+              Grondplan uploaden
+            </button>
+          </div>
+        </div>
+
+        <div v-else class="grondplan-view">
+          <div class="grondplan-title">
+            <h2>{{ currentGrondplan.name }}</h2>
+            <div class="grondplan-controls">
+              <div class="mode-controls">
+                <button 
+                  @click="toggleEditMode" 
+                  class="mode-btn"
+                  :class="{ 'active': editMode }"
+                >
+                  {{ editMode ? 'Bewerkmodus Actief' : 'Bewerkmodus' }}
+                </button>
+              </div>
+
+              <div class="zoom-controls">
+                <button @click="zoomIn" class="control-btn" title="Inzoomen">🔍+</button>
+                <button @click="zoomOut" class="control-btn" title="Uitzoomen">🔍-</button>
+                <button @click="resetView" class="control-btn" title="Reset weergave">⟲</button>
+                <button @click="showDeleteConfirmation" class="control-btn delete-btn" title="Verwijder grondplan">🗑️</button>
+              </div>
+            </div>
+          </div>
+          
+          <div class="search-container">
+            <company-search 
+              :companies="companies" 
+              :markers="companyMarkers" 
+              @select-company="selectCompany"
+            />
+          </div>
+          
+          <!-- Edit Mode Instructions -->
+          <div v-if="editMode && showInstructions" class="edit-mode-instructions" :class="{ 'fade-out': isFadingOut }">
+            <div class="instruction-content">
+              <span class="instruction-icon">💡</span>
+              <span class="instruction-text">Dubbelklik op de kaart om een bedrijf te plaatsen</span>
+            </div>
+          </div>
+          
+          <!-- LeafletJS Map Container -->
+          <div 
+            id="leaflet-map" 
+            ref="mapContainer"
+            class="leaflet-map-container"
+          ></div>
+          
+          <div class="grondplan-info">
+            <p><strong>Geüpload op:</strong> {{ formatDate(currentGrondplan.uploadDate) }}</p>
+            <p><strong>Bestandsgrootte:</strong> {{ currentGrondplan.fileSize }}</p>
+            <p><strong>Gebouw:</strong> {{ currentGrondplan.building }}</p>
+            <p><strong>Verdieping:</strong> {{ currentGrondplan.floors }}</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Grondplan Geschiedenis (rechts) -->
+      <div class="grondplan-sidebar" :class="{ 'collapsed': sidebarCollapsed }">
+        <div class="sidebar-header">
+          <h3 v-show="!sidebarCollapsed">Grondplan Geschiedenis</h3>
+          <button @click="toggleSidebar" class="collapse-btn" title="Sidebar inklappen/uitklappen">
+            {{ sidebarCollapsed ? '◀' : '▶' }}
+          </button>
+        </div>
+        <div class="grondplan-list" v-show="!sidebarCollapsed">
+          <div 
+            v-for="grondplan in grondplannen" 
+            :key="grondplan.id"
+            class="grondplan-item"
+            :class="{ 'active': currentGrondplanId === grondplan.id }"
+            @click="selectGrondplan(grondplan.id)"
+          >
+            <div class="grondplan-thumbnail">
+              <img 
+                :src="grondplan.thumbnailUrl || grondplan.imageUrl" 
+                :alt="grondplan.name" 
+                class="thumbnail-image"
+              />
+            </div>
+            <div class="grondplan-info">
+              <h4>{{ grondplan.name }}</h4>
+              <p class="grondplan-date">{{ formatDate(grondplan.uploadDate) }}</p>
+              <p class="grondplan-location">{{ grondplan.building }} - {{ grondplan.floors }}</p>
+            </div>
+            <div class="grondplan-actions">
+              <button 
+                @click.stop="editGrondplan(grondplan)" 
+                class="action-btn edit-btn" 
+                title="Bewerk grondplan"
+              >
+                ✏️
+              </button>
+            </div>
+          </div>
+          
+          <div v-if="grondplannen.length === 0" class="no-grondplannen">
+            <p>Geen grondplannen beschikbaar</p>
+            <button @click="showUploadModal = true" class="upload-button-small">
+              Grondplan uploaden
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Company Selection Modal -->
+    <company-location-modal
+      v-if="showCompanyModal"
+      :location="selectedLocation"
+      :floor="currentGrondplanId"
+      :existingMarker="editingMarker"
+      :companies="companies"
+      :placed-markers="allCompanyLocations"
+      @close="closeCompanyModal"
+      @save="saveCompanyLocation"
+      @delete="deleteCompanyLocation"
+    />
+
     <!-- Upload Modal -->
     <div v-if="showUploadModal" class="modal-overlay" @click="closeModal">
       <div class="modal-content" @click.stop>
@@ -117,130 +252,6 @@
         </div>
       </div>
     </div>
-
-    <div class="main-content">
-      <div class="grondplan-container">
-        <div v-if="loading" class="loading-overlay">
-          <div class="loading-spinner"></div>
-          <p>Grondplan laden...</p>
-        </div>
-        
-        <div v-else-if="!currentGrondplan" class="no-grondplan">
-          <div class="empty-state">
-            <div class="empty-icon">📍</div>
-            <h3>Geen grondplan beschikbaar</h3>
-            <p>Upload een grondplan om te beginnen</p>
-            <button @click="showUploadModal = true" class="upload-button-secondary">
-              Grondplan uploaden
-            </button>
-          </div>
-        </div>
-        
-        <div v-else class="grondplan-view">
-          <div class="grondplan-title">
-            <h2>{{ currentGrondplan.name }}</h2>
-            <div class="grondplan-controls">
-              <div class="mode-controls">
-                <button 
-                  @click="toggleEditMode" 
-                  class="mode-btn"
-                  :class="{ 'active': editMode }"
-                >
-                  {{ editMode ? 'Bewerkmodus Actief' : 'Bewerkmodus' }}
-                </button>
-              </div>
-
-              <div class="zoom-controls">
-                <button @click="zoomIn" class="control-btn" title="Inzoomen">🔍+</button>
-                <button @click="zoomOut" class="control-btn" title="Uitzoomen">🔍-</button>
-                <button @click="resetView" class="control-btn" title="Reset weergave">⟲</button>
-                <button @click="showDeleteConfirmation" class="control-btn delete-btn" title="Verwijder grondplan">🗑️</button>
-              </div>
-            </div>
-          </div>
-          
-          <div class="search-container">
-            <company-search 
-              :companies="companies" 
-              :markers="companyMarkers" 
-              @select-company="selectCompany"
-            />
-          </div>
-          
-          <!-- LeafletJS Map Container -->
-          <div 
-            id="leaflet-map" 
-            ref="mapContainer"
-            class="leaflet-map-container"
-          ></div>
-          
-          <div class="grondplan-info">
-            <p><strong>Geüpload op:</strong> {{ formatDate(currentGrondplan.uploadDate) }}</p>
-            <p><strong>Bestandsgrootte:</strong> {{ currentGrondplan.fileSize }}</p>
-            <p><strong>Gebouw:</strong> {{ currentGrondplan.building }}</p>
-            <p><strong>Verdieping:</strong> {{ currentGrondplan.floors }}</p>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Grondplan Geschiedenis (rechts) -->
-      <div class="grondplan-sidebar">
-        <div class="sidebar-header">
-          <h3>Grondplan Geschiedenis</h3>
-        </div>
-        <div class="grondplan-list">
-          <div 
-            v-for="grondplan in grondplannen" 
-            :key="grondplan.id"
-            class="grondplan-item"
-            :class="{ 'active': currentGrondplanId === grondplan.id }"
-            @click="selectGrondplan(grondplan.id)"
-          >
-            <div class="grondplan-thumbnail">
-              <img 
-                :src="grondplan.thumbnailUrl || grondplan.imageUrl" 
-                :alt="grondplan.name" 
-                class="thumbnail-image"
-              />
-            </div>
-            <div class="grondplan-info">
-              <h4>{{ grondplan.name }}</h4>
-              <p class="grondplan-date">{{ formatDate(grondplan.uploadDate) }}</p>
-              <p class="grondplan-location">{{ grondplan.building }} - {{ grondplan.floors }}</p>
-            </div>
-            <div class="grondplan-actions">
-              <button 
-                @click.stop="editGrondplan(grondplan)" 
-                class="action-btn edit-btn" 
-                title="Bewerk grondplan"
-              >
-                ✏️
-              </button>
-            </div>
-          </div>
-          
-          <div v-if="grondplannen.length === 0" class="no-grondplannen">
-            <p>Geen grondplannen beschikbaar</p>
-            <button @click="showUploadModal = true" class="upload-button-small">
-              Grondplan uploaden
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Company Selection Modal -->
-    <company-location-modal
-      v-if="showCompanyModal"
-      :location="selectedLocation"
-      :floor="currentGrondplanId"
-      :existingMarker="editingMarker"
-      :companies="companies"
-      :placed-markers="allCompanyLocations"
-      @close="closeCompanyModal"
-      @save="saveCompanyLocation"
-      @delete="deleteCompanyLocation"
-    />
   </div>
 </template>
 
@@ -250,7 +261,6 @@ import { useRouter } from 'vue-router'
 import { db, storage } from '../../../firebase/config'
 import { collection, getDocs, addDoc, updateDoc, doc, getDoc, query, where, deleteDoc } from 'firebase/firestore'
 import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'
-// Removed mock data import - using Firebase instead
 import CompanyLocationModal from './CompanyLocationModal.vue'
 import CompanySearch from './CompanySearch.vue'
 
@@ -293,6 +303,8 @@ export default {
     const uploading = ref(false)
     const showDeleteModal = ref(false)
     const deleting = ref(false)
+    const sidebarCollapsed = ref(false)
+    const isVerticalMap = ref(false)
     const newGrondplan = reactive({
       name: '',
       building: '',
@@ -300,8 +312,11 @@ export default {
       description: ''
     })
     const selectedFile = ref(null)
-    const companies = ref([]) // Companies loaded from Firebase
-    const allCompanyLocations = ref([]) // All company locations across all floorplans
+    const companies = ref([])
+    const allCompanyLocations = ref([])
+    const showInstructions = ref(false)
+    const isFadingOut = ref(false)
+    let instructionTimeout = null
     
     // Map bounds for coordinate conversion
     const mapBounds = ref([[0, 0], [100, 100]])
@@ -325,11 +340,9 @@ export default {
       let x = ((lng - bounds[0][1]) / (bounds[1][1] - bounds[0][1])) * 100
       let y = ((bounds[1][0] - lat) / (bounds[1][0] - bounds[0][0])) * 100
       
-      // Clamp values between 0 and 100
       x = Math.max(0, Math.min(100, x))
       y = Math.max(0, Math.min(100, y))
       
-      // Round to one decimal place to match the input step and prevent validation issues
       return { 
         x: parseFloat(x.toFixed(1)), 
         y: parseFloat(y.toFixed(1)) 
@@ -386,6 +399,9 @@ export default {
         const img = new Image()
         img.onload = () => {
           const aspectRatio = img.width / img.height
+          
+          // Set vertical map flag
+          isVerticalMap.value = aspectRatio < 1
           
           let bounds
           if (aspectRatio > 1) {
@@ -551,6 +567,34 @@ export default {
     const toggleEditMode = () => {
       editMode.value = !editMode.value
       
+      if (editMode.value) {
+        // Show instructions when entering edit mode
+        showInstructions.value = true
+        isFadingOut.value = false
+        
+        // Clear any existing timeout
+        if (instructionTimeout) {
+          clearTimeout(instructionTimeout)
+        }
+        
+        // Set timeout to hide instructions after 2 seconds
+        instructionTimeout = setTimeout(() => {
+          isFadingOut.value = true
+          setTimeout(() => {
+            showInstructions.value = false
+            isFadingOut.value = false
+          }, 300) // Wait for fade out animation to complete
+        }, 2000)
+      } else {
+        // Hide instructions immediately when exiting edit mode
+        showInstructions.value = false
+        isFadingOut.value = false
+        if (instructionTimeout) {
+          clearTimeout(instructionTimeout)
+          instructionTimeout = null
+        }
+      }
+      
       if (map.value) {
         if (editMode.value) {
           map.value.on('dblclick', handleMapDoubleClick)
@@ -658,7 +702,6 @@ export default {
             markers.push({
               id: markerDoc.id,
               ...markerData,
-              // Round coordinates to prevent validation issues
               x: markerData.x ? parseFloat(markerData.x.toFixed(1)) : 0,
               y: markerData.y ? parseFloat(markerData.y.toFixed(1)) : 0,
               company
@@ -694,7 +737,6 @@ export default {
           grondplanId: currentGrondplanId.value
         }
         
-        // Find the full company object
         const company = companies.value.find(c => c.id === locationData.companyId)
         if (!company) {
           throw new Error(`Company with ID ${locationData.companyId} not found.`)
@@ -719,7 +761,6 @@ export default {
             })
           }
         } else {
-          console.log('Attempting to add new marker with data:', locationWithGrondplan)
           const newMarkerRef = await addDoc(collection(db, 'companyLocations'), {
             companyId: locationWithGrondplan.companyId,
             grondplanId: locationWithGrondplan.grondplanId,
@@ -732,7 +773,7 @@ export default {
           companyMarkers.value.push({
             ...locationWithGrondplan,
             id: newMarkerRef.id,
-            company // Add the full company object to the new marker
+            company
           })
 
           allCompanyLocations.value.push({
@@ -745,8 +786,7 @@ export default {
         closeCompanyModal()
       } catch (error) {
         console.error('Error saving company location:', error)
-        console.error('Data that was being saved:', locationData)
-        alert('Er is een fout opgetreden bij het opslaan van de bedrijfslocatie. Check de console voor meer details.')
+        alert('Er is een fout opgetreden bij het opslaan van de bedrijfslocatie.')
       }
     }
     
@@ -766,12 +806,19 @@ export default {
     
     // Search functionality
     const selectCompany = (company) => {
+      console.log('selectCompany called with:', company)
+      console.log('Current grondplan ID:', currentGrondplanId.value)
+      console.log('Available markers:', companyMarkers.value.length)
+      
       const marker = companyMarkers.value.find(m => 
         m.companyId === company.id && 
         m.grondplanId === currentGrondplanId.value
       )
       
+      console.log('Found marker:', marker)
+      
       if (marker && map.value) {
+        console.log('Navigating to existing marker')
         const [lat, lng] = percentToLatLng(marker.x, marker.y)
         map.value.setView([lat, lng], 2)
         
@@ -781,10 +828,15 @@ export default {
           }
         })
       } else if (editMode.value) {
+        console.log('Opening company modal for new placement')
         selectedLocation.x = 50
         selectedLocation.y = 50
         editingMarker.value = null
         showCompanyModal.value = true
+      } else {
+        console.log('Company not found on this floor plan and not in edit mode')
+        // Show a message to the user
+        alert(`Bedrijf "${company.bedrijfsnaam || company.name}" is niet geplaatst op dit grondplan. Schakel bewerkmodus in om het bedrijf te plaatsen.`)
       }
     }
     
@@ -795,6 +847,10 @@ export default {
     
     const closeModal = () => {
       showUploadModal.value = false
+      resetForm()
+    }
+    
+    const resetForm = () => {
       newGrondplan.name = ''
       newGrondplan.building = ''
       newGrondplan.floors = ''
@@ -804,34 +860,54 @@ export default {
     
     const uploadGrondplan = async () => {
       if (!selectedFile.value) return
-      
+
+      uploading.value = true
       try {
-        uploading.value = true
+        const file = selectedFile.value
+        const fileSize = formatFileSize(file.size)
         
-        const imageRef = storageRef(storage, `grondplannen/${Date.now()}_${selectedFile.value.name}`)
-        await uploadBytes(imageRef, selectedFile.value)
-        const imageUrl = await getDownloadURL(imageRef)
+        // Create a unique filename
+        const timestamp = Date.now()
+        const fileExtension = file.name.split('.').pop()
+        const fileName = `grondplan_${timestamp}.${fileExtension}`
         
+        // Upload to Firebase Storage
+        const storageRef = ref(storage, `grondplannen/${fileName}`)
+        const uploadResult = await uploadBytes(storageRef, file)
+        const downloadURL = await getDownloadURL(uploadResult.ref)
+        
+        // Create thumbnail for images
+        let thumbnailURL = downloadURL
+        if (file.type.startsWith('image/')) {
+          thumbnailURL = downloadURL
+        }
+        
+        // Save to Firestore
         const grondplanData = {
           name: newGrondplan.name,
           building: newGrondplan.building,
           floors: newGrondplan.floors,
-          description: newGrondplan.description,
-          imageUrl: imageUrl,
-          thumbnailUrl: imageUrl,
-          fileSize: formatFileSize(selectedFile.value.size),
-          uploadDate: new Date()
+          description: newGrondplan.description || '',
+          imageUrl: downloadURL,
+          thumbnailUrl: thumbnailURL,
+          fileSize: fileSize,
+          uploadDate: new Date(),
+          createdAt: serverTimestamp()
         }
         
-        const docRef = await addDoc(collection(db, 'grondplan'), grondplanData)
+        await addDoc(collection(db, 'grondplannen'), grondplanData)
         
-        await loadGrondplannen()
-        currentGrondplanId.value = docRef.id
-        await changeGrondplan()
-        
+        // Reset form and close modal
         closeModal()
+        
+        // Reload grondplannen
+        await loadGrondplannen()
+        
+        // Show success message
+        console.log('Grondplan successfully uploaded!')
+        
       } catch (error) {
-        console.error('Fout bij uploaden grondplan:', error)
+        console.error('Error uploading grondplan:', error)
         alert('Er is een fout opgetreden bij het uploaden van het grondplan.')
       } finally {
         uploading.value = false
@@ -846,23 +922,7 @@ export default {
       return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
     }
     
-    const formatDate = (timestamp) => {
-      if (!timestamp) return ''
-      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp)
-      return new Intl.DateTimeFormat('nl-NL', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
-      }).format(date)
-    }
-    
-    const editGrondplan = (grondplan) => {
-      selectGrondplan(grondplan.id)
-    }
-    
-    // Delete functionality
     const showDeleteConfirmation = () => {
-      if (!currentGrondplan.value) return
       showDeleteModal.value = true
     }
     
@@ -873,26 +933,44 @@ export default {
     const confirmDeleteGrondplan = async () => {
       if (!currentGrondplan.value) return
       
+      deleting.value = true
       try {
-        deleting.value = true
+        // Delete from Firestore
+        await deleteDoc(doc(db, 'grondplannen', currentGrondplan.value.id))
         
-        await deleteCompanyLocationsForGrondplan(currentGrondplanId.value)
-        
+        // Delete from Storage
         if (currentGrondplan.value.imageUrl) {
           try {
-            const imageUrl = currentGrondplan.value.imageUrl
-            const imagePath = decodeURIComponent(imageUrl.split('/o/')[1].split('?')[0])
-            const imageRef = storageRef(storage, imagePath)
+            const imageRef = ref(storage, currentGrondplan.value.imageUrl)
             await deleteObject(imageRef)
-          } catch (error) {
-            console.error('Error deleting image from storage:', error)
+          } catch (storageError) {
+            console.warn('Could not delete image from storage:', storageError)
           }
         }
         
-        await deleteDoc(doc(db, 'grondplan', currentGrondplanId.value))
+        // Delete all company locations for this floor
+        const locationsQuery = query(
+          collection(db, 'companyLocations'),
+          where('floor', '==', currentGrondplan.value.id)
+        )
+        const locationsSnapshot = await getDocs(locationsQuery)
+        
+        const deletePromises = locationsSnapshot.docs.map(doc => deleteDoc(doc.ref))
+        await Promise.all(deletePromises)
+        
+        // Close modal and reload
+        closeDeleteModal()
         await loadGrondplannen()
         
-        closeDeleteModal()
+        // Reset current grondplan
+        if (grondplannen.value.length > 0) {
+          currentGrondplanId.value = grondplannen.value[0].id
+        } else {
+          currentGrondplanId.value = null
+        }
+        
+        console.log('Grondplan successfully deleted!')
+        
       } catch (error) {
         console.error('Error deleting grondplan:', error)
         alert('Er is een fout opgetreden bij het verwijderen van het grondplan.')
@@ -901,23 +979,26 @@ export default {
       }
     }
     
-    const deleteCompanyLocationsForGrondplan = async (grondplanId) => {
-      try {
-        const markersQuery = query(
-          collection(db, 'companyLocations'),
-          where('grondplanId', '==', grondplanId)
-        )
-        
-        const markersSnapshot = await getDocs(markersQuery)
-        const deletePromises = markersSnapshot.docs.map(markerDoc => 
-          deleteDoc(doc(db, 'companyLocations', markerDoc.id))
-        )
-        
-        await Promise.all(deletePromises)
-      } catch (error) {
-        console.error('Error deleting company locations:', error)
-        throw error
-      }
+    const formatDate = (date) => {
+      if (!date) return 'Onbekend'
+      const d = date.toDate ? date.toDate() : new Date(date)
+      return d.toLocaleDateString('nl-NL', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })
+    }
+    
+    const editGrondplan = (grondplan) => {
+      newGrondplan.name = grondplan.name
+      newGrondplan.building = grondplan.building
+      newGrondplan.floors = grondplan.floors
+      newGrondplan.description = grondplan.description || ''
+      showUploadModal.value = true
+    }
+    
+    const toggleSidebar = () => {
+      sidebarCollapsed.value = !sidebarCollapsed.value
     }
     
     // Watch for loading state changes
@@ -934,17 +1015,31 @@ export default {
     // Load companies from Firebase
     const loadCompanies = async () => {
       try {
+        console.log('Loading companies from Firebase...')
         const companiesSnapshot = await getDocs(collection(db, 'bedrijf'))
         companies.value = companiesSnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
         }))
         
-        // Debug: Log companies and their verification status
         console.log('Loaded companies:', companies.value.length)
         companies.value.forEach(company => {
           console.log(`Company: ${company.bedrijfsnaam || company.name}, Status: ${company.verificatieStatus || 'no status'}`)
         })
+        
+        // Check if companies have the expected structure
+        if (companies.value.length > 0) {
+          const firstCompany = companies.value[0]
+          console.log('First company structure:', {
+            id: firstCompany.id,
+            bedrijfsnaam: firstCompany.bedrijfsnaam,
+            name: firstCompany.name,
+            industry: firstCompany.industry,
+            branche: firstCompany.branche,
+            foto: firstCompany.foto,
+            gesitueerdIn: firstCompany.gesitueerdIn
+          })
+        }
       } catch (error) {
         console.error('Error loading companies:', error)
       }
@@ -952,11 +1047,29 @@ export default {
     
     // Lifecycle
     onMounted(async () => {
-      await loadGrondplannen()
-      await loadCompanies()
-      await loadAllCompanyLocations()
-    })
-    
+      // Create a master initialization function to ensure correct loading order
+      const initializePage = async () => {
+        loading.value = true;
+        try {
+          // 1. Load all company data first, as it's needed for markers
+          await loadCompanies();
+          
+          // 2. Load all floor plans. This will trigger the first `changeGrondplan`.
+          await loadGrondplannen();
+          
+          // 3. Load all company locations for placement validation
+          await loadAllCompanyLocations();
+
+        } catch (error) {
+          console.error("Error during page initialization:", error);
+        } finally {
+          // The loading state will be managed by `changeGrondplan`
+        }
+      };
+
+      await initializePage();
+    });
+
     onBeforeUnmount(() => {
       if (map.value) {
         map.value.remove()
@@ -983,10 +1096,14 @@ export default {
       uploading,
       showDeleteModal,
       deleting,
+      sidebarCollapsed,
+      isVerticalMap,
       newGrondplan,
       selectedFile,
       companies,
       allCompanyLocations,
+      showInstructions,
+      isFadingOut,
       
       // Methods
       selectGrondplan,
@@ -1000,12 +1117,15 @@ export default {
       deleteCompanyLocation,
       handleFileSelect,
       closeModal,
+      resetForm,
       uploadGrondplan,
       formatDate,
       editGrondplan,
       showDeleteConfirmation,
       closeDeleteModal,
-      confirmDeleteGrondplan
+      confirmDeleteGrondplan,
+      formatFileSize,
+      toggleSidebar
     }
   }
 }
@@ -1017,6 +1137,7 @@ export default {
   flex-direction: column;
   height: 100vh;
   background: #f8f9fa;
+  overflow: hidden;
 }
 
 .page-header {
@@ -1027,6 +1148,9 @@ export default {
   background: white;
   border-bottom: 1px solid #eee;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  position: relative;
+  z-index: 100;
+  flex-shrink: 0;
 }
 
 .header-content h1 {
@@ -1067,8 +1191,7 @@ export default {
 .main-content {
   display: flex;
   flex: 1;
-  overflow: hidden;
-  height: calc(100vh - 200px);
+  min-height: 0;
 }
 
 .grondplan-container {
@@ -1077,6 +1200,12 @@ export default {
   flex-direction: column;
   position: relative;
   min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.grondplan-container.vertical-layout {
+  flex: 1.5;
 }
 
 .grondplan-view {
@@ -1092,8 +1221,11 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding: 20px 30px;
-  background: white;
+  background: #fff;
   border-bottom: 1px solid #eee;
+  position: relative;
+  z-index: 50;
+  flex-shrink: 0;
 }
 
 .grondplan-title h2 {
@@ -1106,6 +1238,8 @@ export default {
   display: flex;
   gap: 20px;
   align-items: center;
+  position: relative;
+  z-index: 51;
 }
 
 .mode-controls .mode-btn {
@@ -1117,6 +1251,8 @@ export default {
   cursor: pointer;
   font-weight: 500;
   transition: all 0.2s ease;
+  position: relative;
+  z-index: 52;
 }
 
 .mode-btn.active {
@@ -1127,6 +1263,8 @@ export default {
 .zoom-controls {
   display: flex;
   gap: 8px;
+  position: relative;
+  z-index: 52;
 }
 
 .control-btn {
@@ -1136,11 +1274,13 @@ export default {
   background: white;
   border-radius: 6px;
   cursor: pointer;
+  font-size: 1rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
   transition: all 0.2s ease;
+  position: relative;
+  z-index: 53;
 }
 
 .control-btn:hover {
@@ -1158,9 +1298,69 @@ export default {
   padding: 20px 30px;
   background: white;
   border-bottom: 1px solid #eee;
+  position: relative;
+  z-index: 40;
+  flex-shrink: 0;
 }
 
-/* LeafletJS Map Container */
+.edit-mode-instructions {
+  padding: 12px 30px;
+  background: white;
+  border-bottom: 1px solid #eee;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 35;
+  animation: fadeIn 0.3s ease-in-out;
+  transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+}
+
+.edit-mode-instructions.fade-out {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.instruction-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: center;
+}
+
+.instruction-icon {
+  font-size: 1.2rem;
+  animation: pulse 2s infinite;
+}
+
+.instruction-text {
+  color: #333;
+  font-weight: 500;
+  font-size: 0.95rem;
+  text-align: center;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
 .leaflet-map-container {
   flex: 1;
   position: relative;
@@ -1168,15 +1368,16 @@ export default {
   min-height: 400px;
   height: 100%;
   width: 100%;
+  z-index: 1;
 }
 
 :deep(.leaflet-container) {
   height: 100% !important;
   width: 100% !important;
   min-height: 400px;
+  z-index: 1 !important;
 }
 
-/* Custom marker styles */
 :deep(.company-marker-icon) {
   background: none;
   border: none;
@@ -1212,7 +1413,6 @@ export default {
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
-/* Custom popup styles */
 :deep(.company-popup-container .leaflet-popup-content-wrapper) {
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0,0,0,0.15);
@@ -1301,6 +1501,9 @@ export default {
   padding: 20px 30px;
   background: white;
   border-top: 1px solid #eee;
+  position: relative;
+  z-index: 30;
+  flex-shrink: 0;
 }
 
 .grondplan-info p {
@@ -1309,40 +1512,95 @@ export default {
   font-size: 0.9rem;
 }
 
-/* Sidebar styles */
 .grondplan-sidebar {
   width: 350px;
   background: white;
   border-left: 1px solid #eee;
   display: flex;
   flex-direction: column;
+  transition: width 0.3s ease;
+  position: relative;
+  z-index: 20;
+  flex-shrink: 0;
+}
+
+.grondplan-sidebar.collapsed {
+  width: 60px;
 }
 
 .sidebar-header {
-  padding: 20px;
+  padding: 12px 15px;
   border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
 }
 
 .sidebar-header h3 {
   margin: 0;
   color: #333;
-  font-size: 1.2rem;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.collapse-btn {
+  background: none;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  width: 26px;
+  height: 26px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  margin-left: 6px;
+}
+
+.collapse-btn:hover {
+  background: #f0f0f0;
+  border-color: #007bff;
+  color: #007bff;
+}
+
+.grondplan-sidebar.collapsed .sidebar-header {
+  padding: 12px;
+  justify-content: center;
+}
+
+.grondplan-sidebar.collapsed .sidebar-header h3 {
+  display: none;
+}
+
+.grondplan-sidebar.collapsed .collapse-btn {
+  margin-left: 0;
 }
 
 .grondplan-list {
   flex: 1;
   overflow-y: auto;
-  padding: 10px;
+  padding: 6px;
 }
 
 .grondplan-item {
   display: flex;
-  padding: 12px;
+  padding: 8px;
   background: white;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
   border: 1px solid #e9ecef;
+  margin-bottom: 6px;
+  align-items: center;
+  min-height: 60px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .grondplan-item:hover,
@@ -1357,10 +1615,10 @@ export default {
 }
 
 .grondplan-thumbnail {
-  width: 100px;
-  height: 75px;
+  width: 60px;
+  height: 45px;
   flex-shrink: 0;
-  margin-right: 16px;
+  margin-right: 8px;
   border-radius: 6px;
   overflow: hidden;
   background-color: #f0f0f0;
@@ -1378,51 +1636,59 @@ export default {
   flex-direction: column;
   justify-content: center;
   min-width: 0;
+  margin-right: 6px;
 }
 
 .grondplan-info h4 {
-  margin: 0 0 4px 0;
-  font-size: 0.95rem;
+  margin: 0 0 2px 0;
+  font-size: 0.8rem;
   font-weight: 600;
   color: #333;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.1;
 }
 
 .grondplan-date,
 .grondplan-location {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: 0.7rem;
   color: #666;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.1;
 }
 
 .grondplan-actions {
   display: flex;
   align-items: center;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
 }
 
 .action-btn {
-  width: 32px;
-  height: 32px;
+  width: 22px;
+  height: 22px;
   border: none;
   background: none;
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: 3px;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: background 0.2s ease;
+  font-size: 0.75rem;
+  padding: 0;
+  margin: 0;
 }
 
 .action-btn:hover {
   background: #f0f0f0;
 }
 
-/* Loading and empty states */
 .loading-overlay {
   position: absolute;
   top: 0;
@@ -1431,7 +1697,6 @@ export default {
   bottom: 0;
   background: rgba(255,255,255,0.9);
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   z-index: 1000;
@@ -1484,7 +1749,6 @@ export default {
   cursor: pointer;
 }
 
-/* Modal styles */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -1656,32 +1920,121 @@ export default {
   font-size: 0.9rem;
 }
 
-/* Responsive design */
-@media (max-width: 768px) {
+@media (max-width: 1200px) {
+  .grondplan-sidebar {
+    width: 300px;
+  }
+  
+  .grondplan-sidebar.collapsed {
+    width: 50px;
+  }
+}
+
+@media (max-width: 992px) {
   .main-content {
     flex-direction: column;
+    height: auto;
+    min-height: calc(100vh - 200px);
+  }
+  
+  .grondplan-container {
+    min-height: 60vh;
   }
   
   .grondplan-sidebar {
     width: 100%;
-    max-height: 200px;
+    max-height: 300px;
+    border-left: none;
+    border-top: 1px solid #eee;
+  }
+  
+  .grondplan-sidebar.collapsed {
+    width: 100%;
+    max-height: 60px;
+  }
+  
+  .grondplan-container.vertical-layout {
+    flex: 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .grondplan-interactive {
+    height: auto;
+    min-height: 100vh;
   }
   
   .page-header {
     flex-direction: column;
     gap: 16px;
     align-items: stretch;
+    padding: 16px 20px;
   }
   
   .grondplan-title {
     flex-direction: column;
     gap: 16px;
     align-items: stretch;
+    padding: 16px 20px;
   }
   
   .grondplan-controls {
     justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
   }
+  
+  .zoom-controls {
+    gap: 6px;
+  }
+  
+  .control-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 0.9rem;
+  }
+  
+  .search-container {
+    padding: 16px 20px;
+  }
+  
+  .grondplan-info {
+    padding: 16px 20px;
+  }
+  
+  .sidebar-header {
+    padding: 16px 20px;
+  }
+  
+  .grondplan-list {
+    padding: 8px;
+  }
+  
+  .grondplan-item {
+    padding: 10px;
+  }
+  
+  .grondplan-thumbnail {
+    width: 80px;
+    height: 60px;
+    margin-right: 12px;
+  }
+  
+  .leaflet-map-container {
+    min-height: 300px;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.grondplan-interactive,
+.main-content,
+.grondplan-container,
+.grondplan-view {
+  min-width: 0;
+  min-height: 0;
 }
 </style>
 

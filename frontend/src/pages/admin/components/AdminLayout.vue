@@ -1,5 +1,5 @@
 <template>
-  <div class="admin-layout">
+  <div class="admin-layout" :class="{ 'sidebar-collapsed': !isSidebarOpen }">
     <!-- Admin Header -->
     <header class="admin-header">
       <div class="header-content">
@@ -21,10 +21,16 @@
     </header>
 
     <!-- Sidebar Overlay -->
-    <div v-if="isSidebarOpen" class="sidebar-overlay" @click="toggleSidebar"></div>
+    <div v-if="isSidebarOpen && isMobile" class="sidebar-overlay" @click="toggleSidebar"></div>
 
     <!-- Admin Sidebar -->
-    <aside class="admin-sidebar" :class="{ 'open': isSidebarOpen }">
+    <aside class="admin-sidebar" :class="{ 'open': isSidebarOpen, 'collapsed': !isSidebarOpen }">
+      <div class="sidebar-header">
+        <button class="sidebar-toggle-btn" @click="toggleSidebar" :title="isSidebarOpen ? 'Sidebar inklappen' : 'Sidebar uitklappen'">
+          <span v-if="!isSidebarOpen">→</span>
+          <span v-else>×</span>
+        </button>
+      </div>
       <AdminNavigation />
     </aside>
 
@@ -49,7 +55,8 @@ export default {
   },
   data() {
     return {
-      isSidebarOpen: false
+      isSidebarOpen: true, // Default to open
+      isMobile: false
     }
   },
   setup() {
@@ -69,9 +76,28 @@ export default {
       handleLogout
     }
   },
+  mounted() {
+    // Load sidebar state from localStorage
+    const savedState = localStorage.getItem('adminSidebarOpen')
+    if (savedState !== null) {
+      this.isSidebarOpen = JSON.parse(savedState)
+    }
+    
+    // Check if mobile
+    this.checkMobile()
+    window.addEventListener('resize', this.checkMobile)
+  },
+  beforeUnmount() {
+    window.removeEventListener('resize', this.checkMobile)
+  },
   methods: {
     toggleSidebar() {
       this.isSidebarOpen = !this.isSidebarOpen
+      // Save state to localStorage
+      localStorage.setItem('adminSidebarOpen', JSON.stringify(this.isSidebarOpen))
+    },
+    checkMobile() {
+      this.isMobile = window.innerWidth <= 768
     }
   }
 }
@@ -87,6 +113,11 @@ export default {
   grid-template-rows: 60px 1fr;
   min-height: 100vh;
   background-color: #f5f5f5;
+  transition: grid-template-columns 0.3s ease;
+}
+
+.admin-layout.sidebar-collapsed {
+  grid-template-columns: 60px 1fr;
 }
 
 .admin-header {
@@ -146,6 +177,7 @@ export default {
 .header-actions {
   display: flex;
   align-items: center;
+  gap: 16px;
 }
 
 .logout-link {
@@ -172,8 +204,65 @@ export default {
   grid-area: sidebar;
   background: white;
   border-right: 1px solid #e0e0e0;
-  padding: 20px 0;
-  transition: transform 0.3s ease;
+  padding: 0;
+  transition: all 0.3s ease;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-header {
+  padding: 15px 20px;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  background: #f8f9fa;
+}
+
+.sidebar-toggle-btn {
+  background: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  cursor: pointer;
+  color: #666;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  min-width: 32px;
+  min-height: 32px;
+}
+
+.sidebar-toggle-btn:hover {
+  background: #f8f9fa;
+  color: #007bff;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.2);
+}
+
+.sidebar-toggle-btn span {
+  font-size: 1.2rem;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.admin-sidebar.collapsed {
+  padding: 0;
+}
+
+.admin-sidebar.collapsed .sidebar-header {
+  padding: 15px 10px;
+  justify-content: center;
+}
+
+.admin-sidebar.collapsed .sidebar-toggle-btn {
+  padding: 8px;
+  width: 32px;
+  height: 32px;
 }
 
 .sidebar-overlay {
@@ -190,12 +279,32 @@ export default {
 .admin-main {
   grid-area: main;
   padding: 20px;
-  overflow-y: auto;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .content-wrapper {
-  max-width: 1200px;
-  margin: 0 auto;
+  max-width: 100%;
+  margin: 0;
+}
+
+.admin-logo-link {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  font-weight: 700;
+  color: #1a1a1a;
+  font-size: 1.5rem;
+  transition: color 0.2s;
+}
+
+.admin-logo-link:hover {
+  color: #2563eb;
+}
+
+.admin-logo-text {
+  font-size: 1.5rem;
+  font-weight: 700;
 }
 
 /* Responsive Design */
@@ -206,6 +315,10 @@ export default {
       "main";
     grid-template-columns: 1fr;
     grid-template-rows: 60px 1fr;
+  }
+
+  .admin-layout.sidebar-collapsed {
+    grid-template-columns: 1fr;
   }
 
   .menu-toggle {
@@ -220,10 +333,15 @@ export default {
     z-index: 999;
     transform: translateX(-100%);
     box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+    width: 250px;
   }
 
   .admin-sidebar.open {
     transform: translateX(0);
+  }
+
+  .admin-sidebar.collapsed {
+    transform: translateX(-100%);
   }
 
   .sidebar-overlay {
@@ -237,23 +355,6 @@ export default {
   .logout-link i {
     font-size: 0.9rem;
   }
-}
-
-.admin-logo-link {
-  display: flex;
-  align-items: center;
-  text-decoration: none;
-  font-weight: 700;
-  color: #1a1a1a;
-  font-size: 1.5rem;
-  transition: color 0.2s;
-}
-.admin-logo-link:hover {
-  color: #2563eb;
-}
-.admin-logo-text {
-  font-size: 1.5rem;
-  font-weight: 700;
 }
 </style>
 

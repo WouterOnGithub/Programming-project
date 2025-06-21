@@ -162,28 +162,6 @@
           </div>
         </div>
       </div>
-
-      <!-- Activity Feed -->
-      <div class="dashboard-card full-width">
-        <div class="card-header">
-          <h2 class="card-title">Recente Activiteit</h2>
-        </div>
-        <div class="card-content">
-          <div class="activity-feed">
-            <div 
-              v-for="activity in recentActivity" 
-              :key="activity.id"
-              class="activity-item"
-            >
-              <div class="activity-icon">{{ activity.icon }}</div>
-              <div class="activity-content">
-                <p class="activity-text">{{ activity.text }}</p>
-                <span class="activity-time">{{ activity.time }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 </template>
@@ -205,23 +183,17 @@ export default {
       verifiedCompanies: 0,
       rejectedCompanies: 0
     })
-    const recentStudents = ref([])
     const recentMatches = ref([])
     const upcomingAppointments = ref([])
-    const recentActivity = ref([])
     const loading = ref({
       stats: true,
-      students: true,
       matches: true,
-      appointments: true,
-      activity: true
+      appointments: true
     })
     const error = ref({
       stats: null,
-      students: null,
       matches: null,
-      appointments: null,
-      activity: null
+      appointments: null
     })
     let unsubscribeStudents = null
     let unsubscribeCompanies = null
@@ -373,10 +345,8 @@ export default {
     onMounted(async () => {
       await Promise.all([
         loadStats(),
-        loadRecentStudents(),
         loadRecentMatches(),
-        loadUpcomingAppointments(),
-        loadRecentActivity()
+        loadUpcomingAppointments()
       ])
     })
 
@@ -389,10 +359,8 @@ export default {
 
     return {
       stats,
-      recentStudents,
       recentMatches,
       upcomingAppointments,
-      recentActivity,
       loading,
       error,
       formatDate,

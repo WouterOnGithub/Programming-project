@@ -6,6 +6,7 @@
           to="/admin/dashboard" 
           class="nav-link"
           :class="{ active: $route.path === '/admin/dashboard' }"
+          title="Dashboard"
         >
           <span class="nav-icon">📊</span>
           <span class="nav-text">Dashboard</span>
@@ -17,6 +18,7 @@
           to="/admin/students" 
           class="nav-link"
           :class="{ active: $route.path.startsWith('/admin/students') }"
+          title="Studenten"
         >
           <span class="nav-icon">👥</span>
           <span class="nav-text">Studenten</span>
@@ -28,6 +30,7 @@
           to="/admin/companies" 
           class="nav-link"
           :class="{ active: $route.path.startsWith('/admin/companies') && !$route.path.includes('/verification') }"
+          title="Bedrijven"
         >
           <span class="nav-icon">🏢</span>
           <span class="nav-text">Bedrijven</span>
@@ -39,6 +42,7 @@
           to="/admin/companies/verification" 
           class="nav-link"
           :class="{ active: $route.path.includes('/verification') }"
+          title="Bedrijfsverificatie"
         >
           <span class="nav-icon">✅</span>
           <span class="nav-text">Bedrijfsverificatie</span>
@@ -50,6 +54,7 @@
           to="/admin/grondplan" 
           class="nav-link"
           :class="{ active: $route.path.startsWith('/admin/grondplan') }"
+          title="Grondplan"
         >
           <span class="nav-icon">📍</span>
           <span class="nav-text">Grondplan</span>
@@ -67,7 +72,9 @@ export default {
 
 <style scoped>
 .admin-navigation {
-  padding: 0 20px;
+  padding: 20px 20px;
+  transition: padding 0.3s ease;
+  flex: 1;
 }
 
 .nav-list {
@@ -89,6 +96,8 @@ export default {
   border-radius: 8px;
   transition: all 0.2s ease;
   font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .nav-link:hover {
@@ -104,24 +113,65 @@ export default {
 .nav-icon {
   margin-right: 12px;
   font-size: 1.2rem;
+  flex-shrink: 0;
 }
 
 .nav-text {
   font-size: 0.95rem;
+  transition: opacity 0.3s ease;
 }
 
-/* Responsive */
+/* Collapsed sidebar styles */
+.admin-layout.sidebar-collapsed .admin-navigation {
+  padding: 20px 10px;
+}
+
+.admin-layout.sidebar-collapsed .nav-link {
+  justify-content: center;
+  padding: 12px 8px;
+}
+
+.admin-layout.sidebar-collapsed .nav-icon {
+  margin-right: 0;
+}
+
+.admin-layout.sidebar-collapsed .nav-text {
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+}
+
+/* Mobile styles */
 @media (max-width: 768px) {
-  .nav-text {
-    display: none;
+  .admin-navigation {
+    padding: 20px 20px;
   }
   
   .nav-link {
+    justify-content: flex-start;
+    padding: 12px 16px;
+  }
+  
+  .nav-icon {
+    margin-right: 12px;
+  }
+  
+  .nav-text {
+    opacity: 1;
+    width: auto;
+  }
+  
+  /* When sidebar is collapsed on mobile, hide text */
+  .admin-sidebar.collapsed .nav-text {
+    display: none;
+  }
+  
+  .admin-sidebar.collapsed .nav-link {
     justify-content: center;
     padding: 12px;
   }
   
-  .nav-icon {
+  .admin-sidebar.collapsed .nav-icon {
     margin-right: 0;
   }
 }
