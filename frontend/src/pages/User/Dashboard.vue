@@ -195,8 +195,10 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: 'fas fa-chart-pie' },
   { name: 'Job Swiping', href: '/swipe', icon: 'fas fa-heart' },
   { name: 'Afspraken', href: '/appointments', icon: 'fas fa-calendar' },
+  { name: 'Favorieten', href: '/Favorietenst', icon: 'fas fa-star' },
+  { name: 'Matches', href: '/stmatch', icon: 'fas fa-check-double' },
   { name: 'Profiel', href: '/WeergaveSt', icon: 'fas fa-user' },
-  { name: 'Instellingen', href: '/settings', icon: 'fas fa-cog' },
+  { name: 'Instellingen', href: '/SettingsStu', icon: 'fas fa-cog' },
 ];
 
 const loading = ref({
