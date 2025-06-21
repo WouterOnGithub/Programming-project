@@ -1,102 +1,154 @@
 <template>
   <StudentDashboardLayout>
-    <section class="pagina">
-      <div class="hoofding">
-        <div class="hoofding-links">
-          <div class="icoon-container">
-            <Heart :size="24" color="white" />
-          </div>
-          <div>
-            <h1 class="titel">Match bedrijven</h1>
-            <p class="subtekst">{{ matchBedrijven.length }} matches gevonden</p>
-          </div>
-        </div>
+    <!-- Mobile-only header -->
+    <header class="mobile-header">
+      <img src="/Images/ehb-logo.png" alt="EhB Logo" class="mobile-logo" />
+      <button @click="toggleMobileSidebar" class="hamburger-menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </header>
+
+    <!-- Mobile-only welcome banner -->
+    <section class="welcome-banner-mobile">
+      <div class="welcome-text">
+        <h1 class="welcome-title">Welkom, {{ studentData.name }}!</h1>
+        <p class="welcome-subtitle">Hier is je match overzicht</p>
       </div>
-      <div class="zoekbalk-container">
-        <Search class="zoek-icoon" :size="16" />
-        <input
-          type="text"
-          class="zoekveld"
-          placeholder="Zoek op naam, sector of locatie..."
-          v-model="zoekterm"
-        />
+      <div class="welcome-avatar" @click="handleAvatarClick">
+        <img v-if="studentData.foto" :src="studentData.foto" alt="Profielfoto" class="avatar-img" />
+        <span v-else>{{ studentData.name ? studentData.name.charAt(0) : 'G' }}</span>
       </div>
-      <div class="statistieken">
-        <div>
-          <div class="stat-value">{{ matchBedrijven.length }}</div>
-          <div class="stat-label">Totaal</div>
-        </div>
-        <div>
-          <div class="stat-value rood">{{ gefilterdeBedrijven.length }}</div>
-          <div class="stat-label">Resultaten</div>
-        </div>
-      </div>
-      <div class="studentenlijst">
-        <div class="lijst-hoofding">
-          <h2>Overzicht Matchs</h2>
-          <p>Klik op een bedrijf voor profiel of gesprek</p>
-        </div>
-        <div
-          class="student-kaart"
-          v-for="bedrijf in gefilterdeBedrijven"
-          :key="bedrijf.id"
-        >
-          <div class="student-info">
-            <div class="avatar">
-              <img v-if="bedrijf.logoUrl" :src="bedrijf.logoUrl" alt="Bedrijfslogo" class="bedrijfslogo-img"/>
-              <span v-else>{{ bedrijf.afkorting }}</span>
-            </div>
-            <div>
-              <h3>{{ bedrijf.naam }}</h3>
-              <p class="richting">{{ Array.isArray(bedrijf.sector) ? bedrijf.sector.join(', ') : bedrijf.sector }} – {{ bedrijf.locatie }}</p>
-            </div>
-          </div>
-          <div class="acties">
-            <button class="knop-grijs" @click="toonProfiel(bedrijf.id)">
-              <Building :size="14" />
-              <span>Profiel</span>
-            </button>
-            <button
-              v-if="bedrijf.status === 'geaccepteerd'"
-              class="knop-rood"
-              @click="planAfspraak(bedrijf.id)"
-            >
-              <Calendar :size="14" />
-              <span>Gesprek</span>
-            </button>
-            <span v-else class="status-wacht">In afwachting van validatie door het bedrijf</span>
-            <button class="verwijder-btn-rond" @click="openConfirmModal(bedrijf)">✖</button>
-          </div>
-        </div>
-        <div v-if="gefilterdeBedrijven.length === 0" class="geen-resultaten">
-          <div class="emoji">🔍</div>
-          <h3>Geen bedrijven gevonden</h3>
-          <p>Probeer een andere zoekterm.</p>
-        </div>
-      </div>
-      <!-- Modal voor tijdslot selectie -->
-      <div v-if="showTimeModal" class="modal-overlay">
-        <div class="modal-content">
-          <h3>Kies een tijdslot voor je gesprek</h3>
-          <div class="timeslot-grid">
-            <button
-              v-for="slot in timeSlots"
-              :key="slot"
-              :disabled="isSlotTaken(slot)"
-              :class="['timeslot-btn', { 'pauze': slot === 'Pauze', taken: isSlotTaken(slot) && slot !== 'Pauze', selected: selectedTimeSlot === slot }]"
-              @click="slot !== 'Pauze' && selectTimeSlot(slot)"
-            >
-              {{ slot }}
-            </button>
-          </div>
-          <div class="modal-actions">
-            <button class="action-btn btn-save" :disabled="!selectedTimeSlot" @click="bevestigAfspraak">Bevestig</button>
-            <button class="action-btn btn-cancel-edit" @click="closeTimeModal">Annuleren</button>
-          </div>
-        </div>
+      <div v-if="showDropdown" id="mobile-profile-dropdown" class="profile-dropdown-mobile">
+          <button class="dropdown-item" @click="goToProfile">Profiel</button>
+          <button class="dropdown-item" @click="handleLogout">Uitloggen</button>
       </div>
     </section>
+
+    <!-- Main Content -->
+    <main class="dashboard-main">
+      <section class="pagina">
+        <div class="hoofding">
+          <div class="hoofding-links">
+            <div class="icoon-container">
+              <Heart :size="24" color="white" />
+            </div>
+            <div>
+              <h1 class="titel">Match bedrijven</h1>
+              <p class="subtekst">{{ matchBedrijven.length }} matches gevonden</p>
+            </div>
+          </div>
+        </div>
+        <div class="zoekbalk-container">
+          <Search class="zoek-icoon" :size="16" />
+          <input
+            type="text"
+            class="zoekveld"
+            placeholder="Zoek op naam, sector of locatie..."
+            v-model="zoekterm"
+          />
+        </div>
+        <div class="statistieken">
+          <div>
+            <div class="stat-value">{{ matchBedrijven.length }}</div>
+            <div class="stat-label">Totaal</div>
+          </div>
+          <div>
+            <div class="stat-value rood">{{ gefilterdeBedrijven.length }}</div>
+            <div class="stat-label">Resultaten</div>
+          </div>
+        </div>
+        <div class="studentenlijst">
+          <div class="lijst-hoofding">
+            <h2>Overzicht Matchs</h2>
+            <p>Klik op een bedrijf voor profiel of gesprek</p>
+          </div>
+          <div
+            class="student-kaart"
+            v-for="bedrijf in gefilterdeBedrijven"
+            :key="bedrijf.id"
+          >
+            <div class="student-info">
+              <div class="avatar">
+                <img v-if="bedrijf.logoUrl" :src="bedrijf.logoUrl" alt="Bedrijfslogo" class="bedrijfslogo-img"/>
+                <span v-else>{{ bedrijf.afkorting }}</span>
+              </div>
+              <div>
+                <h3>{{ bedrijf.naam }}</h3>
+                <p class="richting">{{ Array.isArray(bedrijf.sector) ? bedrijf.sector.join(', ') : bedrijf.sector }} – {{ bedrijf.locatie }}</p>
+              </div>
+            </div>
+            <div class="acties">
+              <button class="knop-grijs" @click="toonProfiel(bedrijf.id)">
+                <Building :size="14" />
+                <span>Profiel</span>
+              </button>
+              <button
+                v-if="bedrijf.status === 'geaccepteerd'"
+                class="knop-rood"
+                @click="planAfspraak(bedrijf.id)"
+              >
+                <Calendar :size="14" />
+                <span>Gesprek</span>
+              </button>
+              <span v-else class="status-wacht">In afwachting van validatie door het bedrijf</span>
+              <button class="verwijder-btn-rond" @click="openConfirmModal(bedrijf)">✖</button>
+            </div>
+          </div>
+          <div v-if="gefilterdeBedrijven.length === 0" class="geen-resultaten">
+            <div class="emoji">🔍</div>
+            <h3>Geen bedrijven gevonden</h3>
+            <p>Probeer een andere zoekterm.</p>
+          </div>
+        </div>
+        <!-- Modal voor tijdslot selectie -->
+        <div v-if="showTimeModal" class="modal-overlay">
+          <div class="modal-content">
+            <h3>Kies een tijdslot voor je gesprek</h3>
+            <div class="timeslot-grid">
+              <button
+                v-for="slot in timeSlots"
+                :key="slot"
+                :disabled="isSlotTaken(slot)"
+                :class="['timeslot-btn', { 'pauze': slot === 'Pauze', taken: isSlotTaken(slot) && slot !== 'Pauze', selected: selectedTimeSlot === slot }]"
+                @click="slot !== 'Pauze' && selectTimeSlot(slot)"
+              >
+                {{ slot }}
+              </button>
+            </div>
+            <div class="modal-actions">
+              <button class="action-btn btn-save" :disabled="!selectedTimeSlot" @click="bevestigAfspraak">Bevestig</button>
+              <button class="action-btn btn-cancel-edit" @click="closeTimeModal">Annuleren</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
   </StudentDashboardLayout>
+
+  <!-- Mobile-only sidebar -->
+  <aside class="mobile-sidebar" :class="{ 'is-open': isMobileSidebarOpen }">
+    <div class="mobile-sidebar-header">
+      <button @click="toggleMobileSidebar" class="close-sidebar-btn">
+        <span></span>
+        <span></span>
+      </button>
+      <div class="sidebar-header-content">
+        <img src="/Images/ehb-logo.png" alt="EhB Logo" class="sidebar-header-logo" />
+        <div class="sidebar-header-text">
+          <h3>StudentMatch</h3>
+          <p>Studentdashboard</p>
+        </div>
+      </div>
+    </div>
+    <nav class="mobile-nav">
+      <router-link v-for="item in navigation" :key="item.name" :to="item.href" class="mobile-nav-link" :class="{ 'active-link': route.path === item.href }">
+        <span>{{ item.name }}</span>
+      </router-link>
+    </nav>
+  </aside>
+  <div v-if="isMobileSidebarOpen" @click="toggleMobileSidebar" class="sidebar-overlay"></div>
 
   <!-- Confirmation Modal -->
   <div v-if="showConfirm" class="modal-overlay" @click="showConfirm = false">
@@ -111,9 +163,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { Heart, Calendar, User, Search, Building } from 'lucide-vue-next'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import StudentDashboardLayout from '../../../components/StudentDashboardLayout.vue'
 import { getAuth } from 'firebase/auth'
 import { getFirestore, collection, getDocs, doc, getDoc, addDoc, updateDoc, query, where, deleteDoc } from 'firebase/firestore'
@@ -121,6 +173,18 @@ import { getFirestore, collection, getDocs, doc, getDoc, addDoc, updateDoc, quer
 const db = getFirestore();
 const auth = getAuth();
 const router = useRouter();
+const route = useRoute();
+
+const navigation = [
+  { name: 'Dashboard', href: '/dashboard', icon: 'fas fa-chart-pie' },
+  { name: 'Job Swiping', href: '/swipe', icon: 'fas fa-heart' },
+  { name: 'Afspraken', href: '/appointments', icon: 'fas fa-calendar' },
+  { name: 'Favorieten', href: '/Favorietenst', icon: 'fas fa-star' },
+  { name: 'Matches', href: '/stmatch', icon: 'fas fa-check-double' },
+  { name: 'Profiel', href: '/WeergaveSt', icon: 'fas fa-user' },
+  { name: 'Instellingen', href: '/SettingsStu', icon: 'fas fa-cog' },
+];
+
 const matchBedrijven = ref([])
 const zoekterm = ref('')
 const showTimeModal = ref(false)
@@ -130,6 +194,39 @@ const takenSlots = ref([])
 const selectedBedrijfId = ref(null)
 const showConfirm = ref(false)
 const matchToDelete = ref(null)
+
+// --- Mobile Navigation State & Logic ---
+const isMobileSidebarOpen = ref(false);
+const showDropdown = ref(false);
+const studentData = ref({
+  name: 'Gebruiker',
+  foto: null,
+});
+
+const toggleMobileSidebar = () => {
+  isMobileSidebarOpen.value = !isMobileSidebarOpen.value;
+};
+
+const handleAvatarClick = () => {
+  showDropdown.value = !showDropdown.value;
+};
+
+const handleLogout = () => {
+  router.push('/');
+};
+
+const goToProfile = () => {
+    router.push('/WeergaveSt');
+};
+
+const handleClickOutside = (event) => {
+  const dropdown = document.getElementById('mobile-profile-dropdown');
+  const avatar = document.querySelector('.welcome-avatar');
+  if (dropdown && !dropdown.contains(event.target) && avatar && !avatar.contains(event.target)) {
+    showDropdown.value = false;
+  }
+};
+// --- End Mobile Navigation ---
 
 onMounted(async () => {
   let studentId = auth.currentUser?.uid;
@@ -143,6 +240,16 @@ onMounted(async () => {
     });
   }
   if (!studentId) return;
+
+  // Fetch student data for banner
+  const studentDocRef = doc(db, 'student', studentId);
+  const studentDocSnap = await getDoc(studentDocRef);
+  if (studentDocSnap.exists()) {
+    const data = studentDocSnap.data();
+    studentData.value.name = data.voornaam ? `${data.voornaam} ${data.achternaam || ''}`.trim() : 'Gebruiker';
+    studentData.value.foto = data.foto || null;
+  }
+
   // Haal alle swipes met status 'interessant' of 'geaccepteerd' uit subcollectie
   const swipesSnap = await getDocs(collection(db, 'student', studentId, 'swipes'));
   const relevantSwipes = swipesSnap.docs
@@ -171,6 +278,12 @@ onMounted(async () => {
       logoUrl: bedrijf.foto
     };
   });
+});
+
+onBeforeUnmount(() => {
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('mousedown', handleClickOutside);
+  }
 });
 
 const gefilterdeBedrijven = computed(() =>
@@ -409,13 +522,337 @@ const confirmUnmatch = async () => {
     matchToDelete.value = null;
   }
 };
-
-const goToProfile = (bedrijfId) => {
-  // Logic to navigate to company profile
-};
 </script>
 
 <style scoped>
+/* =================================== */
+/* === MOBILE RESPONSIVE STYLES === */
+/* =================================== */
+
+/* Hide mobile elements on desktop by default */
+.mobile-header,
+.welcome-banner-mobile,
+.mobile-sidebar,
+.sidebar-overlay {
+  display: none;
+}
+
+.welcome-avatar {
+  width: 2.5rem; /* 40px */
+  height: 2.5rem; /* 40px */
+  background: rgba(255,255,255,0.6);
+  color: #c20000;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  font-weight: 600;
+  transition: transform 0.18s cubic-bezier(0.4,0,0.2,1), box-shadow 0.18s cubic-bezier(0.4,0,0.2,1);
+  cursor: pointer;
+  overflow: hidden;
+  border: 1.5px solid #222;
+  margin-top: -0.625rem;
+}
+
+.welcome-avatar:hover {
+  transform: scale(1.12);
+  box-shadow: 0 4px 16px rgba(194,0,0,0.18);
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+@media (max-width: 768px) {
+  /* Hide desktop-specific elements from the layout component */
+  :deep(.sidebar-nav),
+  :deep(.dashboard-header) {
+    display: none !important;
+  }
+
+  /* Show mobile-specific elements */
+  .mobile-header,
+  .welcome-banner-mobile {
+    display: flex;
+  }
+
+  /* Mobile Header */
+  .mobile-header {
+    background: #fff;
+    padding: 1rem 1.5rem;
+    justify-content: space-between;
+    align-items: center;
+    margin: 1.5rem 1.5rem 0;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  }
+
+  .mobile-logo {
+    height: 42px;
+  }
+
+  .hamburger-menu {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 28px;
+    height: 21px;
+    z-index: 1002;
+  }
+
+  .hamburger-menu span {
+    display: block;
+    width: 100%;
+    height: 3px;
+    background-color: #c20000;
+    border-radius: 2px;
+  }
+
+  /* Mobile Sidebar */
+  .mobile-sidebar {
+    position: fixed;
+    top: 0;
+    left: -280px;
+    width: 280px;
+    height: 100%;
+    background: #fff;
+    z-index: 1001;
+    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .mobile-sidebar.is-open {
+    left: 0;
+  }
+
+  .mobile-sidebar-header {
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  
+  .sidebar-header-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  
+  .sidebar-header-logo {
+    height: 36px;
+  }
+  
+  .sidebar-header-text h3 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #111827;
+  }
+  
+  .sidebar-header-text p {
+    font-size: 0.9rem;
+    color: #6b7280;
+  }
+
+  .close-sidebar-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    position: relative;
+    align-self: flex-end;
+    margin-bottom: 1rem;
+  }
+
+  .close-sidebar-btn span {
+    display: block;
+    position: absolute;
+    width: 100%;
+    height: 3px;
+    background-color: #c20000;
+    border-radius: 2px;
+    top: 50%;
+    left: 0;
+  }
+
+  .close-sidebar-btn span:first-child {
+    transform: translateY(-50%) rotate(45deg);
+  }
+
+  .close-sidebar-btn span:last-child {
+    transform: translateY(-50%) rotate(-45deg);
+  }
+
+  .mobile-nav {
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .mobile-nav-link {
+    padding: 0.8rem 1.2rem;
+    border-radius: 0.5rem;
+    color: #6b7280;
+    font-weight: 500;
+    text-decoration: none;
+    transition: color 0.2s, background-color 0.2s;
+  }
+
+  .mobile-nav-link:hover {
+    color: #c20000;
+  }
+
+  .mobile-nav-link.active-link {
+    background: #f3f4f6;
+    color: #c20000;
+  }
+
+  .sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+  }
+
+  /* Welcome Banner */
+  .welcome-banner-mobile {
+    background: #fff;
+    padding: 1.5rem;
+    justify-content: space-between;
+    align-items: center;
+    margin: 1rem 1.5rem;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    position: relative;
+  }
+
+  .welcome-title {
+    color: #c20000;
+    font-size: 1.25rem;
+    font-weight: 600;
+  }
+
+  .welcome-subtitle {
+    color: #6b7280;
+    font-size: 0.9rem;
+  }
+
+  .profile-dropdown-mobile {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 0.5rem;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    z-index: 10;
+    min-width: 120px;
+    padding: 0.5rem 0;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .dropdown-item {
+    background: none;
+    border: none;
+    color: #c20000;
+    font-weight: 500;
+    text-align: left;
+    padding: 0.7rem 1.2rem;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .dropdown-item:hover {
+    background: #f3f4f6;
+  }
+
+  /* Page specific styles */
+  .dashboard-main {
+    padding: 0;
+    background-color: #f8f9fa;
+  }
+  .pagina {
+    padding: 0 1.5rem 1.5rem;
+    background: transparent;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .hoofding {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.5rem;
+    margin: 0;
+  }
+  .zoekbalk-container, .statistieken {
+    margin: 0;
+    background: #fff;
+    padding: 1.5rem;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  }
+  .studentenlijst {
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+    gap: 1rem;
+    background: #ffffff;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    border-radius: 0.75rem;
+  }
+  .student-kaart {
+    padding: 1rem;
+    border: 1px solid #e5e7eb;
+    box-shadow: none;
+  }
+  .acties {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+  .knop-grijs, .knop-rood {
+    justify-content: center;
+  }
+  .verwijder-btn-rond {
+    top: 0.5rem;
+    right: 0.5rem;
+    width: 2rem;
+    height: 2rem;
+    font-size: 1rem;
+  }
+  .status-wacht {
+    text-align: center;
+    padding: 0.5rem;
+    background: #f3f4f6;
+    border-radius: 0.5rem;
+  }
+}
+
+@media (min-width: 769px) {
+  .mobile-header,
+  .welcome-banner-mobile,
+  .mobile-sidebar,
+  .sidebar-overlay {
+    display: none !important;
+  }
+}
+
 .dashboard-container {
   display: flex;
   min-height: 100vh;
@@ -660,17 +1097,17 @@ const goToProfile = (bedrijfId) => {
 
 /* --- MATCHES THEMA DASHBOARD --- */
 .studentenlijst {
-  background: #fff;
+  background: transparent;
   border-radius: 1.25rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-  padding: 2rem 1.5rem;
+  box-shadow: none;
+  padding: 0;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
   gap: 1.5rem;
 }
 
 .student-kaart {
-  background: #f8f9fa;
+  background: #ffffff;
   border-radius: 1rem;
   box-shadow: 0 1px 4px rgba(0,0,0,0.06);
   padding: 1.5rem 1.2rem;
