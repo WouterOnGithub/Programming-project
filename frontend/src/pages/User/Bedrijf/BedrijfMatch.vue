@@ -62,6 +62,10 @@
                 <Calendar :size="14" />
                 <span>Accepteren</span>
               </button>
+              <button class="knop-grijs afwijzen" @click="weigerStudent(student.swipeDocId, student.id)">
+                <span>✕</span>
+                <span>Afwijzen</span>
+              </button>
             </div>
           </div>
           <div v-if="gefilterdeStudenten.length === 0" class="geen-resultaten">
@@ -70,6 +74,7 @@
             <p>Probeer een andere zoekterm.</p>
           </div>
         </div>
+        
         <div v-if="showVerwijderPopup" class="popup-overlay">
           <div class="popup-modal">
             <h3>Student verwijderen</h3>
@@ -92,6 +97,7 @@ import { useRouter } from 'vue-router'
 import BedrijfDashboardLayout from '../../../components/BedrijfDashboardLayout.vue'
 import { getAuth } from 'firebase/auth'
 import { getFirestore, collection, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore'
+import { notificationService } from '../../../services/notificationService'
 
 const db = getFirestore();
 const auth = getAuth();
@@ -168,7 +174,7 @@ const gefilterdeStudenten = computed(() =>
 )
 
 const toonProfiel = (id) => {
-  console.log(`Bekijk profiel van student ${id}`)
+  router.push({ name: 'StudentProfielVoorBedrijf', params: { id: id } })
 }
 
 const planAfspraak = (id) => {
@@ -210,10 +216,55 @@ if (typeof window !== 'undefined') {
 }
 
 const accepteerStudent = async (swipeDocId, studentId) => {
-  // Zet status op 'geaccepteerd' in student/{studentId}/swipes
-  await updateDoc(doc(db, 'student', studentId, 'swipes', swipeDocId), { status: 'geaccepteerd' });
-  // Herlaad matches zodat de student verdwijnt uit de lijst
-  await reloadMatches();
+  try {
+    // Zet status op 'geaccepteerd' in student/{studentId}/swipes
+    await updateDoc(doc(db, 'student', studentId, 'swipes', swipeDocId), { status: 'geaccepteerd' });
+    
+    // Haal studentgegevens op voor notificatie
+    const studentDoc = await getDoc(doc(db, 'student', studentId));
+    const studentData = studentDoc.exists() ? studentDoc.data() : {};
+    const studentName = `${studentData.voornaam || 'Onbekende'} ${studentData.achternaam || 'Student'}`;
+    
+    // Haal bedrijfsgegevens op voor notificatie
+    const bedrijfId = auth.currentUser?.uid;
+    const bedrijfDoc = await getDoc(doc(db, 'bedrijf', bedrijfId));
+    const bedrijfData = bedrijfDoc.exists() ? bedrijfDoc.data() : {};
+    const bedrijfNaam = bedrijfData.bedrijfsnaam || 'Onbekend Bedrijf';
+    
+    // Stuur notificatie naar student
+    await notificationService.createStudentMatchAcceptedNotification(studentId, bedrijfNaam);
+    
+    // Herlaad matches zodat de student verdwijnt uit de lijst
+    await reloadMatches();
+  } catch (error) {
+    console.error('Fout bij accepteren van student:', error);
+  }
+}
+
+const weigerStudent = async (swipeDocId, studentId) => {
+  try {
+    // Zet status op 'geweigerd' in student/{studentId}/swipes
+    await updateDoc(doc(db, 'student', studentId, 'swipes', swipeDocId), { status: 'geweigerd' });
+    
+    // Haal studentgegevens op voor notificatie
+    const studentDoc = await getDoc(doc(db, 'student', studentId));
+    const studentData = studentDoc.exists() ? studentDoc.data() : {};
+    const studentName = `${studentData.voornaam || 'Onbekende'} ${studentData.achternaam || 'Student'}`;
+    
+    // Haal bedrijfsgegevens op voor notificatie
+    const bedrijfId = auth.currentUser?.uid;
+    const bedrijfDoc = await getDoc(doc(db, 'bedrijf', bedrijfId));
+    const bedrijfData = bedrijfDoc.exists() ? bedrijfDoc.data() : {};
+    const bedrijfNaam = bedrijfData.bedrijfsnaam || 'Onbekend Bedrijf';
+    
+    // Stuur notificatie naar student
+    await notificationService.createStudentMatchRejectedNotification(studentId, bedrijfNaam);
+    
+    // Herlaad matches zodat de student verdwijnt uit de lijst
+    await reloadMatches();
+  } catch (error) {
+    console.error('Fout bij afwijzen van student:', error);
+  }
 }
 
 async function reloadMatches() {
@@ -633,6 +684,17 @@ async function reloadMatches() {
   background: #e5e7eb;
 }
 
+.knop-grijs.afwijzen {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.knop-grijs.afwijzen:hover {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
 .knop-rood {
   background: #dc2626;
   color: #fff;
@@ -651,7 +713,7 @@ async function reloadMatches() {
   color: #fff;
 }
 .knop-rood:hover {
-  background: #b91c1c;
+  background: #a10000;
 }
 
 .verwijder-kruis {
@@ -699,14 +761,151 @@ async function reloadMatches() {
   margin-bottom: 1rem;
 }
 
-@media (max-width: 600px) {
-  .acties {
-    flex-direction: column;
-    gap: 0.5rem;
-    align-items: stretch;
+@media (max-width: 768px) {
+  .pagina {
+    padding: 1rem;
+    background-color: #f8f9fa;
   }
+
+  .hoofding, .zoekbalk-container, .statistieken, .studentenlijst {
+    background: #fff;
+    border-radius: 12px;
+    padding: 1.25rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    margin-bottom: 1rem;
+  }
+  
+  .hoofding {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .hoofding-links .titel {
+    font-size: 1.2rem;
+    margin: 0;
+  }
+
+  .hoofding-links .subtekst {
+    font-size: 0.9rem;
+    margin: 0;
+    color: #6b7280;
+  }
+
+  .zoekbalk-container {
+    position: relative;
+    background: none;
+    padding: 0;
+    box-shadow: none;
+  }
+  
+  .zoekbalk-container .zoek-icoon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9ca3af;
+  }
+
+  .zoekbalk-container .zoekveld {
+    width: 100%;
+    font-size: 1rem;
+    padding: 0.8rem 1rem 0.8rem 2.75rem;
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
+  
+  .statistieken {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .statistieken .stat-value {
+    font-size: 1.8rem;
+    font-weight: 600;
+  }
+
+  .lijst-hoofding {
+    text-align: center;
+    border-bottom: 1px solid #f3f4f6;
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .geen-resultaten {
+    padding: 2rem 1rem;
+    border-top: none;
+  }
+
+  .studentenlijst {
+    display: block; /* Change from grid to block for mobile */
+  }
+
   .student-kaart {
-    padding: 1.2rem 0.7rem;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 1rem;
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  .student-kaart:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  }
+
+  .student-info {
+    gap: 0.5rem;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .student-info .avatar {
+     width: 56px;
+     height: 56px;
+     font-size: 1.25rem;
+     margin-bottom: 0.5rem;
+  }
+  
+  .student-info h3 {
+    font-size: 1.2rem;
+  }
+  
+  .student-info .richting {
+    font-size: 0.95rem;
+    color: #c20000;
+    font-weight: 500;
+  }
+  
+  .verwijder-kruis {
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f3f4f6;
+  }
+
+  .acties {
+    gap: 0.5rem;
+    padding-top: 1rem;
+  }
+
+  .acties .knop-grijs, .acties .knop-rood {
+    padding: 0.8rem;
+    font-size: 0.9rem;
+    border-radius: 8px;
   }
 }
 

@@ -41,12 +41,13 @@ export class NotificationService {
         return () => {} // Return empty unsubscribe function
       }
 
-      const { db, collection, onSnapshot, query, where, orderBy } = await this.getFirebaseServices()
+      const { db, collection, onSnapshot, query, where } = await this.getFirebaseServices()
       
       const notificationsRef = query(
         collection(db, 'notifications'),
-        where('companyId', '==', companyId),
-        orderBy('createdAt', 'desc')
+        where('companyId', '==', companyId)
+        // Temporarily removed orderBy to avoid index requirement
+        // orderBy('createdAt', 'desc')
       )
 
       const unsubscribe = onSnapshot(notificationsRef, (snapshot) => {
@@ -55,6 +56,11 @@ export class NotificationService {
             id: doc.id,
             ...doc.data()
           }))
+          // Sort notifications client-side for now
+          notifications.sort((a, b) => {
+            if (!a.createdAt || !b.createdAt) return 0
+            return b.createdAt.toDate().getTime() - a.createdAt.toDate().getTime()
+          })
           callback(notifications)
         } catch (error) {
           console.error('Error processing notification snapshot:', error)
@@ -64,6 +70,52 @@ export class NotificationService {
       })
 
       this.listeners.set(companyId, unsubscribe)
+      return unsubscribe
+    } catch (error) {
+      console.error('Error setting up notification subscription:', error)
+      return () => {} // Return empty unsubscribe function
+    }
+  }
+
+  /**
+   * Subscribe to notifications for a specific student
+   */
+  async subscribeToStudentNotifications(studentId, callback) {
+    try {
+      if (!studentId) {
+        console.warn('No studentId provided to subscribeToStudentNotifications')
+        return () => {} // Return empty unsubscribe function
+      }
+
+      const { db, collection, onSnapshot, query, where } = await this.getFirebaseServices()
+      
+      const notificationsRef = query(
+        collection(db, 'notifications'),
+        where('studentId', '==', studentId)
+        // Temporarily removed orderBy to avoid index requirement
+        // orderBy('createdAt', 'desc')
+      )
+
+      const unsubscribe = onSnapshot(notificationsRef, (snapshot) => {
+        try {
+          const notifications = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }))
+          // Sort notifications client-side for now
+          notifications.sort((a, b) => {
+            if (!a.createdAt || !b.createdAt) return 0
+            return b.createdAt.toDate().getTime() - a.createdAt.toDate().getTime()
+          })
+          callback(notifications)
+        } catch (error) {
+          console.error('Error processing notification snapshot:', error)
+        }
+      }, (error) => {
+        console.error('Error in notification subscription:', error)
+      })
+
+      this.listeners.set(studentId, unsubscribe)
       return unsubscribe
     } catch (error) {
       console.error('Error setting up notification subscription:', error)
@@ -137,6 +189,181 @@ export class NotificationService {
       })
     } catch (error) {
       console.error('Error creating rejection notification:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Create a student match accepted notification
+   */
+  async createStudentMatchAcceptedNotification(studentId, companyName) {
+    try {
+      if (!studentId || !companyName) {
+        console.warn('Missing required parameters for createStudentMatchAcceptedNotification')
+        return
+      }
+
+      const { db, collection, addDoc, serverTimestamp } = await this.getFirebaseServices()
+      await addDoc(collection(db, 'notifications'), {
+        studentId,
+        type: 'match_accepted',
+        title: 'Match Geaccepteerd! 🎉',
+        message: `Het bedrijf "${companyName}" heeft uw profiel geaccepteerd! U kunt nu een gesprek inplannen.`,
+        read: false,
+        createdAt: serverTimestamp()
+      })
+    } catch (error) {
+      console.error('Error creating student match accepted notification:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Create a student match rejected notification
+   */
+  async createStudentMatchRejectedNotification(studentId, companyName) {
+    try {
+      if (!studentId || !companyName) {
+        console.warn('Missing required parameters for createStudentMatchRejectedNotification')
+        return
+      }
+
+      const { db, collection, addDoc, serverTimestamp } = await this.getFirebaseServices()
+      await addDoc(collection(db, 'notifications'), {
+        studentId,
+        type: 'match_rejected',
+        title: 'Match Afgewezen',
+        message: `Het bedrijf "${companyName}" heeft uw profiel afgewezen. Geen zorgen, er zijn nog veel andere kansen!`,
+        read: false,
+        createdAt: serverTimestamp()
+      })
+    } catch (error) {
+      console.error('Error creating student match rejected notification:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Create a company new match notification
+   */
+  async createCompanyNewMatchNotification(companyId, studentName) {
+    try {
+      if (!companyId || !studentName) {
+        console.warn('Missing required parameters for createCompanyNewMatchNotification')
+        return
+      }
+
+      const { db, collection, addDoc, serverTimestamp } = await this.getFirebaseServices()
+      await addDoc(collection(db, 'notifications'), {
+        companyId,
+        type: 'new_match',
+        title: 'Nieuwe Match! 👋',
+        message: `Student "${studentName}" heeft interesse getoond in uw bedrijf. Bekijk het profiel en beslis of u een gesprek wilt.`,
+        read: false,
+        createdAt: serverTimestamp()
+      })
+    } catch (error) {
+      console.error('Error creating company new match notification:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Create an appointment cancellation notification for student
+   */
+  async createStudentAppointmentCancelledNotification(studentId, companyName, reason) {
+    try {
+      if (!studentId || !companyName) {
+        console.warn('Missing required parameters for createStudentAppointmentCancelledNotification')
+        return
+      }
+
+      const { db, collection, addDoc, serverTimestamp } = await this.getFirebaseServices()
+      await addDoc(collection(db, 'notifications'), {
+        studentId,
+        type: 'appointment_cancelled',
+        title: 'Afspraak Geannuleerd',
+        message: `Uw afspraak met "${companyName}" is geannuleerd. Reden: ${reason}`,
+        read: false,
+        createdAt: serverTimestamp()
+      })
+    } catch (error) {
+      console.error('Error creating student appointment cancelled notification:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Create an appointment cancellation notification for company
+   */
+  async createCompanyAppointmentCancelledNotification(companyId, studentName, reason) {
+    try {
+      if (!companyId || !studentName) {
+        console.warn('Missing required parameters for createCompanyAppointmentCancelledNotification')
+        return
+      }
+
+      const { db, collection, addDoc, serverTimestamp } = await this.getFirebaseServices()
+      await addDoc(collection(db, 'notifications'), {
+        companyId,
+        type: 'appointment_cancelled',
+        title: 'Afspraak Geannuleerd',
+        message: `De afspraak met student "${studentName}" is geannuleerd. Reden: ${reason}`,
+        read: false,
+        createdAt: serverTimestamp()
+      })
+    } catch (error) {
+      console.error('Error creating company appointment cancelled notification:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Create an appointment scheduled notification for student
+   */
+  async createStudentAppointmentScheduledNotification(studentId, companyName, time) {
+    try {
+      if (!studentId || !companyName) {
+        console.warn('Missing required parameters for createStudentAppointmentScheduledNotification')
+        return
+      }
+
+      const { db, collection, addDoc, serverTimestamp } = await this.getFirebaseServices()
+      await addDoc(collection(db, 'notifications'), {
+        studentId,
+        type: 'appointment_scheduled',
+        title: 'Afspraak Ingepland! 📅',
+        message: `Uw afspraak met "${companyName}" is ingepland voor ${time}.`,
+        read: false,
+        createdAt: serverTimestamp()
+      })
+    } catch (error) {
+      console.error('Error creating student appointment scheduled notification:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Create an appointment scheduled notification for company
+   */
+  async createCompanyAppointmentScheduledNotification(companyId, studentName, time) {
+    try {
+      if (!companyId || !studentName) {
+        console.warn('Missing required parameters for createCompanyAppointmentScheduledNotification')
+        return
+      }
+
+      const { db, collection, addDoc, serverTimestamp } = await this.getFirebaseServices()
+      await addDoc(collection(db, 'notifications'), {
+        companyId,
+        type: 'appointment_scheduled',
+        title: 'Nieuwe Afspraak Ingepland! 📅',
+        message: `Een afspraak met student "${studentName}" is ingepland voor ${time}.`,
+        read: false,
+        createdAt: serverTimestamp()
+      })
+    } catch (error) {
+      console.error('Error creating company appointment scheduled notification:', error)
       throw error
     }
   }
@@ -236,7 +463,12 @@ export const NOTIFICATION_TYPES = {
   VERIFICATION_APPROVED: 'verification_approved',
   VERIFICATION_REJECTED: 'verification_rejected',
   LOCATION_PLACEMENT: 'location_placement',
-  LOCATION_CHANGE: 'location_change'
+  LOCATION_CHANGE: 'location_change',
+  MATCH_ACCEPTED: 'match_accepted',
+  MATCH_REJECTED: 'match_rejected',
+  NEW_MATCH: 'new_match',
+  APPOINTMENT_CANCELLED: 'appointment_cancelled',
+  APPOINTMENT_SCHEDULED: 'appointment_scheduled'
 }
 
 export const VERIFICATION_STATUS = {

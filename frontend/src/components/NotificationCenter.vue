@@ -24,14 +24,19 @@
         <div 
           v-for="notification in notifications" 
           :key="notification.id"
-          :class="['notification-item', { unread: !notification.read }]"
+          :class="['notification-item', { unread: !notification.read, clickable: isClickable(notification.type) }]"
         >
-          <div class="notification-main-content" @click="markAsRead(notification.id)">
+          <div class="notification-main-content" @click="handleNotificationClick(notification)">
             <div class="notification-icon">
               <span v-if="notification.type === 'verification_approved'">✅</span>
               <span v-else-if="notification.type === 'verification_rejected'">❌</span>
               <span v-else-if="notification.type === 'location_placement'">📍</span>
               <span v-else-if="notification.type === 'location_change'">🔄</span>
+              <span v-else-if="notification.type === 'match_accepted'">🎉</span>
+              <span v-else-if="notification.type === 'match_rejected'">😔</span>
+              <span v-else-if="notification.type === 'new_match'">👋</span>
+              <span v-else-if="notification.type === 'appointment_cancelled'">❌</span>
+              <span v-else-if="notification.type === 'appointment_scheduled'">📅</span>
               <span v-else>📢</span>
             </div>
             
@@ -63,19 +68,26 @@
 
 <script>
 import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { notificationService } from '../services/notificationService'
 
 export default {
   name: 'NotificationCenter',
   props: {
-    companyId: {
+    userId: {
       type: String,
       required: true
+    },
+    userType: {
+      type: String,
+      required: true,
+      validator: (value) => ['student', 'company'].includes(value)
     }
   },
   setup(props) {
     const notifications = ref([])
     const showNotifications = ref(false)
+    const router = useRouter()
     let unsubscribe = null
 
     const unreadCount = computed(() => {
@@ -90,19 +102,79 @@ export default {
       showNotifications.value = false
     }
 
+    const isClickable = (notificationType) => {
+      return ['new_match', 'match_accepted', 'match_rejected', 'appointment_scheduled', 'appointment_cancelled'].includes(notificationType)
+    }
+
+    const handleNotificationClick = async (notification) => {
+      // Markeer als gelezen
+      if (!notification.read) {
+        await markAsRead(notification.id)
+      }
+
+      // Navigeer op basis van notificatietype en userType
+      switch (notification.type) {
+        case 'new_match':
+          if (props.userType === 'company') {
+            router.push('/bedrijfmatch')
+          }
+          break
+        case 'match_accepted':
+          if (props.userType === 'student') {
+            router.push('/stmatch')
+          }
+          break
+        case 'match_rejected':
+          if (props.userType === 'student') {
+            router.push('/stmatch')
+          }
+          break
+        case 'appointment_scheduled':
+          if (props.userType === 'student') {
+            router.push('/appointments')
+          } else if (props.userType === 'company') {
+            router.push('/GesprekkenBd')
+          }
+          break
+        case 'appointment_cancelled':
+          if (props.userType === 'student') {
+            router.push('/appointments')
+          } else if (props.userType === 'company') {
+            router.push('/GesprekkenBd')
+          }
+          break
+        default:
+          // Voor andere notificatietypes geen navigatie
+          break
+      }
+
+      // Sluit de notificatie dropdown
+      closeNotifications()
+    }
+
     const loadNotifications = () => {
       try {
-        if (!props.companyId) {
-          console.warn('No companyId provided to NotificationCenter')
+        if (!props.userId) {
+          console.warn('No userId provided to NotificationCenter')
           return
         }
 
-        unsubscribe = notificationService.subscribeToCompanyNotifications(
-          props.companyId,
-          (newNotifications) => {
-            notifications.value = newNotifications.slice(0, 10) // Show only latest 10
-          }
-        )
+        // Gebruik de juiste service op basis van userType
+        if (props.userType === 'student') {
+          unsubscribe = notificationService.subscribeToStudentNotifications(
+            props.userId,
+            (newNotifications) => {
+              notifications.value = newNotifications.slice(0, 10) // Show only latest 10
+            }
+          )
+        } else if (props.userType === 'company') {
+          unsubscribe = notificationService.subscribeToCompanyNotifications(
+            props.userId,
+            (newNotifications) => {
+              notifications.value = newNotifications.slice(0, 10) // Show only latest 10
+            }
+          )
+        }
       } catch (error) {
         console.error('Error loading notifications:', error)
         unsubscribe = null
@@ -191,7 +263,9 @@ export default {
       markAllAsRead,
       formatTime,
       showAllNotifications,
-      deleteNotification
+      deleteNotification,
+      isClickable,
+      handleNotificationClick
     }
   }
 }
@@ -331,6 +405,24 @@ export default {
 
 .notification-item.unread:hover {
   background: #e3f2fd;
+}
+
+.notification-item.clickable {
+  cursor: pointer;
+}
+
+.notification-item.clickable:hover {
+  background-color: #f8f9fa;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.notification-item.clickable .notification-main-content {
+  transition: all 0.2s ease;
+}
+
+.notification-item.clickable:hover .notification-main-content {
+  background-color: #f8f9fa;
 }
 
 .notification-icon {

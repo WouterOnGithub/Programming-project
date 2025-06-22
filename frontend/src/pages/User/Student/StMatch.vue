@@ -117,6 +117,7 @@ import { useRouter } from 'vue-router'
 import StudentDashboardLayout from '../../../components/StudentDashboardLayout.vue'
 import { getAuth } from 'firebase/auth'
 import { getFirestore, collection, getDocs, doc, getDoc, addDoc, updateDoc, query, where, deleteDoc } from 'firebase/firestore'
+import { notificationService } from '../../../services/notificationService'
 
 const db = getFirestore();
 const auth = getAuth();
@@ -288,22 +289,46 @@ async function bevestigAfspraak() {
   if (!selectedTimeSlot.value || !selectedBedrijfId.value) return
   const studentId = auth.currentUser?.uid
   if (!studentId) return
-  // Sla afspraak op in Firestore
-  await addDoc(collection(db, 'afspraken'), {
-    studentUid: studentId,
-    bedrijfId: selectedBedrijfId.value,
-    time: selectedTimeSlot.value,
-    status: 'upcoming',
-    aangemaaktOp: new Date()
-  })
-  // Update de match-status in student_swipes naar 'gepland'
-  const swipeId = selectedBedrijfId.value;
-  await updateDoc(doc(db, 'student', studentId, 'swipes', swipeId), { status: 'gepland' });
-  showTimeModal.value = false
-  selectedTimeSlot.value = null
-  selectedBedrijfId.value = null
-  // Herlaad matches zodat de geplande match verdwijnt
-  await reloadMatches();
+  
+  try {
+    // Sla afspraak op in Firestore
+    await addDoc(collection(db, 'afspraken'), {
+      studentUid: studentId,
+      bedrijfId: selectedBedrijfId.value,
+      time: selectedTimeSlot.value,
+      status: 'upcoming',
+      aangemaaktOp: new Date()
+    })
+    
+    // Update de match-status in student_swipes naar 'gepland'
+    const swipeId = selectedBedrijfId.value;
+    await updateDoc(doc(db, 'student', studentId, 'swipes', swipeId), { status: 'gepland' });
+    
+    // Haal studentgegevens op voor notificatie
+    const studentDoc = await getDoc(doc(db, 'student', studentId));
+    const studentData = studentDoc.exists() ? studentDoc.data() : {};
+    const studentName = `${studentData.voornaam || 'Onbekende'} ${studentData.achternaam || 'Student'}`;
+    
+    // Haal bedrijfsgegevens op voor notificatie
+    const bedrijfDoc = await getDoc(doc(db, 'bedrijf', selectedBedrijfId.value));
+    const bedrijfData = bedrijfDoc.exists() ? bedrijfDoc.data() : {};
+    const bedrijfNaam = bedrijfData.bedrijfsnaam || 'Onbekend Bedrijf';
+    
+    // Stuur notificatie naar bedrijf
+    await notificationService.createCompanyAppointmentScheduledNotification(
+      selectedBedrijfId.value, 
+      studentName, 
+      selectedTimeSlot.value
+    );
+    
+    showTimeModal.value = false
+    selectedTimeSlot.value = null
+    selectedBedrijfId.value = null
+    // Herlaad matches zodat de geplande match verdwijnt
+    await reloadMatches();
+  } catch (error) {
+    console.error('Fout bij bevestigen van afspraak:', error);
+  }
 }
 
 // Helper: check of een object leeg is

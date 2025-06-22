@@ -138,22 +138,7 @@
 import { ref, nextTick, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getAuth } from 'firebase/auth'
-import {
-  getFirestore,
-  collection,
-  query,
-  where,
-  getDocs,
-  doc,
-  updateDoc
-} from 'firebase/firestore'
-import {
-  getStorage,
-  ref as storageRef,
-  uploadBytes,
-  getDownloadURL
-} from 'firebase/storage'
-
+import { getFirestore, collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore'
 import profielfotoDefault from '/Images/profielfoto.jpg'
 import potlood from '/Images/potlood.png'
 import BedrijfDashboardLayout from '../../../components/BedrijfDashboardLayout.vue'
@@ -245,28 +230,15 @@ watch(() => bedrijfsdata.value.starttijd, (newStartTime) => {
   }
 })
 
-async function wijzigAfbeelding(event) {
+function wijzigAfbeelding(event) {
   const file = event.target.files[0]
   if (file && file.type.startsWith('image/')) {
-    try {
-      const storage = getStorage()
-      const auth = getAuth()
-      const user = auth.currentUser
-      if (!user) {
-        foutmelding.value = 'Niet ingelogd'
-        return
-      }
-
-      const imageRef = storageRef(storage, `bedrijf_fotos/${user.uid}/${file.name}`)
-      await uploadBytes(imageRef, file)
-      const downloadURL = await getDownloadURL(imageRef)
-
-      profielfotoURL.value = downloadURL
-      bedrijfsdata.value.foto = downloadURL
-    } catch (err) {
-      console.error("Fout bij uploaden foto:", err)
-      foutmelding.value = 'Fout bij uploaden van de foto.'
+    const reader = new FileReader()
+    reader.onload = () => {
+      profielfotoURL.value = reader.result
+      bedrijfsdata.value.foto = reader.result
     }
+    reader.readAsDataURL(file)
   }
 }
 
@@ -332,7 +304,6 @@ async function bevestigGegevens() {
   }
 }
 </script>
-
 
 <style scoped>
 .bedrijf-wijzig {
@@ -629,6 +600,75 @@ textarea {
 
   .form-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Enhanced Mobile Responsive Styles */
+@media (max-width: 768px) {
+  .main-content {
+    padding: 1rem;
+  }
+
+  .banner {
+    flex-direction: column;
+    text-align: center;
+    padding: 1.5rem;
+    gap: 1rem;
+  }
+
+  .banner-img {
+    width: 80px;
+    height: 80px;
+  }
+
+  .banner-text h2 {
+    font-size: 1.4rem;
+  }
+
+  .go-back-knop {
+    position: static;
+    align-self: center;
+    margin-bottom: 1rem;
+  }
+
+  .form-container {
+    padding: 1.5rem;
+    margin: 0 auto 1rem auto;
+  }
+
+  .form-grid {
+    gap: 1.5rem;
+  }
+
+  .form-group {
+    margin-bottom: 0;
+  }
+
+  .chip-cloud {
+    gap: 6px;
+  }
+
+  .chip {
+    font-size: 0.85rem;
+    padding: 4px 8px;
+  }
+
+  .custom-skill-input {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .custom-skill-input input {
+    width: 100%;
+  }
+
+  .custom-skill-btn {
+    align-self: flex-start;
+  }
+
+  .submit-knop {
+    width: 100%;
+    text-align: center;
   }
 }
 

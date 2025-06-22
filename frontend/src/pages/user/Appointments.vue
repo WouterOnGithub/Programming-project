@@ -86,7 +86,7 @@
 
             <div v-if="appointment.status === 'upcoming'" class="appointment-actions">
               <button class="action-btn btn-edit" @click="startEditTime(appointment.id)">🕒 Aanpassen</button>
-              <button class="action-btn btn-cancel" @click="cancelAppointment(appointment.id)">❌ Annuleren</button>
+              <button class="action-btn btn-cancel" @click="openCancelConfirmModal(appointment.id)">❌ Annuleren</button>
             </div>
           </div>
         </div>
@@ -113,6 +113,18 @@
           </div>
         </div>
       </div>
+
+      <!-- Nieuwe Modal voor Annuleerbevestiging -->
+      <div v-if="showCancelConfirmModal" class="modal-overlay">
+        <div class="modal-content confirmation-modal">
+          <h3>Afspraak Annuleren</h3>
+          <p>Weet u zeker dat u deze afspraak wilt annuleren? Deze actie kan niet ongedaan gemaakt worden.</p>
+          <div class="modal-actions">
+            <button class="action-btn btn-cancel-edit" @click="closeCancelConfirmModal">Terug</button>
+            <button class="action-btn btn-cancel" @click="confirmCancellation">Ja, annuleer</button>
+          </div>
+        </div>
+      </div>
     </main>
   </StudentDashboardLayout>
 </template>
@@ -123,6 +135,7 @@ import { useRoute, useRouter } from 'vue-router';
 import StudentDashboardLayout from '../../components/StudentDashboardLayout.vue'
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, getDocs, updateDoc, doc, deleteDoc, query, where, documentId, onSnapshot, getDoc } from 'firebase/firestore';
+import { notificationService } from '../../services/notificationService';
 
 const db = getFirestore();
 const auth = getAuth();
@@ -224,6 +237,8 @@ const selectedTimeSlot = ref(null);
 const editingAppointmentOriginalTime = ref(null);
 const timeSlots = ref([]);
 const takenSlots = ref([]);
+const showCancelConfirmModal = ref(false);
+const appointmentToCancelId = ref(null);
 
 function generateTimeSlots(startTime, endTime, durationString) {
   const slots = [];
@@ -351,6 +366,47 @@ function formatDate(dateString) {
   if (!year || !month || !day) return dateString;
   return `${day}/${month}/${year}`;
 }
+
+const openCancelConfirmModal = (appointmentId) => {
+  appointmentToCancelId.value = appointmentId;
+  showCancelConfirmModal.value = true;
+};
+
+const closeCancelConfirmModal = () => {
+  showCancelConfirmModal.value = false;
+  appointmentToCancelId.value = null;
+};
+
+const confirmCancellation = async () => {
+  if (!appointmentToCancelId.value) return;
+  
+  try {
+    const appointment = appointments.value.find(a => a.id === appointmentToCancelId.value);
+    if (!appointment) return;
+    
+    // Update de afspraak status
+    await updateDoc(doc(db, 'afspraken', appointmentToCancelId.value), {
+      status: 'geannuleerd'
+    });
+    
+    // Haal studentgegevens op voor notificatie
+    const studentId = auth.currentUser?.uid;
+    const studentDoc = await getDoc(doc(db, 'student', studentId));
+    const studentData = studentDoc.exists() ? studentDoc.data() : {};
+    const studentName = `${studentData.voornaam || 'Onbekende'} ${studentData.achternaam || 'Student'}`;
+    
+    // Stuur notificatie naar bedrijf
+    await notificationService.createCompanyAppointmentCancelledNotification(
+      appointment.bedrijfId, 
+      studentName, 
+      'Geannuleerd door student'
+    );
+    
+    closeCancelConfirmModal();
+  } catch (error) {
+    console.error('Fout bij annuleren van afspraak:', error);
+  }
+};
 </script>
 
 <style scoped>
@@ -841,5 +897,17 @@ function formatDate(dateString) {
   margin: 0;
   color: #dc2626;
   font-style: italic;
+}
+.confirmation-modal {
+  max-width: 450px;
+  text-align: center;
+}
+.confirmation-modal h3 {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+.confirmation-modal p {
+  color: #6b7280;
+  margin-bottom: 2rem;
 }
 </style>

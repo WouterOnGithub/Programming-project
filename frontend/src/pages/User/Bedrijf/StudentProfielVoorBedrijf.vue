@@ -240,4 +240,85 @@ li {
     border-radius: 12px;
     font-size: 0.875rem;
 }
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+  .dashboard-main {
+    padding: 1rem;
+  }
+
+  .profiel-container {
+    margin: 0;
+    border-radius: 0;
+  }
+
+  .profiel-header {
+    flex-direction: column;
+    text-align: center;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .terug-knop-container {
+    position: static;
+    align-self: flex-start;
+    margin-bottom: 0.5rem;
+  }
+
+  .avatar-container {
+    margin-left: 0;
+  }
+
+  .avatar,
+  .avatar-placeholder {
+    width: 80px;
+    height: 80px;
+    font-size: 2rem;
+  }
+
+  .header-info h1 {
+    font-size: 1.5rem;
+  }
+
+  .header-acties {
+    margin-left: 0;
+    margin-top: 0.5rem;
+  }
+
+  .actie-knop {
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
+  }
+
+  .profiel-details {
+    padding: 1rem;
+    gap: 1rem;
+  }
+
+  .detail-kaart {
+    padding: 1rem;
+  }
+
+  .detail-kaart p {
+    word-wrap: break-word;
+  }
+
+  .detail-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .detail-kaart h3 {
+    font-size: 1.1rem;
+  }
+
+  .skills-container {
+    gap: 0.4rem;
+  }
+
+  .skill-tag {
+    font-size: 0.8rem;
+    padding: 0.2rem 0.6rem;
+  }
+}
 </style> 
