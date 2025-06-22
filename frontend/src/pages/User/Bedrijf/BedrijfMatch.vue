@@ -62,6 +62,10 @@
                 <Calendar :size="14" />
                 <span>Accepteren</span>
               </button>
+              <button class="knop-grijs afwijzen" @click="weigerStudent(student.swipeDocId, student.id)">
+                <span>✕</span>
+                <span>Afwijzen</span>
+              </button>
             </div>
           </div>
           <div v-if="gefilterdeStudenten.length === 0" class="geen-resultaten">
@@ -92,6 +96,7 @@ import { useRouter } from 'vue-router'
 import BedrijfDashboardLayout from '../../../components/BedrijfDashboardLayout.vue'
 import { getAuth } from 'firebase/auth'
 import { getFirestore, collection, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore'
+import { notificationService } from '../../../services/notificationService'
 
 const db = getFirestore();
 const auth = getAuth();
@@ -168,7 +173,7 @@ const gefilterdeStudenten = computed(() =>
 )
 
 const toonProfiel = (id) => {
-  console.log(`Bekijk profiel van student ${id}`)
+  router.push({ name: 'StudentProfielVoorBedrijf', params: { id: id } })
 }
 
 const planAfspraak = (id) => {
@@ -210,10 +215,55 @@ if (typeof window !== 'undefined') {
 }
 
 const accepteerStudent = async (swipeDocId, studentId) => {
-  // Zet status op 'geaccepteerd' in student/{studentId}/swipes
-  await updateDoc(doc(db, 'student', studentId, 'swipes', swipeDocId), { status: 'geaccepteerd' });
-  // Herlaad matches zodat de student verdwijnt uit de lijst
-  await reloadMatches();
+  try {
+    // Zet status op 'geaccepteerd' in student/{studentId}/swipes
+    await updateDoc(doc(db, 'student', studentId, 'swipes', swipeDocId), { status: 'geaccepteerd' });
+    
+    // Haal studentgegevens op voor notificatie
+    const studentDoc = await getDoc(doc(db, 'student', studentId));
+    const studentData = studentDoc.exists() ? studentDoc.data() : {};
+    const studentName = `${studentData.voornaam || 'Onbekende'} ${studentData.achternaam || 'Student'}`;
+    
+    // Haal bedrijfsgegevens op voor notificatie
+    const bedrijfId = auth.currentUser?.uid;
+    const bedrijfDoc = await getDoc(doc(db, 'bedrijf', bedrijfId));
+    const bedrijfData = bedrijfDoc.exists() ? bedrijfDoc.data() : {};
+    const bedrijfNaam = bedrijfData.bedrijfsnaam || 'Onbekend Bedrijf';
+    
+    // Stuur notificatie naar student
+    await notificationService.createStudentMatchAcceptedNotification(studentId, bedrijfNaam);
+    
+    // Herlaad matches zodat de student verdwijnt uit de lijst
+    await reloadMatches();
+  } catch (error) {
+    console.error('Fout bij accepteren van student:', error);
+  }
+}
+
+const weigerStudent = async (swipeDocId, studentId) => {
+  try {
+    // Zet status op 'geweigerd' in student/{studentId}/swipes
+    await updateDoc(doc(db, 'student', studentId, 'swipes', swipeDocId), { status: 'geweigerd' });
+    
+    // Haal studentgegevens op voor notificatie
+    const studentDoc = await getDoc(doc(db, 'student', studentId));
+    const studentData = studentDoc.exists() ? studentDoc.data() : {};
+    const studentName = `${studentData.voornaam || 'Onbekende'} ${studentData.achternaam || 'Student'}`;
+    
+    // Haal bedrijfsgegevens op voor notificatie
+    const bedrijfId = auth.currentUser?.uid;
+    const bedrijfDoc = await getDoc(doc(db, 'bedrijf', bedrijfId));
+    const bedrijfData = bedrijfDoc.exists() ? bedrijfDoc.data() : {};
+    const bedrijfNaam = bedrijfData.bedrijfsnaam || 'Onbekend Bedrijf';
+    
+    // Stuur notificatie naar student
+    await notificationService.createStudentMatchRejectedNotification(studentId, bedrijfNaam);
+    
+    // Herlaad matches zodat de student verdwijnt uit de lijst
+    await reloadMatches();
+  } catch (error) {
+    console.error('Fout bij afwijzen van student:', error);
+  }
 }
 
 async function reloadMatches() {
@@ -631,6 +681,17 @@ async function reloadMatches() {
 }
 .knop-grijs:hover {
   background: #e5e7eb;
+}
+
+.knop-grijs.afwijzen {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.knop-grijs.afwijzen:hover {
+  background: #fee2e2;
+  color: #b91c1c;
 }
 
 .knop-rood {

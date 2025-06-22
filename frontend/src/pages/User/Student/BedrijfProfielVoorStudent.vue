@@ -86,6 +86,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { getAuth } from 'firebase/auth';
 import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import StudentDashboardLayout from '../../../components/StudentDashboardLayout.vue';
+import { notificationService } from '../../../services/notificationService';
 
 const route = useRoute();
 const router = useRouter();
@@ -108,17 +109,30 @@ const matchBedrijf = async () => {
   }
 
   try {
+    // Haal studentgegevens op voor notificatie
+    const studentDoc = await getDoc(doc(db, 'student', user.uid));
+    const studentData = studentDoc.exists() ? studentDoc.data() : {};
+    const studentName = `${studentData.voornaam || 'Onbekende'} ${studentData.achternaam || 'Student'}`;
+    
+    // Haal bedrijfsgegevens op voor notificatie
+    const bedrijfDoc = await getDoc(doc(db, 'bedrijf', route.params.id));
+    const bedrijfData = bedrijfDoc.exists() ? bedrijfDoc.data() : {};
+    const bedrijfNaam = bedrijfData.bedrijfsnaam || 'Onbekend Bedrijf';
+    
     // Maak een 'interessant' swipe aan
     const swipeData = {
       studentUid: user.uid,
       bedrijfUid: route.params.id,
       type: 'interessant',
       timestamp: serverTimestamp(),
-      studentNaam: `${bedrijf.value?.voornaam || ''} ${bedrijf.value?.achternaam || ''}`.trim(),
-      bedrijfNaam: bedrijf.value?.bedrijfsnaam || ''
+      studentNaam: studentName,
+      bedrijfNaam: bedrijfNaam
     };
 
     await setDoc(doc(db, 'swipes', `${user.uid}_${route.params.id}`), swipeData);
+    
+    // Stuur notificatie naar bedrijf
+    await notificationService.createCompanyNewMatchNotification(route.params.id, studentName);
     
     // Navigeer terug naar de vorige pagina
     router.go(-1);
