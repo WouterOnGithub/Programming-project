@@ -1018,8 +1018,14 @@ function getStatusText(status) {
 }
 .confirmation-modal p {
   color: #6b7280;
-  margin-bottom: 2rem;
+  margin: 1rem 0 1.5rem;
+  line-height: 1.6;
 }
+
+.modal-actions button:hover {
+  opacity: 0.9;
+}
+
 .timeslot-btn.taken-by-other {
   background: #f3f4f6;
   color: #9ca3af;
@@ -1100,22 +1106,6 @@ function getStatusText(status) {
   cursor: not-allowed;
   font-style: italic;
 }
-.taken-by-me-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  line-height: 1.2;
-}
-.taken-by-me-content .main-time {
-  font-weight: 500;
-  color: #9ca3af;
-}
-.taken-by-me-content .sub-text {
-  font-size: 0.75rem;
-  color: #dc2626;
-  font-weight: 500;
-}
 .stmatch-actions {
   display: flex;
   justify-content: space-between;
@@ -1157,5 +1147,99 @@ function getStatusText(status) {
   font-style: italic;
   font-size: 0.85rem;
   color: #6b7280;
+}
+
+@media (max-width: 768px) {
+  .content-section {
+    padding: 0;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+    padding: 1rem;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .section-title {
+    text-align: center;
+    font-size: 1.25rem;
+  }
+
+  .filter-knoppen {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+
+  .filter-knop {
+    padding: 0.6rem;
+    font-size: 0.875rem;
+    text-align: center;
+  }
+
+  .appointments-list {
+    padding: 1rem;
+  }
+
+  .appointment-card {
+    padding: 1rem;
+  }
+
+  .appointment-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .company-info {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .status-badge {
+    align-self: flex-start;
+  }
+
+  .appointment-details {
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: stretch;
+    padding-top: 1rem;
+    margin-top: 1rem;
+    border-top: 1px solid #f0f0f0;
+  }
+
+  .detail-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+  }
+
+  .appointment-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+    padding-top: 1rem;
+    margin-top: 1rem;
+    border-top: 1px solid #f0f0f0;
+  }
+
+  .action-btn {
+    width: 100%;
+  }
+
+  .modal-content {
+    width: 90vw;
+    max-width: 500px;
+  }
+
+  .timeslot-grid {
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 0.75rem;
+  }
 }
 </style>

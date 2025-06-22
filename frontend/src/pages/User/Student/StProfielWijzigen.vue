@@ -815,6 +815,24 @@ textarea {
   .form-grid {
     grid-template-columns: 1fr;
   }
+
+  .gegevens-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .section-card h2 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 0.5rem;
+  }
+
+  .submit-knop {
+    width: 100%;
+    padding: 1rem;
+    font-size: 1.1rem;
+    border-radius: 12px;
+  }
 }
 .volle-breedte {
   grid-column: span 2;
@@ -954,5 +972,30 @@ textarea {
 }
 .download-cv-btn:hover {
   background: #990000;
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    padding: 1rem;
+  }
+
+  .banner {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .go-back-knop {
+    position: static;
+    margin-bottom: 1rem;
+    align-self: center;
+  }
+
+  .image-wrapper {
+    margin-bottom: 1rem;
+  }
+
+  .gegevens-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

@@ -1,7 +1,20 @@
 <template>
   <div class="dashboard-container">
+    <header class="mobile-header">
+      <router-link to="/dashboard" class="mobile-logo">
+        <img src="/Images/ehb-logo.png" alt="EHB logo" class="ehb-logo-img" />
+      </router-link>
+      <button class="hamburger-menu" @click="isSidebarOpen = !isSidebarOpen">
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+      </button>
+    </header>
+
+    <div class="sidebar-overlay" v-if="isSidebarOpen" @click="isSidebarOpen = false"></div>
+
     <!-- Sidebar -->
-    <aside class="sidebar-nav">
+    <aside class="sidebar-nav" :class="{ open: isSidebarOpen }">
       <div class="sidebar-header">
         <div class="sidebar-logo">
           <img src="/Images/ehb-logo.png" alt="EHB logo" class="ehb-logo-img" />
@@ -16,6 +29,7 @@
           :key="item.name"
           :to="item.href"
           :class="['sidebar-link', $route.path === item.href ? 'active' : '']"
+          @click="isSidebarOpen = false"
         >
           <i :class="item.icon"></i>
           {{ item.name }}
@@ -25,7 +39,7 @@
     <!-- Main Content -->
     <main class="dashboard-main">
       <header class="dashboard-header">
-        <div>
+        <div class="header-content">
           <h1>Welkom {{ userData.name }}</h1>
           <p>{{ pageSubtitle }}</p>
         </div>
@@ -64,6 +78,8 @@ import {
 } from 'firebase/firestore'
 
 import NotificationCenter from './NotificationCenter.vue'
+
+const isSidebarOpen = ref(false);
 
 const $route = useRoute()
 const router = useRouter()
@@ -159,6 +175,21 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+.mobile-header {
+  display: none;
+}
+
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 199;
+}
+
 .dashboard-container {
   display: flex;
   min-height: 100vh;
@@ -233,6 +264,10 @@ onBeforeUnmount(() => {
   background: #fff;
   border-bottom: 1px solid #e5e7eb;
   padding: 1.5rem 2rem 1.5rem 2rem;
+}
+.header-content {
+  display: flex;
+  flex-direction: column;
 }
 .dashboard-header h1 {
   font-size: 1.3rem;
@@ -321,5 +356,75 @@ onBeforeUnmount(() => {
 }
 .dropdown-item:hover {
   background: #f3f4f6;
+}
+
+@media screen and (max-width: 1024px) {
+  .dashboard-container {
+    flex-direction: column;
+  }
+
+  .mobile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fff;
+    padding: 1.2rem 1.5rem;
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
+    margin: 1rem 1rem 0 1rem;
+  }
+
+  .mobile-logo .ehb-logo-img {
+    height: 2.2rem;
+  }
+
+  .hamburger-menu {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    width: 2rem;
+    height: 2rem;
+    padding: 0.25rem;
+  }
+  
+  .hamburger-menu .bar {
+      height: 3px;
+      width: 100%;
+      background: #c20000;
+      border-radius: 10px;
+  }
+
+  .sidebar-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    z-index: 200;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    will-change: transform;
+  }
+
+  .sidebar-nav.open {
+    transform: translateX(0);
+  }
+
+  .sidebar-overlay {
+    display: block;
+  }
+
+  .dashboard-main {
+    padding-top: 0;
+  }
+
+  .dashboard-header {
+    margin: 1rem;
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
+    padding: 1.5rem 1rem;
+  }
 }
 </style> 
