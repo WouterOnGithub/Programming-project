@@ -47,7 +47,10 @@
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
             <div class="student-info">
-              <div class="avatar">{{ student.afkorting }}</div>
+              <div class="avatar">
+                <img v-if="student.foto" :src="student.foto" alt="Profielfoto" class="student-foto" />
+                <span v-else>{{ student.afkorting }}</span>
+              </div>
               <div>
                 <h3>{{ student.naam }}</h3>
                 <p class="richting">{{ Array.isArray(student.richting) ? student.richting.join(', ') : student.richting }} – {{ student.locatie }}</p>
@@ -61,10 +64,6 @@
               <button class="knop-rood" @click="accepteerStudent(student.swipeDocId, student.id)">
                 <Calendar :size="14" />
                 <span>Accepteren</span>
-              </button>
-              <button class="knop-grijs afwijzen" @click="weigerStudent(student.swipeDocId, student.id)">
-                <span>✕</span>
-                <span>Afwijzen</span>
               </button>
             </div>
           </div>
@@ -157,7 +156,8 @@ onMounted(async () => {
       richting,
       afkorting: ((student.voornaam || '?')[0] + (student.achternaam || '?')[0]).toUpperCase(),
       locatie: student.locatie || '-',
-      swipeDocId: swipe.id
+      swipeDocId: swipe.id,
+      foto: student.fotoUrl || student.foto || null
     };
   });
 })
@@ -266,7 +266,8 @@ async function reloadMatches() {
       richting,
       afkorting: ((student.voornaam || '?')[0] + (student.achternaam || '?')[0]).toUpperCase(),
       locatie: student.locatie || '-',
-      swipeDocId: swipe.id
+      swipeDocId: swipe.id,
+      foto: student.fotoUrl || student.foto || null
     };
   });
 }
@@ -586,19 +587,36 @@ async function reloadMatches() {
   align-items: center;
   gap: 1.2rem;
   margin-bottom: 1rem;
+  width: 100%;
 }
 .avatar {
-  background: #c20000;
-  color: white;
   width: 3.2rem;
   height: 3.2rem;
   border-radius: 50%;
+  background: #c20000;
+  color: white;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: bold;
   font-size: 1.2rem;
   box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  overflow: hidden;
+  border: 2.5px solid #fff;
+  position: relative;
+  flex-shrink: 0;
+}
+.student-info > div:not(.avatar) {
+  flex: 1;
+  min-width: 0;
+}
+.student-foto {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+  background: #fff;
 }
 .student-info h3 {
   margin: 0;

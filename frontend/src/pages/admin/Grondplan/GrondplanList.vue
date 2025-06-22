@@ -98,42 +98,58 @@
           </button>
         </div>
         <div class="grondplan-list" v-show="!sidebarCollapsed">
-          <div 
-            v-for="grondplan in grondplannen" 
-            :key="grondplan.id"
-            class="grondplan-item"
-            :class="{ 'active': currentGrondplanId === grondplan.id }"
-            @click="selectGrondplan(grondplan.id)"
+          <draggable 
+            v-model="grondplannen" 
+            @end="onDragEnd"
+            item-key="id"
+            handle=".drag-handle"
+            class="draggable-container"
           >
-            <div class="grondplan-thumbnail">
-              <img 
-                :src="grondplan.thumbnailUrl || grondplan.imageUrl" 
-                :alt="grondplan.name" 
-                class="thumbnail-image"
-              />
-            </div>
-            <div class="grondplan-info">
-              <h4>{{ grondplan.name }}</h4>
-              <p class="grondplan-date">{{ formatDate(grondplan.uploadDate) }}</p>
-              <p class="grondplan-location">{{ grondplan.building }} - {{ grondplan.floors }}</p>
-            </div>
-            <div class="grondplan-actions">
-              <button 
-                @click.stop="editGrondplan(grondplan)" 
-                class="action-btn edit-btn" 
-                title="Bewerk grondplan"
+            <template #item="{element}">
+              <div 
+                class="grondplan-item"
+                :class="{ 'active': currentGrondplanId === element.id }"
+                @click="selectGrondplan(element.id)"
               >
-                ✏️
-              </button>
-            </div>
-          </div>
+                <div class="drag-handle" @click.stop>
+                  <span>⠿</span>
+                </div>
+                <div class="grondplan-thumbnail">
+                  <img 
+                    :src="element.thumbnailUrl || element.imageUrl" 
+                    :alt="element.name" 
+                    class="thumbnail-image"
+                  />
+                </div>
+                <div class="grondplan-info">
+                  <h4>{{ element.name }}</h4>
+                  <p class="grondplan-date">{{ formatDate(element.uploadDate) }}</p>
+                  <p class="grondplan-location">{{ element.building }} - {{ element.floors }}</p>
+                </div>
+                <div class="grondplan-actions">
+                  <button 
+                    @click.stop="editGrondplan(element)" 
+                    class="action-btn edit-btn" 
+                    title="Bewerk grondplan"
+                  >
+                    ✏️
+                  </button>
+                </div>
+              </div>
+            </template>
+          </draggable>
           
-          <div v-if="grondplannen.length === 0" class="no-grondplannen">
+          <div v-if="!loading && grondplannen.length === 0" class="no-grondplannen">
             <p>Geen grondplannen beschikbaar</p>
             <button @click="showUploadModal = true" class="upload-button-small">
               Grondplan uploaden
             </button>
           </div>
+        </div>
+        <div v-if="orderChanged && !sidebarCollapsed" class="sidebar-footer">
+          <button @click="saveOrder" class="btn btn-primary btn-save-order" :disabled="isSavingOrder">
+            {{ isSavingOrder ? 'Opslaan...' : 'Volgorde opslaan' }}
+          </button>
         </div>
       </div>
     </div>
@@ -143,6 +159,7 @@
       v-if="showCompanyModal"
       :location="selectedLocation"
       :floor="currentGrondplanId"
+      :floorName="currentGrondplan ? currentGrondplan.name : ''"
       :existingMarker="editingMarker"
       :companies="companies"
       :placed-markers="allCompanyLocations"
@@ -259,11 +276,12 @@
 import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { db, storage } from '../../../firebase/config'
-import { collection, getDocs, addDoc, updateDoc, doc, getDoc, query, where, deleteDoc, serverTimestamp } from 'firebase/firestore'
+import { collection, getDocs, addDoc, updateDoc, doc, getDoc, query, where, deleteDoc, serverTimestamp, writeBatch } from 'firebase/firestore'
 import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'
 import CompanyLocationModal from './CompanyLocationModal.vue'
 import CompanySearch from './CompanySearch.vue'
 import { notificationService } from '../../../services/notificationService'
+import draggable from 'vuedraggable'
 
 // Import LeafletJS
 import L from 'leaflet'
@@ -281,7 +299,8 @@ export default {
   name: 'GrondplanList',
   components: {
     CompanyLocationModal,
-    CompanySearch
+    CompanySearch,
+    draggable,
   },
   setup() {
     const router = useRouter()
@@ -318,6 +337,8 @@ export default {
     const showInstructions = ref(false)
     const isFadingOut = ref(false)
     let instructionTimeout = null
+    const orderChanged = ref(false)
+    const isSavingOrder = ref(false)
     
     // Map bounds for coordinate conversion
     const mapBounds = ref([[0, 0], [100, 100]])
@@ -647,21 +668,28 @@ export default {
     }
     
     // Data Loading Methods
-    const loadGrondplannen = async () => {
+    const fetchGrondplannen = async () => {
       loading.value = true
       try {
-        const querySnapshot = await getDocs(collection(db, 'grondplannen'))
+        const q = query(collection(db, 'grondplannen'))
+        const querySnapshot = await getDocs(q)
         grondplannen.value = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+          .sort((a, b) => (a.order ?? Infinity) - (b.order ?? Infinity))
         
         if (grondplannen.value.length > 0) {
-          currentGrondplanId.value = grondplannen.value[0].id
-          await changeGrondplan()
+          const lastSelectedId = localStorage.getItem('lastSelectedGrondplanId')
+          if (lastSelectedId && grondplannen.value.some(g => g.id === lastSelectedId)) {
+            selectGrondplan(lastSelectedId)
+          } else {
+            selectGrondplan(grondplannen.value[0].id)
+          }
         } else {
+          currentGrondplanId.value = null
           currentGrondplan.value = null
-          loading.value = false
         }
       } catch (error) {
-        console.error('Error loading grondplannen:', error)
+        console.error('Error fetching grondplannen:', error)
+      } finally {
         loading.value = false
       }
     }
@@ -979,7 +1007,7 @@ export default {
         closeModal()
 
         // Reload grondplannen
-        await loadGrondplannen()
+        await fetchGrondplannen()
 
         // Show success message
         console.log('Grondplan successfully uploaded!')
@@ -1038,7 +1066,7 @@ export default {
         
         // Close modal and reload
         closeDeleteModal()
-        await loadGrondplannen()
+        await fetchGrondplannen()
         
         // Reset current grondplan
         if (grondplannen.value.length > 0) {
@@ -1077,6 +1105,29 @@ export default {
     
     const toggleSidebar = () => {
       sidebarCollapsed.value = !sidebarCollapsed.value
+    }
+    
+    const onDragEnd = () => {
+      orderChanged.value = true
+    }
+
+    const saveOrder = async () => {
+      isSavingOrder.value = true
+      try {
+        const batch = writeBatch(db)
+        grondplannen.value.forEach((plan, index) => {
+          const planRef = doc(db, 'grondplannen', plan.id)
+          batch.update(planRef, { order: index })
+        })
+        await batch.commit()
+        orderChanged.value = false
+        // Optionally show a success toast
+      } catch (error) {
+        console.error("Fout bij opslaan van volgorde:", error)
+        // Optionally show an error toast
+      } finally {
+        isSavingOrder.value = false
+      }
     }
     
     // Watch for loading state changes
@@ -1133,7 +1184,7 @@ export default {
           await loadCompanies();
           
           // 2. Load all floor plans. This will trigger the first `changeGrondplan`.
-          await loadGrondplannen();
+          await fetchGrondplannen();
           
           // 3. Load all company locations for placement validation
           await loadAllCompanyLocations();
@@ -1182,6 +1233,8 @@ export default {
       allCompanyLocations,
       showInstructions,
       isFadingOut,
+      orderChanged,
+      isSavingOrder,
       
       // Methods
       selectGrondplan,
@@ -1203,7 +1256,10 @@ export default {
       closeDeleteModal,
       confirmDeleteGrondplan,
       formatFileSize,
-      toggleSidebar
+      toggleSidebar,
+      onDragEnd,
+      saveOrder,
+      fetchGrondplannen,
     }
   }
 }
@@ -2113,6 +2169,30 @@ export default {
 .grondplan-view {
   min-width: 0;
   min-height: 0;
+}
+
+.drag-handle {
+  cursor: grab;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: #a0aec0;
+}
+.drag-handle:active {
+  cursor: grabbing;
+}
+.grondplan-item {
+  display: flex;
+  align-items: center;
+}
+.sidebar-footer {
+  padding: 1rem;
+  border-top: 1px solid #e2e8f0;
+}
+.btn-save-order {
+  width: 100%;
 }
 </style>
 

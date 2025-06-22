@@ -37,12 +37,14 @@
                 v-model="bedrijfsdata.starttijd"
                 min="10:00"
                 max="16:00"
+                :disabled="hasAppointments"
               />
               <TimePicker
                 label="Eindtijd *"
                 v-model="bedrijfsdata.eindtijd"
                 :min="bedrijfsdata.starttijd"
                 max="16:00"
+                :disabled="hasAppointments"
               />
               <div class="form-group">
                 <label for="linkedin">LinkedIn</label>
@@ -84,7 +86,7 @@
               </div>
               <div class="form-group">
                 <label for="gesprekDuur">Elk gesprek duurt *</label>
-                <select id="gesprekDuur" v-model="bedrijfsdata.gesprekDuur" required>
+                <select id="gesprekDuur" v-model="bedrijfsdata.gesprekDuur" required :disabled="hasAppointments">
                   <option disabled value="">Kies duur</option>
                   <option>10 minuten</option>
                   <option>15 minuten</option>
@@ -199,6 +201,7 @@ const toestemming = ref(true)
 const aangepasteZoektermInput = ref(null)
 
 const geselecteerdeTypePosities = ref([])
+const hasAppointments = ref(false)
 
 onMounted(async () => {
   const db = getFirestore()
@@ -223,6 +226,14 @@ onMounted(async () => {
     error.value = 'Fout bij ophalen bedrijfsprofiel.'
   } finally {
     loading.value = false
+  }
+
+  // Check of er afspraken zijn voor dit bedrijf
+  try {
+    const afsprakenSnap = await getDocs(query(collection(db, 'afspraken'), where('bedrijfId', '==', user.uid)));
+    hasAppointments.value = !afsprakenSnap.empty;
+  } catch (e) {
+    console.error('Fout bij ophalen afspraken:', e);
   }
 })
 

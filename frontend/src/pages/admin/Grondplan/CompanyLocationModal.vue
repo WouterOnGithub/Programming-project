@@ -182,6 +182,10 @@
 <script>
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { locationService } from '../../../services/locationService'
+import { companyLocationService } from '../../../services/companyLocationService'
+import { notificationService } from '../../../services/notificationService';
+import { db } from '../../../firebase/config';
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 // Companies will be passed as props from parent component
 
 export default {
@@ -194,6 +198,10 @@ export default {
     floor: {
       type: String,
       required: true
+    },
+    floorName: {
+      type: String,
+      required: true,
     },
     existingMarker: {
       type: Object,
@@ -330,33 +338,71 @@ export default {
     }
     
     const saveLocation = async () => {
-      if (!selectedCompanyId.value || !locationData.value.locationName) {
-        if (!locationData.value.locationName) {
-          alert('Selecteer een locatienaam voordat u opslaat.')
-        }
-        return
-      }
-      
-      saving.value = true
-      
+      if (saving.value || deleting.value) return;
+      saving.value = true;
       try {
-        const locationToSave = {
+        const dataToSave = {
           companyId: selectedCompanyId.value,
+          grondplanId: props.floor,
           x: locationData.value.x,
           y: locationData.value.y,
-          notes: locationData.value.notes.trim(),
           locationName: locationData.value.locationName,
-          grondplanId: props.floor
-        }
+          notes: locationData.value.notes,
+          companyName: selectedCompany.value?.bedrijfsnaam || selectedCompany.value?.name || '',
+          floorName: props.floorName || '',
+        };
         
-        emit('save', locationToSave)
+        const savedLocation = await companyLocationService.saveLocation(isEditing.value ? props.location.id : null, dataToSave);
+        
+        // Notification logic
+        await handleStudentNotifications(
+          selectedCompanyId.value,
+          selectedCompany.value?.bedrijfsnaam,
+          locationData.value.locationName,
+          props.floorName
+        );
+
+        emit('save', savedLocation);
+        closeModal();
       } catch (error) {
-        console.error('Error saving location:', error)
-        alert('Er is een fout opgetreden bij het opslaan van de locatie.')
+        console.error('Error saving location:', error);
+        // TODO: show error message to user
       } finally {
-        saving.value = false
+        saving.value = false;
       }
     }
+    
+    const handleStudentNotifications = async (companyId, companyName, locationName, floorName) => {
+        try {
+            // 1. Find all appointments for this company
+            const appointmentsQuery = query(collection(db, 'afspraken'), where('bedrijfId', '==', companyId));
+            const appointmentsSnap = await getDocs(appointmentsQuery);
+
+            if (appointmentsSnap.empty) {
+                console.log('No appointments found for this company, no notifications sent.');
+                return;
+            }
+
+            // 2. Get unique student UIDs
+            const studentUids = [...new Set(appointmentsSnap.docs.map(doc => doc.data().studentUid))];
+
+            // 3. Create a notification for each student
+            for (const studentId of studentUids) {
+                if (studentId) {
+                  await notificationService.createStudentAppointmentLocationSetNotification(
+                    studentId,
+                    companyName,
+                    locationName,
+                    floorName
+                  );
+                }
+            }
+
+            console.log(`Sent location notifications to ${studentUids.length} students.`);
+        } catch (error) {
+            console.error('Error sending student location notifications:', error);
+        }
+    };
     
     const deleteLocation = async () => {
       if (!props.existingMarker) return
