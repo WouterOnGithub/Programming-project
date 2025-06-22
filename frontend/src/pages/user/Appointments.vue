@@ -130,73 +130,90 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import StudentDashboardLayout from '../../components/StudentDashboardLayout.vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { useRoute } from 'vue-router';
+import StudentDashboardLayout from '../../components/StudentDashboardLayout.vue';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, collection, getDocs, updateDoc, doc, deleteDoc, query, where, documentId, onSnapshot, getDoc } from 'firebase/firestore';
+import {
+  getFirestore,
+  collection,
+  getDocs,
+  updateDoc,
+  doc,
+  query,
+  where,
+  documentId,
+  onSnapshot,
+  getDoc,
+} from 'firebase/firestore';
 import { notificationService } from '../../services/notificationService';
+import { useToast } from 'vue-toastification';
 
+const toast = useToast();
 const db = getFirestore();
 const auth = getAuth();
-const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: 'fas fa-chart-pie' },
-  { name: 'Job Swiping', href: '/swipe', icon: 'fas fa-heart' },
-  { name: 'Afspraken', href: '/appointments', icon: 'fas fa-calendar' },
-  { name: 'Profiel', href: '/WeergaveSt', icon: 'fas fa-user' },
-  { name: 'Instellingen', href: '/settings', icon: 'fas fa-cog' },
-];
+const route = useRoute();
 
 const activeFilter = ref('all');
 const appointments = ref([]);
 const loading = ref(true);
 const error = ref(null);
-const route = useRoute();
 let appointmentsUnsubscribe = null;
 
 const setFilter = (filter) => {
   activeFilter.value = filter;
+  toast.info(`Filter gewijzigd naar "${filter}"`, { timeout: 2000 });
 };
 
 const setupAppointmentsListener = (studentId) => {
   const afsprakenQuery = query(collection(db, 'afspraken'), where('studentUid', '==', studentId));
 
-  appointmentsUnsubscribe = onSnapshot(afsprakenQuery, async (afsprakenSnap) => {
-    if (afsprakenSnap.empty) {
-      appointments.value = [];
+  appointmentsUnsubscribe = onSnapshot(
+    afsprakenQuery,
+    async (afsprakenSnap) => {
+      if (afsprakenSnap.empty) {
+        appointments.value = [];
+        loading.value = false;
+        return;
+      }
+
+      const bedrijfIds = [
+        ...new Set(afsprakenSnap.docs.map((doc) => doc.data().bedrijfId).filter(Boolean)),
+      ];
+      const bedrijvenMap = {};
+
+      if (bedrijfIds.length > 0) {
+        const bedrijvenQuery = query(collection(db, 'bedrijf'), where(documentId(), 'in', bedrijfIds));
+        const bedrijvenSnap = await getDocs(bedrijvenQuery);
+        bedrijvenSnap.forEach((docu) => {
+          bedrijvenMap[docu.id] = docu.data();
+        });
+      }
+
+      appointments.value = afsprakenSnap.docs.map((docu) => {
+        const data = docu.data();
+        const bedrijf = bedrijvenMap[data.bedrijfId] || {};
+        return {
+          id: docu.id,
+          ...data,
+          status: data.status || 'upcoming',
+          company: bedrijf.bedrijfsnaam || 'Onbekend Bedrijf',
+          location: bedrijf.gesitueerdIn || 'Onbekend',
+          duration: data.duur || '10 min',
+          avatar: (bedrijf.bedrijfsnaam || '?')[0],
+          annuleringsReden: data.annuleringsReden || null,
+        };
+      });
+
       loading.value = false;
-      return;
+    },
+    (err) => {
+      console.error('Fout bij ophalen van afspraken:', err);
+      error.value = 'De afspraken konden niet geladen worden. Probeer het later opnieuw.';
+      loading.value = false;
+      toast.error('Fout bij het laden van afspraken.');
     }
-
-    const bedrijfIds = [...new Set(afsprakenSnap.docs.map(doc => doc.data().bedrijfId).filter(Boolean))];
-    const bedrijvenMap = {};
-
-    if (bedrijfIds.length > 0) {
-      const bedrijvenQuery = query(collection(db, 'bedrijf'), where(documentId(), 'in', bedrijfIds));
-      const bedrijvenSnap = await getDocs(bedrijvenQuery);
-      bedrijvenSnap.forEach(docu => { bedrijvenMap[docu.id] = docu.data(); });
-    }
-
-    appointments.value = afsprakenSnap.docs.map(docu => {
-      const data = docu.data();
-      const bedrijf = bedrijvenMap[data.bedrijfId] || {};
-      return {
-        id: docu.id,
-        ...data,
-        status: data.status || 'upcoming',
-        company: bedrijf.bedrijfsnaam || 'Onbekend Bedrijf',
-        location: bedrijf.gesitueerdIn || 'Onbekend',
-        duration: data.duur || '10 min',
-        avatar: (bedrijf.bedrijfsnaam || '?')[0],
-        annuleringsReden: data.annuleringsReden || null
-      };
-    });
-    loading.value = false;
-  }, (err) => {
-    console.error("Fout bij ophalen van afspraken:", err);
-    error.value = "De afspraken konden niet geladen worden. Probeer het later opnieuw.";
-    loading.value = false;
-  });
+  );
 };
 
 onMounted(() => {
@@ -208,7 +225,7 @@ onMounted(() => {
       if (appointmentsUnsubscribe) appointmentsUnsubscribe();
       appointments.value = [];
       loading.value = false;
-      error.value = "U moet ingelogd zijn om uw afspraken te zien.";
+      error.value = 'U moet ingelogd zijn om uw afspraken te zien.';
     }
   });
 
@@ -225,9 +242,9 @@ onBeforeUnmount(() => {
 
 const filteredAppointments = computed(() => {
   if (activeFilter.value === 'all') return appointments.value;
-  if (activeFilter.value === 'geannuleerd') return appointments.value.filter(a => a.status === 'geannuleerd');
-  if (activeFilter.value === 'upcoming') return appointments.value.filter(a => a.status === 'upcoming');
-  if (activeFilter.value === 'afgerond') return appointments.value.filter(a => a.status === 'afgerond');
+  if (activeFilter.value === 'geannuleerd') return appointments.value.filter((a) => a.status === 'geannuleerd');
+  if (activeFilter.value === 'upcoming') return appointments.value.filter((a) => a.status === 'upcoming');
+  if (activeFilter.value === 'afgerond') return appointments.value.filter((a) => a.status === 'afgerond');
   return appointments.value;
 });
 
@@ -277,19 +294,19 @@ function generateTimeSlots(startTime, endTime, durationString) {
       currentTime.setMinutes(currentTime.getMinutes() + duration);
       continue;
     }
-    
+
     if (slotEnd > endDateTime) break;
 
     const formatTime = (date) => date.toTimeString().substring(0, 5);
     slots.push(`${formatTime(slotStart)} - ${formatTime(slotEnd)}`);
-    
+
     currentTime = slotEnd;
   }
   return slots;
 }
 
 const startEditTime = async (appointmentId) => {
-  const appointment = appointments.value.find(a => a.id === appointmentId);
+  const appointment = appointments.value.find((a) => a.id === appointmentId);
   if (!appointment) return;
 
   editingAppointmentId.value = appointmentId;
@@ -299,7 +316,7 @@ const startEditTime = async (appointmentId) => {
   try {
     const bedrijfDocRef = doc(db, 'bedrijf', appointment.bedrijfId);
     const bedrijfDoc = await getDoc(bedrijfDocRef);
-    if (!bedrijfDoc.exists()) throw new Error("Bedrijf niet gevonden");
+    if (!bedrijfDoc.exists()) throw new Error('Bedrijf niet gevonden');
 
     const bedrijfData = bedrijfDoc.data();
     const { starttijd, eindtijd, gesprekDuur } = bedrijfData;
@@ -309,16 +326,16 @@ const startEditTime = async (appointmentId) => {
     } else {
       timeSlots.value = generateTimeSlots(starttijd, eindtijd, gesprekDuur);
     }
-    
+
     const afsprakenSnap = await getDocs(
-        query(collection(db, 'afspraken'), where('bedrijfId', '==', appointment.bedrijfId))
+      query(collection(db, 'afspraken'), where('bedrijfId', '==', appointment.bedrijfId))
     );
-    takenSlots.value = afsprakenSnap.docs.map(d => d.data().time);
+    takenSlots.value = afsprakenSnap.docs.map((d) => d.data().time);
 
     showTimeModal.value = true;
   } catch (err) {
-    console.error("Fout bij ophalen van tijdsloten:", err);
-    // Toon eventueel een foutmelding aan de gebruiker
+    console.error('Fout bij ophalen van tijdsloten:', err);
+    toast.error('Tijdsloten konden niet worden geladen.');
   }
 };
 
@@ -334,37 +351,23 @@ function selectTimeSlot(slot) {
 }
 
 async function saveTime(id, slot) {
-  const appt = appointments.value.find(a => a.id === id);
+  const appt = appointments.value.find((a) => a.id === id);
   if (!appt) return;
-  await updateDoc(doc(db, 'afspraken', id), { time: slot });
-  appt.time = slot;
-  closeTimeModal();
+  try {
+    await updateDoc(doc(db, 'afspraken', id), { time: slot });
+    appt.time = slot;
+    closeTimeModal();
+    toast.success('Afspraak succesvol aangepast.');
+  } catch (err) {
+    console.error('Fout bij opslaan:', err);
+    toast.error('Er ging iets mis bij het aanpassen van de afspraak.');
+  }
 }
 
 function isSlotTaken(slot) {
   if (slot === 'Pauze') return true;
-  // Sta toe om de originele tijd opnieuw te selecteren
   if (slot === editingAppointmentOriginalTime.value) return false;
   return takenSlots.value.includes(slot);
-}
-
-const isStudent = () => true;
-
-function getStatusText(status) {
-  switch (status) {
-    case 'upcoming': return 'Komend';
-    case 'afgerond': return 'Afgerond';
-    case 'geannuleerd': return 'Geannuleerd';
-    default: return status;
-  }
-}
-
-function formatDate(dateString) {
-  // Eenvoudige formattering: YYYY-MM-DD naar DD/MM/YYYY
-  if (!dateString) return '';
-  const [year, month, day] = dateString.split('-');
-  if (!year || !month || !day) return dateString;
-  return `${day}/${month}/${year}`;
 }
 
 const openCancelConfirmModal = (appointmentId) => {
@@ -379,35 +382,48 @@ const closeCancelConfirmModal = () => {
 
 const confirmCancellation = async () => {
   if (!appointmentToCancelId.value) return;
-  
+
   try {
-    const appointment = appointments.value.find(a => a.id === appointmentToCancelId.value);
+    const appointment = appointments.value.find((a) => a.id === appointmentToCancelId.value);
     if (!appointment) return;
-    
-    // Update de afspraak status
+
     await updateDoc(doc(db, 'afspraken', appointmentToCancelId.value), {
-      status: 'geannuleerd'
+      status: 'geannuleerd',
     });
-    
-    // Haal studentgegevens op voor notificatie
+
     const studentId = auth.currentUser?.uid;
     const studentDoc = await getDoc(doc(db, 'student', studentId));
     const studentData = studentDoc.exists() ? studentDoc.data() : {};
     const studentName = `${studentData.voornaam || 'Onbekende'} ${studentData.achternaam || 'Student'}`;
-    
-    // Stuur notificatie naar bedrijf
+
     await notificationService.createCompanyAppointmentCancelledNotification(
-      appointment.bedrijfId, 
-      studentName, 
+      appointment.bedrijfId,
+      studentName,
       'Geannuleerd door student'
     );
-    
+
     closeCancelConfirmModal();
+    toast.success('Afspraak geannuleerd.');
   } catch (error) {
     console.error('Fout bij annuleren van afspraak:', error);
+    toast.error('Er ging iets mis bij het annuleren van de afspraak.');
   }
 };
+
+function getStatusText(status) {
+  switch (status) {
+    case 'upcoming':
+      return 'Komend';
+    case 'afgerond':
+      return 'Afgerond';
+    case 'geannuleerd':
+      return 'Geannuleerd';
+    default:
+      return status;
+  }
+}
 </script>
+
 
 <style scoped>
 .dashboard-container {

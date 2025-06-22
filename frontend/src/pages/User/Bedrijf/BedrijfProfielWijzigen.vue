@@ -139,11 +139,13 @@ import { ref, nextTick, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getAuth } from 'firebase/auth'
 import { getFirestore, collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore'
+import { useToast } from 'vue-toastification'
 import profielfotoDefault from '/Images/profielfoto.jpg'
 import potlood from '/Images/potlood.png'
 import BedrijfDashboardLayout from '../../../components/BedrijfDashboardLayout.vue'
 import TimePicker from '../../../components/TimePicker.vue'
 
+const toast = useToast()
 const profielfotoURL = ref(profielfotoDefault)
 const bedrijfsdata = ref({})
 const bedrijfsDocId = ref(null)
@@ -286,24 +288,29 @@ function removeTypePositie(index) {
 async function bevestigGegevens() {
   if (!bedrijfsdata.value.bedrijfsnaam || !bedrijfsdata.value.gesitueerdIn || !bedrijfsdata.value.starttijd || !bedrijfsdata.value.eindtijd) {
     foutmelding.value = 'Vul alle verplichte velden in.'
+    toast.error('Vul alle verplichte velden in.')
     return
   }
 
   if (bedrijfsdata.value.starttijd >= bedrijfsdata.value.eindtijd) {
     foutmelding.value = 'Starttijd moet voor eindtijd zijn.'
+    toast.error('Starttijd moet voor eindtijd zijn.')
     return
   }
-  
+
   try {
     const db = getFirestore()
     const docRef = doc(db, 'bedrijf', bedrijfsDocId.value)
     await updateDoc(docRef, bedrijfsdata.value)
+    toast.success('Bedrijfsgegevens succesvol opgeslagen.')
     router.push('/WeergaveBd')
   } catch (e) {
     foutmelding.value = 'Fout bij het opslaan van de gegevens.'
+    toast.error('Fout bij het opslaan van de gegevens.')
   }
 }
 </script>
+
 
 <style scoped>
 .bedrijf-wijzig {

@@ -62,8 +62,10 @@ import {
   EmailAuthProvider,
   reauthenticateWithCredential
 } from 'firebase/auth';
+import { useToast } from 'vue-toastification'
 import BedrijfDashboardLayout from '../../../components/BedrijfDashboardLayout.vue'
 
+const toast = useToast()
 const router = useRouter()
 const currentPassword = ref('')
 const newPassword = ref('')
@@ -98,14 +100,17 @@ async function changePassword() {
     const user = auth.currentUser;
     if (!user || !user.email) {
       passwordError.value = 'Er is iets misgegaan met je account. Probeer opnieuw in te loggen.';
+      toast.error(passwordError.value)
       return;
     }
     if (user.providerData[0]?.providerId === 'google.com') {
       passwordError.value = 'Je kan je wachtwoord niet wijzigen als je met Google bent ingelogd.';
+      toast.error(passwordError.value)
       return;
     }
     if (!currentPassword.value || !newPassword.value) {
       passwordError.value = 'Vul zowel je huidige als nieuwe wachtwoord in.';
+      toast.error(passwordError.value)
       return;
     }
     const credential = EmailAuthProvider.credential(user.email, currentPassword.value);
@@ -113,7 +118,7 @@ async function changePassword() {
     await updatePassword(user, newPassword.value);
     currentPassword.value = '';
     newPassword.value = '';
-    alert('Je wachtwoord is gewijzigd.');
+    toast.success('Je wachtwoord is succesvol gewijzigd.')
   } catch (error) {
     if (error.code === 'auth/invalid-credential') {
       passwordError.value = 'Het huidige wachtwoord klopt niet.';
@@ -124,6 +129,7 @@ async function changePassword() {
     } else {
       passwordError.value = 'Er is een fout opgetreden. Probeer het opnieuw.';
     }
+    toast.error(passwordError.value)
   }
 }
 
@@ -133,15 +139,18 @@ async function deleteAccount() {
   const user = auth.currentUser;
   if (!user) {
     message.value = 'Je bent niet ingelogd. Log opnieuw in en probeer het opnieuw.';
+    toast.error(message.value)
     return;
   }
   if (user.providerData[0]?.providerId === 'google.com') {
     message.value = 'Je kan je account niet verwijderen als je bent ingelogd via Google.';
+    toast.error(message.value)
     return;
   }
   try {
     await deleteUser(user);
     await auth.signOut();
+    toast.success('Je account is succesvol verwijderd.')
     router.push('/login');
   } catch (error) {
     console.error('Fout bij verwijderen account:', error);
@@ -150,15 +159,18 @@ async function deleteAccount() {
     } else {
       message.value = 'Fout bij verwijderen account. Probeer opnieuw.';
     }
+    toast.error(message.value)
   }
 }
 
 async function logout() {
   const auth = getAuth();
   await signOut(auth);
+  toast.info('Je bent uitgelogd.')
   router.push('/login');
 }
 </script>
+
 
 <style scoped>
 .dashboard-container {

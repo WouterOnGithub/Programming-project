@@ -5,7 +5,9 @@ import { getAuth } from 'firebase/auth'
 import { getFirestore, collection, doc, updateDoc } from 'firebase/firestore'
 import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL } from 'firebase/storage'
 import { useRouter } from 'vue-router'
+import { useToast } from 'vue-toastification'
 
+const toast = useToast()
 const router = useRouter()
 const db = getFirestore()
 const auth = getAuth()
@@ -103,7 +105,7 @@ function handleCvUpload(e) {
   if (file && file.type === 'application/pdf') {
     cvFile.value = file
   } else {
-    alert('Upload alstublieft een PDF-bestand voor uw CV.')
+    toast.warning('Upload alstublieft een PDF-bestand voor uw CV.')
     e.target.value = ''
     cvFile.value = null
   }
@@ -133,16 +135,16 @@ async function uploadFile(file, path) {
 async function bevestigGegevens() {
   const user = auth.currentUser
   if (!user) {
-    error.value = 'Je moet ingelogd zijn om je profiel op te slaan.'
+    toast.error = 'Je moet ingelogd zijn om je profiel op te slaan.'
     return
   }
   if (!toestemming.value) {
-    error.value = 'Je moet akkoord gaan met de voorwaarden.'
+   toast.error = 'Je moet akkoord gaan met de voorwaarden.'
     return
   }
 
   isUploading.value = true
-  error.value = ''
+  v = ''
   
   try {
     const studentDocRef = doc(db, 'student', user.uid)
@@ -171,12 +173,12 @@ async function bevestigGegevens() {
 
     await updateDoc(studentDocRef, dataToSave);
 
-    alert('Profiel succesvol opgeslagen!')
+    toast.success('Profiel succesvol opgeslagen!')
     router.push('/dashboard')
 
   } catch (e) {
     console.error("Fout bij opslaan van profiel:", e)
-    error.value = `Er is een fout opgetreden: ${e.message}`
+    toast.error = `Er is een fout opgetreden: ${e.message}`
   } finally {
     isUploading.value = false
   }

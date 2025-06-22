@@ -1,29 +1,41 @@
 <script setup>
 import { ref } from 'vue'
-import { auth } from '../../firebase/config'
-import { signInWithEmailAndPassword, getAuth, GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail } from 'firebase/auth'
-import { doc, getDoc } from 'firebase/firestore'
-import { db } from '../../firebase/config'
 import { useRouter } from 'vue-router'
-import '../../css/login.css'
-import Navbar from '../../components/Navbar.vue'
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { useToast } from 'vue-toastification'
 
-// Form state
+// ✅ Componenten en styling
+import Navbar from '../../components/Navbar.vue'
+import '../../css/login.css'
+
+// ✅ Firebase
+import { auth, db } from '../../firebase/config'
+import {
+  signInWithEmailAndPassword,
+  getAuth,
+  GoogleAuthProvider,
+  signInWithPopup,
+  sendPasswordResetEmail
+} from 'firebase/auth'
+import {
+  doc,
+  getDoc,
+  collection,
+  getDocs,
+  query,
+  where
+} from 'firebase/firestore'
+
+// ✅ State & helpers
+const toast = useToast()
+const router = useRouter()
+
 const selectedRole = ref('student')
 const email = ref('')
 const password = ref('')
-const error = ref('')
-const successMessage = ref('')
 
-// Password reset state
 const showResetModal = ref(false)
 const resetEmail = ref('')
-const resetError = ref('')
-const resetSuccess = ref('')
 const passwordResetSent = ref(false)
-
-const router = useRouter()
 
 const isStudent = () => selectedRole.value === 'student'
 const isBedrijf = () => selectedRole.value === 'bedrijf'
@@ -37,21 +49,12 @@ const selectRole = (role) => {
 const clearForm = () => {
   email.value = ''
   password.value = ''
-  error.value = ''
 }
 
-const showSuccessToast = (message) => {
-  successMessage.value = message
-  setTimeout(() => {
-    successMessage.value = ''
-  }, 3000)
-}
-
+// ✅ E-mail login
 const handleLogin = async () => {
-  error.value = ''
-
   if (!email.value || !password.value) {
-    error.value = 'Vul alle velden in'
+    toast.error('Vul alle velden in.')
     return
   }
 
@@ -62,151 +65,155 @@ const handleLogin = async () => {
     if (isAdmin()) {
       const userDoc = await getDoc(doc(db, 'admin', user.uid))
       if (userDoc.exists()) {
-        showSuccessToast('U bent succesvol ingelogd als admin!')
-        setTimeout(() => {
-          router.push('/admin/dashboard')
-        }, 1000)
+        toast.success('Ingelogd als administrator!')
+        setTimeout(() => router.push('/admin/dashboard'), 1000)
       } else {
-        error.value = 'Geen admin rechten'
+        toast.error('Geen adminrechten.')
         await auth.signOut()
       }
       return
     }
 
     if (isStudent()) {
-      const q = query(collection(db, 'student'), where('authUid', '==', user.uid));
-      const querySnapshot = await getDocs(q);
+      const q = query(collection(db, 'student'), where('authUid', '==', user.uid))
+      const querySnapshot = await getDocs(q)
       if (querySnapshot.empty) {
-        error.value = 'U kunt niet inloggen als student, want u bent geen student.';
-        await auth.signOut();
-        return;
+        toast.error('U bent geen student.')
+        await auth.signOut()
+        return
       }
-      showSuccessToast('U bent succesvol ingelogd als student!')
-      setTimeout(() => {
-        router.push('/dashboard')
-      }, 1000)
+      toast.success('Welkom student!')
+      setTimeout(() => router.push('/dashboard'), 1000)
     } else if (isBedrijf()) {
-      const q = query(collection(db, 'bedrijf'), where('authUid', '==', user.uid));
-      const querySnapshot = await getDocs(q);
+      const q = query(collection(db, 'bedrijf'), where('authUid', '==', user.uid))
+      const querySnapshot = await getDocs(q)
       if (querySnapshot.empty) {
-        error.value = 'U kunt niet inloggen als bedrijf, want u bent geen bedrijf.';
-        await auth.signOut();
-        return;
+        toast.error('U bent geen bedrijf.')
+        await auth.signOut()
+        return
       }
-      showSuccessToast('U bent succesvol ingelogd als bedrijf!')
-      setTimeout(() => {
-        router.push('/BedrijfDashboard')
-      }, 1000)
+      toast.success('Welkom bedrijf!')
+      setTimeout(() => router.push('/BedrijfDashboard'), 1000)
     }
-
-    alert(`Welkom ${user.displayName || user.email}!`);
   } catch (e) {
-    error.value = e.message
+    const code = e.code
+    switch (code) {
+      case 'auth/invalid-credential':
+      case 'auth/user-not-found':
+        toast.error('Ongeldige inloggegevens. Controleer je e-mailadres en wachtwoord.')
+        break
+      case 'auth/wrong-password':
+        toast.error('Verkeerd wachtwoord. Probeer opnieuw.')
+        break
+      case 'auth/too-many-requests':
+        toast.error('Te veel pogingen. Probeer het later opnieuw.')
+        break
+      case 'auth/invalid-email':
+        toast.error('Ongeldig e-mailadres.')
+        break
+      default:
+        toast.error('Er is iets misgegaan. Probeer opnieuw.')
+        console.error(e)
+    }
   }
 }
 
+// ✅ Google login
 const handleGoogleLogin = async () => {
-  error.value = '';
-  const provider = new GoogleAuthProvider();
+  const provider = new GoogleAuthProvider()
   try {
-    const authInstance = getAuth();
-    const result = await signInWithPopup(authInstance, provider);
-    const user = result.user;
+    const result = await signInWithPopup(getAuth(), provider)
+    const user = result.user
 
-    // Check of profiel al bestaat in Firestore
-    let exists = false;
-    let route = '/dashboard';
+    let exists = false
+    let route = '/dashboard'
 
     if (isStudent()) {
-      const q = query(collection(db, 'student'), where('authUid', '==', user.uid));
-      const querySnapshot = await getDocs(q);
+      const q = query(collection(db, 'student'), where('authUid', '==', user.uid))
+      const querySnapshot = await getDocs(q)
       if (querySnapshot.empty) {
-        error.value = 'U kunt niet inloggen als student, want u bent geen student.';
-        await auth.signOut();
-        return;
+        toast.error('U bent geen student.')
+        await auth.signOut()
+        return
       }
-      exists = !querySnapshot.empty;
-      route = exists ? '/dashboard' : '/Stinvoer';
+      exists = !querySnapshot.empty
+      route = exists ? '/dashboard' : '/Stinvoer'
     } else if (isBedrijf()) {
-      const q = query(collection(db, 'bedrijf'), where('authUid', '==', user.uid));
-      const querySnapshot = await getDocs(q);
+      const q = query(collection(db, 'bedrijf'), where('authUid', '==', user.uid))
+      const querySnapshot = await getDocs(q)
       if (querySnapshot.empty) {
-        error.value = 'U kunt niet inloggen als bedrijf, want u bent geen bedrijf.';
-        await auth.signOut();
-        return;
+        toast.error('U bent geen bedrijf.')
+        await auth.signOut()
+        return
       }
-      exists = !querySnapshot.empty;
-      route = exists ? '/BedrijfDashboard' : '/InvoerenBd';
+      exists = !querySnapshot.empty
+      route = exists ? '/BedrijfDashboard' : '/InvoerenBd'
     }
 
-    if (exists) {
-      showSuccessToast('Succesvol ingelogd!');
-    } else {
-      showSuccessToast('Welkom! Maak je profiel af.');
-    }
-    setTimeout(() => {
-      router.push(route);
-    }, 1000);
+    toast.success(exists ? 'Succesvol ingelogd!' : 'Welkom! Maak je profiel af.')
+    setTimeout(() => router.push(route), 1000)
   } catch (e) {
-    error.value = 'Google login mislukt: ' + (e.message || e);
+    const code = e.code
+    switch (code) {
+      case 'auth/popup-closed-by-user':
+        toast.error('Inloggen geannuleerd.')
+        break
+      case 'auth/account-exists-with-different-credential':
+        toast.error('Er bestaat al een account met dit e-mailadres. Gebruik de juiste loginmethode.')
+        break
+      default:
+        toast.error('Google login mislukt. Probeer opnieuw.')
+        console.error(e)
+    }
   }
 }
 
-const goToRegister = () => {
-  window.location.href = '/register'
-}
-
-// Password reset functions
+// ✅ Reset wachtwoord
 const openResetModal = () => {
   showResetModal.value = true
   resetEmail.value = ''
-  resetError.value = ''
-  resetSuccess.value = ''
   passwordResetSent.value = false
 }
 
 const closeResetModal = () => {
   showResetModal.value = false
   resetEmail.value = ''
-  resetError.value = ''
-  resetSuccess.value = ''
+  passwordResetSent.value = false
 }
 
 const handlePasswordReset = async () => {
-  resetError.value = ''
-  resetSuccess.value = ''
-
   if (!resetEmail.value) {
-    resetError.value = 'Vul uw e-mailadres in'
+    toast.error('Vul uw e-mailadres in.')
     return
   }
 
   try {
     await sendPasswordResetEmail(auth, resetEmail.value)
-    resetSuccess.value = 'Een wachtwoord reset e-mail is verzonden naar uw e-mailadres. Controleer uw inbox en spam folder.'
+    toast.success('Resetlink verzonden. Controleer uw inbox.')
     passwordResetSent.value = true
-    setTimeout(() => {
-      closeResetModal()
-    }, 3000)
+    setTimeout(() => closeResetModal(), 3000)
   } catch (error) {
-    if (error.code === 'auth/user-not-found') {
-      resetError.value = 'U heeft geen account op deze site. Controleer uw e-mailadres of registreer u eerst.'
-    } else if (error.code === 'auth/invalid-email') {
-      resetError.value = 'Vul een geldig e-mailadres in.'
-    } else {
-      resetError.value = 'Er is een fout opgetreden. Probeer het later opnieuw.'
+    const code = error.code
+    switch (code) {
+      case 'auth/user-not-found':
+        toast.error('Geen account gevonden. Registreer u eerst.')
+        break
+      case 'auth/invalid-email':
+        toast.error('Vul een geldig e-mailadres in.')
+        break
+      default:
+        toast.error('Er is iets misgegaan. Probeer later opnieuw.')
+        console.error(error)
     }
   }
 }
-</script>
 
+const goToRegister = () => {
+  window.location.href = '/register'
+}
+</script>
 <template>
   <Navbar />
-
-  <!-- Custom toast rechtsboven -->
-  <div v-if="successMessage" class="floating-toast">
-    {{ successMessage }}
-  </div>
 
   <div class="login-page">
     <div class="login-card">
@@ -236,10 +243,6 @@ const handlePasswordReset = async () => {
 
       <!-- Login Form -->
       <form @submit.prevent="handleLogin" class="login-form">
-        <div v-if="error" class="error-box">
-          {{ error }}
-        </div>
-
         <div>
           <label>Email:</label>
           <input v-model="email" type="email" placeholder="uw@email.com" />
@@ -287,14 +290,6 @@ const handlePasswordReset = async () => {
       </div>
       <div class="modal-body">
         <p>Vul uw e-mailadres in om een wachtwoord reset link te ontvangen.</p>
-        
-        <div v-if="resetError" class="error-box">
-          {{ resetError }}
-        </div>
-        
-        <div v-if="resetSuccess" class="success-box">
-          {{ resetSuccess }}
-        </div>
 
         <form @submit.prevent="handlePasswordReset" class="reset-form">
           <div>
@@ -306,7 +301,7 @@ const handlePasswordReset = async () => {
               :disabled="passwordResetSent"
             />
           </div>
-          
+
           <div class="modal-actions">
             <button type="button" @click="closeResetModal" class="cancel-btn">
               Annuleren
@@ -320,4 +315,5 @@ const handlePasswordReset = async () => {
     </div>
   </div>
 </template>
+
 

@@ -66,47 +66,53 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { getFirestore, doc, getDoc } from 'firebase/firestore';
-import BedrijfDashboardLayout from '../../../components/BedrijfDashboardLayout.vue';
+import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { getFirestore, doc, getDoc } from 'firebase/firestore'
+import { useToast } from 'vue-toastification'
+import BedrijfDashboardLayout from '../../../components/BedrijfDashboardLayout.vue'
 
-const route = useRoute();
-const router = useRouter();
-const db = getFirestore();
+const toast = useToast()
+const router = useRouter()
+const route = useRoute()
+const db = getFirestore()
 
-const student = ref(null);
-const loading = ref(true);
-const error = ref(null);
+const student = ref(null)
+const loading = ref(true)
+const error = ref(null)
 
 const gaTerug = () => {
-  router.go(-1);
-};
+  router.go(-1)
+}
 
 onMounted(async () => {
-  const studentId = route.params.id;
+  const studentId = route.params.id
   if (!studentId) {
-    error.value = "Geen student ID gevonden in de URL.";
-    loading.value = false;
-    return;
+    error.value = "Geen student ID gevonden in de URL."
+    toast.error(error.value)
+    loading.value = false
+    return
   }
 
   try {
-    const studentDocRef = doc(db, 'student', studentId);
-    const studentSnap = await getDoc(studentDocRef);
+    const studentDocRef = doc(db, 'student', studentId)
+    const studentSnap = await getDoc(studentDocRef)
 
     if (studentSnap.exists()) {
-      student.value = studentSnap.data();
+      student.value = studentSnap.data()
+      toast.success('Studentprofiel succesvol geladen.')
     } else {
-      error.value = "Kon het profiel van deze student niet vinden.";
+      error.value = "Kon het profiel van deze student niet vinden."
+      toast.error(error.value)
     }
   } catch (e) {
-    console.error("Fout bij ophalen van studentprofiel:", e);
-    error.value = "Er is een fout opgetreden bij het laden van het profiel.";
+    console.error("Fout bij ophalen van studentprofiel:", e)
+    error.value = "Er is een fout opgetreden bij het laden van het profiel."
+    toast.error(error.value)
   } finally {
-    loading.value = false;
+    loading.value = false
   }
-});
+})
 </script>
 
 <style scoped>

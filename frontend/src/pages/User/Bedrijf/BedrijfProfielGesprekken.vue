@@ -161,9 +161,10 @@ import { ref, computed, onMounted } from 'vue'
 import { CalendarDays, MapPin, Building, User } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import { getAuth } from 'firebase/auth'
-import { getFirestore, collection, query, where, getDocs, doc, getDoc, deleteDoc, updateDoc } from 'firebase/firestore'
+import { getFirestore, collection, query, where, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore'
 import BedrijfDashboardLayout from '../../../components/BedrijfDashboardLayout.vue'
 import { notificationService } from '../../../services/notificationService'
+import { useToast } from 'vue-toastification'
 
 const navigation = [
   { name: 'Dashboard', href: '/bedrijf/dashboard' },
@@ -176,6 +177,7 @@ const showDropdown = ref(false)
 const router = useRouter()
 const db = getFirestore()
 const auth = getAuth()
+const toast = useToast()
 
 const gesprekken = ref([])
 const loading = ref(true)
@@ -217,8 +219,7 @@ onMounted(async () => {
       })
       .map(async (afspraakDoc) => {
         const afspraakData = afspraakDoc.data();
-        
-        // Bereken duur en haal tijd op
+
         const tijdString = afspraakData.time || 'N/A';
         let duurString = 'N/A';
 
@@ -231,8 +232,7 @@ onMounted(async () => {
             duurString = `${diffInMinutes} min`;
           }
         }
-        
-        // Haal studentgegevens op
+
         const studentDocRef = doc(db, 'student', afspraakData.studentUid);
         const studentSnap = await getDoc(studentDocRef);
         const studentData = studentSnap.exists() ? studentSnap.data() : {};
@@ -278,10 +278,10 @@ const setFilter = (filter) => {
 
 const bekijkProfiel = (studentId) => {
   if (!studentId) {
-    alert("Kan profiel niet openen: student ID ontbreekt.");
+    toast.error("Kan profiel niet openen: student ID ontbreekt.");
     return;
   }
-  // Navigeer naar de nieuwe, bedrijf-specifieke profielpagina.
+  toast.info('Profiel wordt geladen...');
   router.push(`/bedrijf/student/${studentId}`);
 };
 
@@ -291,14 +291,14 @@ const markeerAlsAfgerond = async (id) => {
     await updateDoc(afspraakRef, {
       status: 'afgerond'
     });
-    // Update de lokale state om de UI direct bij te werken
+    toast.success('Afspraak gemarkeerd als afgerond.');
     const index = gesprekken.value.findIndex(g => g.id === id);
     if (index !== -1) {
       gesprekken.value[index].status = 'afgerond';
     }
   } catch (e) {
     console.error("Fout bij bijwerken van afspraak: ", e);
-    alert("Kon de status van de afspraak niet bijwerken.");
+    toast.error("Fout bij bijwerken van afspraakstatus.");
   }
 };
 
@@ -321,47 +321,42 @@ const bevestigAnnulering = async () => {
     annuleerError.value = "Een reden opgeven is verplicht.";
     return;
   }
-  
+
   try {
     const afspraakRef = doc(db, "afspraken", afspraakVoorAnnuleringId.value);
     await updateDoc(afspraakRef, {
       status: 'geannuleerd',
       annuleringsReden: annuleerReden.value
     });
-    
-    // Haal afspraakgegevens op voor notificatie
+
     const afspraakDoc = await getDoc(afspraakRef);
     const afspraakData = afspraakDoc.exists() ? afspraakDoc.data() : {};
-    
+
     if (afspraakData.studentUid) {
-      // Haal studentgegevens op
       const studentDoc = await getDoc(doc(db, 'student', afspraakData.studentUid));
       const studentData = studentDoc.exists() ? studentDoc.data() : {};
-      const studentName = `${studentData.voornaam || 'Onbekende'} ${studentData.achternaam || 'Student'}`;
-      
-      // Haal bedrijfsgegevens op
       const bedrijfId = auth.currentUser?.uid;
       const bedrijfDoc = await getDoc(doc(db, 'bedrijf', bedrijfId));
       const bedrijfData = bedrijfDoc.exists() ? bedrijfDoc.data() : {};
       const bedrijfNaam = bedrijfData.bedrijfsnaam || 'Onbekend Bedrijf';
-      
-      // Stuur notificatie naar student
+
       await notificationService.createStudentAppointmentCancelledNotification(
-        afspraakData.studentUid, 
-        bedrijfNaam, 
+        afspraakData.studentUid,
+        bedrijfNaam,
         annuleerReden.value
       );
     }
-    
-    // Update de lokale state
+
     const index = gesprekken.value.findIndex(g => g.id === afspraakVoorAnnuleringId.value);
     if (index !== -1) {
       gesprekken.value[index].status = 'geannuleerd';
     }
-    
+
+    toast.success('Afspraak succesvol geannuleerd.');
     closeAnnuleerModal();
   } catch (e) {
     console.error("Fout bij annuleren van afspraak: ", e);
+    toast.error("Fout bij annuleren van afspraak.");
     annuleerError.value = "Kon de afspraak niet annuleren.";
   }
 };
@@ -386,6 +381,7 @@ if (typeof window !== 'undefined') {
   window.addEventListener('mousedown', handleClickOutside)
 }
 </script>
+
 
 <style scoped>
 .dashboard-container {

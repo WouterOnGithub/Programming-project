@@ -101,17 +101,14 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { getFirestore, collection, query, where, getDocs, orderBy, limit, doc, getDoc } from 'firebase/firestore';
+import { getFirestore, collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
-import StudentDashboardLayout from '../../components/StudentDashboardLayout.vue'
+import { useToast } from 'vue-toastification';
+import StudentDashboardLayout from '../../components/StudentDashboardLayout.vue';
 
-const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: 'fas fa-chart-pie' },
-  { name: 'Job Swiping', href: '/swipe', icon: 'fas fa-heart' },
-  { name: 'Afspraken', href: '/appointments', icon: 'fas fa-calendar' },
-  { name: 'Profiel', href: '/WeergaveSt', icon: 'fas fa-user' },
-  { name: 'Instellingen', href: '/settings', icon: 'fas fa-cog' },
-];
+const toast = useToast();
+const db = getFirestore();
+const auth = getAuth();
 
 const loading = ref({
   stats: true,
@@ -129,27 +126,22 @@ const statsData = ref([]);
 const appointments = ref([]);
 const recentActivity = ref([]);
 
-const db = getFirestore();
-const auth = getAuth();
-
 const fetchDashboardData = async () => {
   const userId = auth.currentUser?.uid;
-  console.log('StudentDashboard userId:', userId);
   if (!userId) {
     error.value.stats = 'Gebruiker niet ingelogd';
     error.value.appointments = 'Gebruiker niet ingelogd';
     error.value.activity = 'Gebruiker niet ingelogd';
+    toast.error('Je bent niet ingelogd.');
     return;
   }
 
   try {
-    // Haal afspraken uit root-collectie 'afspraken'
     const afsprakenSnap = await getDocs(collection(db, 'afspraken'));
     const bedrijvenSnap = await getDocs(collection(db, 'bedrijf'));
     const bedrijvenMap = {};
     bedrijvenSnap.forEach(docu => { bedrijvenMap[docu.id] = docu.data(); });
 
-    // Filter afspraken voor deze student en status upcoming
     const upcomingAppointments = afsprakenSnap.docs
       .map(docu => {
         const data = docu.data();
@@ -170,15 +162,20 @@ const fetchDashboardData = async () => {
 
     appointments.value = upcomingAppointments;
     loading.value.appointments = false;
+  } catch (err) {
+    console.error('Fout bij laden van afspraken:', err);
+    error.value.appointments = 'Kon afspraken niet ophalen.';
+    loading.value.appointments = false;
+    toast.error('Er ging iets mis bij het ophalen van je afspraken.');
+  }
 
-    // Matches ophalen en tellen
+  try {
     const matchesSnap = await getDocs(collection(db, 'student', userId, 'swipes'));
     const matchesCount = matchesSnap.docs.filter(docu => {
       const d = docu.data();
       return d.status === 'geaccepteerd' || d.status === 'gepland';
     });
 
-    // Favorieten ophalen en tellen
     const favorietenSnap = await getDocs(collection(db, 'student', userId, 'favorieten'));
     const favorietenCount = favorietenSnap.size;
 
@@ -193,7 +190,7 @@ const fetchDashboardData = async () => {
       },
       {
         title: 'Afspraken',
-        value: upcomingAppointments.length.toString(),
+        value: appointments.value.length.toString(),
         change: '0%',
         trend: 'neutral',
         icon: 'fas fa-calendar',
@@ -210,22 +207,20 @@ const fetchDashboardData = async () => {
     ];
     loading.value.stats = false;
   } catch (err) {
-    console.error('Error fetching stats:', err);
-    error.value.stats = 'Er is een fout opgetreden bij het ophalen van de statistieken';
+    console.error('Fout bij laden van statistieken:', err);
+    error.value.stats = 'Kon statistieken niet ophalen.';
     loading.value.stats = false;
+    toast.error('Er ging iets mis bij het ophalen van je statistieken.');
   }
 
   try {
-    // Fetch activity
     const activityPromises = [
-      // Matches
       getDocs(query(
         collection(db, 'matches'),
         where('studentId', '==', userId),
         orderBy('createdAt', 'desc'),
         limit(5)
       )),
-      // Appointments
       getDocs(query(
         collection(db, 'appointments'),
         where('studentId', '==', userId),
@@ -234,7 +229,7 @@ const fetchDashboardData = async () => {
       ))
     ];
 
-    const [matches, appointments] = await Promise.all(activityPromises);
+    const [matches, appointmentsDocs] = await Promise.all(activityPromises);
 
     const activities = [
       ...matches.docs.map(doc => {
@@ -245,7 +240,7 @@ const fetchDashboardData = async () => {
           time: data.createdAt ? data.createdAt.toDate() : new Date()
         };
       }),
-      ...appointments.docs.map(doc => {
+      ...appointmentsDocs.docs.map(doc => {
         const data = doc.data();
         return {
           type: 'appointment',
@@ -255,7 +250,6 @@ const fetchDashboardData = async () => {
       })
     ];
 
-    // Sort all activities by time and take the most recent 10
     recentActivity.value = activities
       .sort((a, b) => b.time - a.time)
       .slice(0, 10)
@@ -266,16 +260,17 @@ const fetchDashboardData = async () => {
 
     loading.value.activity = false;
   } catch (err) {
-    console.error('Error fetching activity:', err);
-    error.value.activity = 'Er is een fout opgetreden bij het ophalen van de activiteit';
+    console.error('Fout bij laden van activiteit:', err);
+    error.value.activity = 'Kon activiteit niet ophalen.';
     loading.value.activity = false;
+    toast.error('Er ging iets mis bij het ophalen van je activiteit.');
   }
 };
 
 const formatTimeAgo = (date) => {
   const now = new Date();
   const diffInSeconds = Math.floor((now - date) / 1000);
-  
+
   if (diffInSeconds < 60) return 'zojuist';
   if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minuten geleden`;
   if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} uur geleden`;
@@ -295,6 +290,7 @@ onMounted(() => {
   fetchDashboardData();
 });
 </script>
+
 
 <style scoped>
 .dashboard-container {

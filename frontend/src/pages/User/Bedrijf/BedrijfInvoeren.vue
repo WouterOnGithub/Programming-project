@@ -2,7 +2,7 @@
 import { ref, reactive, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { getAuth } from 'firebase/auth'
-import { getFirestore, collection, addDoc, doc, setDoc } from 'firebase/firestore'
+import { getFirestore, doc, setDoc } from 'firebase/firestore'
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
 import profielfoto from '/Images/profielfoto.jpg'
 import { useToast } from 'vue-toastification'
@@ -150,9 +150,15 @@ async function bevestigGegevens() {
 
     let fotoUrl = null
     if (formData.foto) {
-      const fotoRef = storageRef(storage, `bedrijf_fotos/${user.uid}_${Date.now()}`)
-      await uploadBytes(fotoRef, formData.foto)
-      fotoUrl = await getDownloadURL(fotoRef)
+      try {
+        const fotoRef = storageRef(storage, `bedrijf_fotos/${user.uid}_${Date.now()}`)
+        await uploadBytes(fotoRef, formData.foto)
+        fotoUrl = await getDownloadURL(fotoRef)
+      } catch (uploadError) {
+        console.error('Fout bij uploaden van foto:', uploadError)
+        toast.error('Fout bij uploaden van de foto.')
+        return
+      }
     }
 
     await setDoc(doc(db, 'bedrijf', user.uid), {
