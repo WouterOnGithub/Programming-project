@@ -3,11 +3,9 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToast } from 'vue-toastification'
 
-// ✅ Componenten en styling
 import Navbar from '../../components/Navbar.vue'
 import '../../css/login.css'
 
-// ✅ Firebase
 import { auth, db } from '../../firebase/config'
 import {
   signInWithEmailAndPassword,
@@ -25,7 +23,6 @@ import {
   where
 } from 'firebase/firestore'
 
-// ✅ State & helpers
 const toast = useToast()
 const router = useRouter()
 
@@ -39,14 +36,9 @@ const passwordResetSent = ref(false)
 
 const isStudent = () => selectedRole.value === 'student'
 const isBedrijf = () => selectedRole.value === 'bedrijf'
-const isAdmin = () => selectedRole.value === 'admin'
 
 const selectRole = (role) => {
   selectedRole.value = role
-  clearForm()
-}
-
-const clearForm = () => {
   email.value = ''
   password.value = ''
 }
@@ -61,18 +53,6 @@ const handleLogin = async () => {
   try {
     const userCredential = await signInWithEmailAndPassword(auth, email.value, password.value)
     const user = userCredential.user
-
-    if (isAdmin()) {
-      const userDoc = await getDoc(doc(db, 'admin', user.uid))
-      if (userDoc.exists()) {
-        toast.success('Ingelogd als administrator!')
-        setTimeout(() => router.push('/admin/dashboard'), 1000)
-      } else {
-        toast.error('Geen adminrechten.')
-        await auth.signOut()
-      }
-      return
-    }
 
     if (isStudent()) {
       const q = query(collection(db, 'student'), where('authUid', '==', user.uid))
@@ -95,24 +75,25 @@ const handleLogin = async () => {
       toast.success('Welkom bedrijf!')
       setTimeout(() => router.push('/BedrijfDashboard'), 1000)
     }
+
   } catch (e) {
     const code = e.code
     switch (code) {
       case 'auth/invalid-credential':
       case 'auth/user-not-found':
-        toast.error('Ongeldige inloggegevens. Controleer je e-mailadres en wachtwoord.')
+        toast.error('Ongeldige inloggegevens.')
         break
       case 'auth/wrong-password':
-        toast.error('Verkeerd wachtwoord. Probeer opnieuw.')
+        toast.error('Verkeerd wachtwoord.')
         break
       case 'auth/too-many-requests':
-        toast.error('Te veel pogingen. Probeer het later opnieuw.')
+        toast.error('Te veel pogingen. Probeer later opnieuw.')
         break
       case 'auth/invalid-email':
         toast.error('Ongeldig e-mailadres.')
         break
       default:
-        toast.error('Er is iets misgegaan. Probeer opnieuw.')
+        toast.error('Er is iets misgegaan.')
         console.error(e)
     }
   }
@@ -202,16 +183,13 @@ const handlePasswordReset = async () => {
         toast.error('Vul een geldig e-mailadres in.')
         break
       default:
-        toast.error('Er is iets misgegaan. Probeer later opnieuw.')
+        toast.error('Er is iets misgegaan.')
         console.error(error)
     }
   }
 }
-
-const goToRegister = () => {
-  window.location.href = '/register'
-}
 </script>
+
 <template>
   <Navbar />
 
@@ -232,11 +210,6 @@ const goToRegister = () => {
           <div :class="['role-card', { active: isBedrijf() }]" @click="selectRole('bedrijf')">
             <h4>🏢 Bedrijf</h4>
             <p>Vind stagiairs en werknemers</p>
-          </div>
-
-          <div :class="['role-card', { active: isAdmin() }]" @click="selectRole('admin')">
-            <h4>⚙️ Administrator</h4>
-            <p>Beheer het systeem</p>
           </div>
         </div>
       </div>
@@ -275,7 +248,7 @@ const goToRegister = () => {
       <div class="footer">
         <p>Nog geen account?</p>
         <router-link to="/register">
-          <button @click="goToRegister" class="register-btn">Account aanmaken</button>
+          <button class="register-btn">Account aanmaken</button>
         </router-link>
       </div>
     </div>
@@ -289,7 +262,7 @@ const goToRegister = () => {
         <button @click="closeResetModal" class="close-button">×</button>
       </div>
       <div class="modal-body">
-        <p>Vul uw e-mailadres in om een wachtwoord reset link te ontvangen.</p>
+        <p>Vul uw e-mailadres in om een resetlink te ontvangen.</p>
 
         <form @submit.prevent="handlePasswordReset" class="reset-form">
           <div>
@@ -315,5 +288,3 @@ const goToRegister = () => {
     </div>
   </div>
 </template>
-
-

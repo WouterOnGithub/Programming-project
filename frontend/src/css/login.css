@@ -42,11 +42,16 @@ body, .login-page {
 }
  
 .role-cards {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 15px;
-  margin-bottom: 30px;
+  display: flex;
+  flex-direction: row; /* VERANDERD van column naar row */
+  justify-content: center;
+  align-items: stretch; /* of center als je wilt uitlijnen op hoogte */
+  gap: 16px;
+  margin-top: 1rem;
+  
 }
+
+
  
 .role-card {
   background: #f8f9fa;
