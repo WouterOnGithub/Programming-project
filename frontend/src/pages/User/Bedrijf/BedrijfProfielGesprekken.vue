@@ -1,7 +1,8 @@
 <template>
   <BedrijfDashboardLayout>
     <main class="dashboard-main">
-      <section class="dashboard-card">
+      <!-- Desktop View -->
+      <section class="dashboard-card desktop-view">
         <div class="header-flex">
           <div>
             <h2 class="subtitel">Geplande Afspraken</h2>
@@ -24,6 +25,7 @@
         </div>
         <div v-else class="lijst">
           <div v-for="gesprek in gesorteerdeGesprekken" :key="gesprek.id" class="kaart">
+            <!-- Desktop card content -->
             <div class="rij ruimte-tussen">
               <div class="flex-1">
                 <div class="rij ruimte mb">
@@ -71,8 +73,67 @@
           </div>
         </div>
       </section>
+
+      <!-- Mobile View -->
+      <section class="mobile-view">
+        <div class="mobile-header-card">
+          <h2 class="subtitel">Geplande Afspraken</h2>
+          <p class="aantal-studenten-mobile">
+            Aantal studenten: <strong>{{ gesorteerdeGesprekken.length }}</strong>
+          </p>
+          <div class="filter-knoppen-mobile">
+            <button @click="setFilter('all')" :class="{ 'actief': activeFilter === 'all' }">Alle</button>
+            <button @click="setFilter('upcoming')" :class="{ 'actief': activeFilter === 'upcoming' }">Komend</button>
+            <button @click="setFilter('afgerond')" :class="{ 'actief': activeFilter === 'afgerond' }">Afgerond</button>
+             <button @click="setFilter('geannuleerd')" :class="{ 'actief': activeFilter === 'geannuleerd' }">Geannuleerd</button>
+          </div>
+        </div>
+
+        <div v-if="loading" class="geen-gegevens">Laden...</div>
+        <div v-else-if="error" class="geen-gegevens error">{{ error }}</div>
+        <div v-else-if="gesorteerdeGesprekken.length === 0" class="geen-gegevens">
+          Geen afspraken die voldoen aan dit filter.
+        </div>
+        <div v-else class="mobile-lijst">
+          <div v-for="gesprek in gesorteerdeGesprekken" :key="gesprek.id" class="mobile-kaart">
+            <div class="mobile-kaart-header">
+              <h3 class="naam">{{ gesprek.student }}</h3>
+              <span class="duur-mobile">{{ gesprek.duur }}</span>
+            </div>
+            <div class="mobile-kaart-body">
+              <div class="info-line">
+                <span class="tijd-label">{{ gesprek.tijd }}</span>
+              </div>
+              <p><strong>Domein:</strong> <span class="value-red">{{ gesprek.domein }}</span></p>
+              <p><strong>Studiejaar:</strong> <span class="value-red">{{ gesprek.studiejaar }}</span></p>
+              <p class="locatie-mobile"><MapPin class="icoon" /> {{ gesprek.locatie }}</p>
+            </div>
+             <div class="mobile-actie-knoppen">
+                <template v-if="gesprek.status === 'upcoming'">
+                  <button @click="bekijkProfiel(gesprek.studentId)" class="profielknop-mobile">
+                    <User class="icoon" /> Profiel
+                  </button>
+                  <button @click="markeerAlsAfgerond(gesprek.id)" class="actieknop-mobile voltooi">
+                    ✓ Afronden
+                  </button>
+                  <button @click="openAnnuleerModal(gesprek.id)" class="actieknop-mobile annuleer">Annuleren</button>
+                </template>
+                <template v-else-if="gesprek.status === 'geannuleerd'">
+                  <div class="cancellation-reason-mobile">
+                    <div class="reason-header">Geannuleerd:</div>
+                    <p class="reason-text">"{{ gesprek.annuleringsReden }}"</p>
+                  </div>
+                </template>
+                <template v-else>
+                  <div class="status-badge-mobile afgerond">
+                    ✓ Afgerond
+                  </div>
+                </template>
+              </div>
+          </div>
+        </div>
+      </section>
     </main>
-  </BedrijfDashboardLayout>
 
   <!-- Annuleer Modal -->
   <div v-if="showAnnuleerModal" class="modal-overlay">
@@ -92,6 +153,7 @@
       </div>
     </div>
   </div>
+  </BedrijfDashboardLayout>
 </template>
 
 <script setup>
@@ -804,6 +866,198 @@ if (typeof window !== 'undefined') {
   color: #dc2626;
   font-style: italic;
   font-size: 0.9rem;
+}
+
+.desktop-view {
+  display: block;
+}
+.mobile-view {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .desktop-view {
+    display: none;
+  }
+  .mobile-view {
+    display: block;
+  }
+  .dashboard-main {
+    padding: 0;
+  }
+  
+  .mobile-header-card {
+    background: #fff;
+    padding: 1rem;
+    margin: 1rem 1rem 0 1rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  }
+  
+  .mobile-header-card .subtitel {
+    text-align: center;
+    margin-bottom: 0.5rem;
+  }
+
+  .aantal-studenten-mobile {
+    text-align: center;
+    color: #6b7280;
+    margin: 0 0 1rem 0;
+    font-size: 0.9rem;
+  }
+
+  .filter-knoppen-mobile {
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .filter-knoppen-mobile button {
+    background: #f0f2f5;
+    border: none;
+    border-radius: 20px;
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #374151;
+    cursor: pointer;
+  }
+
+  .filter-knoppen-mobile button.actief {
+    background: #c20000;
+    color: white;
+  }
+  
+  .mobile-lijst {
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .mobile-kaart {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    padding: 1rem;
+  }
+
+  .mobile-kaart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #f0f2f5;
+    padding-bottom: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .mobile-kaart-header .naam {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #111827;
+  }
+  
+  .mobile-kaart-header .tijd-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #c20000;
+  }
+  
+  .mobile-kaart-body p {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.9rem;
+    color: #374151;
+  }
+
+  .mobile-kaart-body .value-red {
+    color: #c20000;
+    font-weight: 500;
+  }
+
+  .mobile-kaart-body .locatie-mobile {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #6b7280;
+  }
+
+  .mobile-kaart-body .icoon {
+    width: 16px;
+    height: 16px;
+  }
+  
+  .mobile-actie-knoppen {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #f0f2f5;
+  }
+
+  .profielknop-mobile, .actieknop-mobile {
+    border: none;
+    border-radius: 8px;
+    padding: 0.6rem 1rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .profielknop-mobile {
+    background-color: #c20000;
+    color: white;
+    flex-grow: 1;
+    justify-content: center;
+  }
+
+  .actieknop-mobile.voltooi {
+    background-color: #f0f2f5;
+    color: #374151;
+    border: 1px solid #e5e7eb;
+  }
+
+  .actieknop-mobile.annuleer {
+    background-color: #6b7280;
+    color: white;
+  }
+  
+  .status-badge-mobile, .cancellation-reason-mobile {
+     width: 100%;
+     text-align: center;
+     padding: 0.75rem;
+     border-radius: 8px;
+  }
+
+  .status-badge-mobile.afgerond {
+    background: #f0f2f5;
+    color: #374151;
+    border: 1px solid #e5e7eb;
+    font-weight: 500;
+  }
+  
+  .cancellation-reason-mobile {
+     background-color: #f8d7da;
+     color: #721c24;
+  }
+
+  .reason-header {
+    font-weight: bold;
+  }
+
+  .duur-mobile {
+    font-size: 0.9rem;
+    color: #6b7280;
+    font-weight: 500;
+  }
+  
+  .info-line {
+    margin-bottom: 0.75rem;
+  }
 }
 </style>
   
