@@ -80,7 +80,10 @@ import {
   setDoc,
   doc,
   serverTimestamp,
-  getDoc
+  getDoc,
+  deleteDoc,
+  query,
+  where,
 } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import StudentDashboardLayout from '../../components/StudentDashboardLayout.vue';
@@ -148,43 +151,59 @@ export default {
         toast.error("Geen gebruiker gevonden. Log in om te swipen.");
         return;
       }
-
+    
       currentUser.value = user;
       const studentId = user.uid;
-
+      loading.value = true;
+      error.value = null;
+    
       try {
-        loading.value = true;
-        const swipedIds = new Set();
-
-        const swipesSnap = await getDocs(collection(db, 'student', studentId, 'swipes'));
-        swipesSnap.forEach(doc => swipedIds.add(doc.id));
-
-        const favSnap = await getDocs(collection(db, 'student', studentId, 'favorieten'));
-        favSnap.forEach(doc => swipedIds.add(doc.id));
-
-        const companiesSnap = await getDocs(collection(db, 'bedrijf'));
-        jobs.value = companiesSnap.docs
-          .map(doc => ({
-            id: doc.id,
-            bedrijfUid: doc.id,
-            company: doc.data().bedrijfsnaam || 'Onbekend',
-            title: Array.isArray(doc.data().opZoekNaar) ? doc.data().opZoekNaar.join(', ') : (doc.data().opZoekNaar || 'Stageplaats'),
-            location: doc.data().gesitueerdIn || '-',
-            type: doc.data().gesprekDuur || 'Stage',
-            description: doc.data().overOns || 'Geen beschrijving beschikbaar',
-            duration: doc.data().gesprekDuur ? `${doc.data().gesprekDuur} min` : '10 min',
-            schedule: doc.data().starttijd && doc.data().eindtijd ? `${doc.data().starttijd} - ${doc.data().eindtijd}` : '-',
-            skills: doc.data().skills || [],
-            linkedinUrl: doc.data().linkedin || '#',
-            logo: doc.data().foto || null,
-            verificationStatus: doc.data().verificationStatus || 'wachtend'
-          }))
-          .filter(job => !swipedIds.has(job.bedrijfUid))
-          .filter(job => job.verificationStatus === 'geverifieerd');
+        // --- Tijdelijke reset voor testdoeleinden ---
+        const clearSubcollection = async (subcollectionName) => {
+          const subcollectionRef = collection(db, 'student', studentId, subcollectionName);
+          const snapshot = await getDocs(subcollectionRef);
+          const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
+          await Promise.all(deletePromises);
+          console.log(`Subcollectie "${subcollectionName}" is gereset.`);
+        };
+    
+        // Wacht expliciet tot de reset voltooid is
+        await clearSubcollection('swipes');
+        await clearSubcollection('favorieten');
+        // --- Einde van de tijdelijke reset ---
+    
+        // Nu de subcollecties leeg zijn, kunnen we de rest laden.
+        const swipedIds = new Set(); // Zal leeg zijn
+        
+        const q = query(collection(db, 'bedrijf'), where('verificatieStatus', '==', 'goedgekeurd'));
+        const companiesSnap = await getDocs(q);
+    
+        if (companiesSnap.empty) {
+          console.log("Geen goedgekeurde bedrijven gevonden in de database.");
+          jobs.value = [];
+        } else {
+          jobs.value = companiesSnap.docs
+            .map(doc => ({
+              id: doc.id,
+              bedrijfUid: doc.id,
+              company: doc.data().bedrijfsnaam || 'Onbekend',
+              title: Array.isArray(doc.data().opZoekNaar) ? doc.data().opZoekNaar.join(', ') : (doc.data().opZoekNaar || 'Stageplaats'),
+              location: doc.data().gesitueerdIn || '-',
+              type: doc.data().gesprekDuur || 'Stage',
+              description: doc.data().overOns || 'Geen beschrijving beschikbaar',
+              duration: doc.data().gesprekDuur ? `${doc.data().gesprekDuur} min` : '10 min',
+              schedule: doc.data().starttijd && doc.data().eindtijd ? `${doc.data().starttijd} - ${doc.data().eindtijd}` : '-',
+              skills: doc.data().skills || [],
+              linkedinUrl: doc.data().linkedin || '#',
+              logo: doc.data().foto || null,
+            }));
+        }
+    
       } catch (err) {
         console.error("Fout bij laden van bedrijven:", err);
         error.value = 'Fout bij laden van bedrijven.';
         toast.error('Fout bij laden van bedrijven. Probeer later opnieuw.');
+        jobs.value = [];
       } finally {
         loading.value = false;
       }

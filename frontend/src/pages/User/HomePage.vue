@@ -264,9 +264,9 @@ export default {
 
         bedrijven.value = snapshot.docs.map(doc => ({
           id: doc.id,
-          naam: doc.data().bedrijfsnaam,
-          foto: doc.data().foto,
-          linkedin: doc.data().linkedin
+          naam: doc.data().bedrijfsnaam || 'Onbekende Bedrijfsnaam',
+          foto: doc.data().logoUrl || '/Images/placeholder-logo.png',
+          linkedin: doc.data().linkedin || '#',
         }))
       } catch (err) {
         error.value = 'Fout bij ophalen van bedrijven.'
@@ -278,8 +278,15 @@ export default {
     }
 
     const filteredCompanies = computed(() => {
-      return bedrijven.value.filter(c =>
-        c.naam.toLowerCase().includes(companySearch.value.toLowerCase())
+      if (!companySearch.value) {
+        return bedrijven.value
+      }
+      const searchLower = companySearch.value.toLowerCase()
+      return bedrijven.value.filter(
+        company =>
+          company.naam &&
+          typeof company.naam === 'string' &&
+          company.naam.toLowerCase().includes(searchLower)
       )
     })
 
