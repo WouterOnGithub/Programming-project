@@ -100,7 +100,10 @@ router.beforeEach(async (to, from, next) => {
   // Toegestaan zonder login
   const publicPaths = ['/', '/login', '/register', '/admin/loginAdmin']
   if (!user && !publicPaths.includes(to.path)) {
-    return next('/login')
+    if (to.path.startsWith('/admin')) {
+      return next('/admin/loginAdmin');
+    }
+    return next('/login');
   }
 
   // Admin loginpagina altijd toegankelijk
