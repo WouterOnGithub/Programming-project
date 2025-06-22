@@ -231,11 +231,13 @@ import { onMounted, ref, computed } from 'vue'
 import Navbar from '../../components/Navbar.vue'
 import '../../css/Home.css'
 import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore'
+import { useToast } from 'vue-toastification'
 
 export default {
   name: 'Homepage',
   components: { Navbar },
   setup() {
+    const toast = useToast()
     const db = getFirestore()
     const bedrijven = ref([])
     const loading = ref(true)
@@ -260,6 +262,7 @@ export default {
       } catch (err) {
         error.value = 'Fout bij ophalen van bedrijven.'
         console.error(err)
+        toast.error('Er ging iets mis bij het laden van de bedrijven.')
       } finally {
         loading.value = false
       }
@@ -323,8 +326,6 @@ export default {
   }
 }
 </script>
-
-
 
 <style scoped>
 /***** Bedrijven Header *****/

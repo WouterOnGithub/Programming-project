@@ -1,180 +1,155 @@
 <script setup>
-import { reactive, ref } from 'vue';
-import { auth, db, GoogleAuthProvider, signInWithPopup } from '../../firebase/config';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { collection, doc, setDoc, query, where, getDocs, getDoc } from 'firebase/firestore';
-import { useRouter } from 'vue-router';
+import { reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useToast } from 'vue-toastification'
+import { auth, db } from '../../firebase/config'
+import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth'
+import { collection, doc, setDoc, query, where, getDocs, getDoc } from 'firebase/firestore'
 import '../../css/register.css'
 import Navbar from '../../components/Navbar.vue'
 
-const router = useRouter();
-const error = ref('');
+const router = useRouter()
+const toast = useToast()
 
-// Verwijderd: name
+const selectedType = ref('student')
+
 const studentData = reactive({
   email: '',
   password: '',
   confirmPassword: ''
-});
+})
 
 const companyData = reactive({
   email: '',
   password: '',
   confirmPassword: ''
-});
+})
 
-const selectedType = ref('student');
-
-const isStudent = () => selectedType.value === 'student';
-const isBedrijf = () => selectedType.value === 'bedrijf';
+const isStudent = () => selectedType.value === 'student'
+const isBedrijf = () => selectedType.value === 'bedrijf'
 
 const selectType = (type) => {
-  selectedType.value = type;
-};
+  selectedType.value = type
+}
 
 const clearForms = () => {
-  Object.keys(studentData).forEach(key => {
-    studentData[key] = '';
-  });
-  Object.keys(companyData).forEach(key => {
-    companyData[key] = '';
-  });
-};
+  Object.keys(studentData).forEach(key => studentData[key] = '')
+  Object.keys(companyData).forEach(key => companyData[key] = '')
+}
 
 const handleRegister = async () => {
   try {
+    const data = isStudent() ? studentData : companyData
+
+    if (data.password !== data.confirmPassword) {
+      toast.error('Wachtwoorden komen niet overeen')
+      return
+    }
+
+    const usersRef = collection(db, 'users')
+    const q = query(usersRef, where('email', '==', data.email))
+    const querySnapshot = await getDocs(q)
+
+    if (!querySnapshot.empty) {
+      toast.error('Dit e-mailadres is al in gebruik')
+      return
+    }
+
+    const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password)
+    const user = userCredential.user
+
     if (isStudent()) {
-      if (studentData.password !== studentData.confirmPassword) {
-        error.value = 'Wachtwoorden komen niet overeen';
-        return;
-      }
-
-      const usersRef = collection(db, 'users');
-      const q = query(usersRef, where('email', '==', studentData.email));
-      const querySnapshot = await getDocs(q);
-
-      if (!querySnapshot.empty) {
-        error.value = 'Dit e-mailadres is al in gebruik';
-        return;
-      }
-
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        studentData.email,
-        studentData.password
-      );
-      const user = userCredential.user;
-
-      // Maak een document aan in de 'student' collectie
       await setDoc(doc(db, 'student', user.uid), {
         email: user.email,
         authUid: user.uid,
-        createdAt: new Date() // Gebruik new Date() i.p.v. serverTimestamp
-      });
-
-      alert(`Student account aangemaakt!`);
-      clearForms();
-      router.push({ path: '/Stinvoer', query: { fromRegister: '1' } });
-
+        createdAt: new Date()
+      })
+      toast.success('Student account succesvol aangemaakt!')
+      clearForms()
+      router.push({ path: '/Stinvoer', query: { fromRegister: '1' } })
     } else {
-      if (companyData.password !== companyData.confirmPassword) {
-        error.value = 'Wachtwoorden komen niet overeen';
-        return;
-      }
-
-      const usersRef = collection(db, 'users');
-      const q = query(usersRef, where('email', '==', companyData.email));
-      const querySnapshot = await getDocs(q);
-
-      if (!querySnapshot.empty) {
-        error.value = 'Dit e-mailadres is al in gebruik';
-        return;
-      }
-
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        companyData.email,
-        companyData.password
-      );
-      const user = userCredential.user;
-
-      // Maak een document aan in de 'bedrijf' collectie
       await setDoc(doc(db, 'bedrijf', user.uid), {
         email: user.email,
         authUid: user.uid,
         createdAt: new Date(),
         verificatieStatus: 'wachtend op verificatie'
-      });
-
-      alert(`Bedrijf account aangemaakt!`);
-      clearForms();
-      router.push({ path: '/InvoerenBd', query: { fromRegister: '1' } });
+      })
+      toast.success('Bedrijf account succesvol aangemaakt!')
+      clearForms()
+      router.push({ path: '/InvoerenBd', query: { fromRegister: '1' } })
     }
   } catch (e) {
-    error.value = e.message;
+    const message = e.message || 'Er is iets misgelopen.'
+    if (message.includes('auth/weak-password')) {
+      toast.error('Wachtwoord is te zwak (minimaal 6 tekens vereist).')
+    } else if (message.includes('auth/invalid-email')) {
+      toast.error('Voer een geldig e-mailadres in.')
+    } else {
+      toast.error('Registratie mislukt: ' + message)
+    }
   }
-};
+}
 
 const handleGoogleRegister = async () => {
-  error.value = '';
-  const provider = new GoogleAuthProvider();
+  const provider = new GoogleAuthProvider()
   try {
-    const result = await signInWithPopup(auth, provider);
-    const user = result.user;
-
-    // Check of profiel al bestaat in Firestore
-    let exists = false;
-    let route = '/dashboard';
+    const result = await signInWithPopup(auth, provider)
+    const user = result.user
+    let exists = false
+    let route = '/dashboard'
 
     if (isStudent()) {
-      // Controleer in 'student' collectie
-      const studentDocRef = doc(db, 'student', user.uid);
-      const studentDocSnap = await getDoc(studentDocRef);
-      if (studentDocSnap.exists()) {
-        exists = true;
+      const docRef = doc(db, 'student', user.uid)
+      const docSnap = await getDoc(docRef)
+      if (docSnap.exists()) {
+        exists = true
       } else {
-        // Maak student document aan als het niet bestaat
-        await setDoc(studentDocRef, {
+        await setDoc(docRef, {
           email: user.email,
           authUid: user.uid,
           createdAt: new Date(),
           naam: user.displayName || user.email.split('@')[0]
-        });
+        })
       }
-      route = exists ? '/dashboard' : '/Stinvoer';
+      route = exists ? '/dashboard' : '/Stinvoer'
     } else if (isBedrijf()) {
-      // Controleer in 'bedrijf' collectie
-      const bedrijfDocRef = doc(db, 'bedrijf', user.uid);
-      const bedrijfDocSnap = await getDoc(bedrijfDocRef);
-      if (bedrijfDocSnap.exists()) {
-        exists = true;
+      const docRef = doc(db, 'bedrijf', user.uid)
+      const docSnap = await getDoc(docRef)
+      if (docSnap.exists()) {
+        exists = true
       } else {
-        // Maak bedrijf document aan als het niet bestaat
-        await setDoc(bedrijfDocRef, {
+        await setDoc(docRef, {
           email: user.email,
           authUid: user.uid,
           bedrijfsnaam: user.displayName || user.email.split('@')[0],
           createdAt: new Date(),
           verificatieStatus: 'wachtend op verificatie'
-        });
+        })
       }
-      route = exists ? '/BedrijfDashboard' : '/InvoerenBd';
+      route = exists ? '/BedrijfDashboard' : '/InvoerenBd'
     }
 
-    alert(`Welkom ${user.displayName || user.email}!`);
-    router.push(route);
+    toast.success(`Welkom ${user.displayName || user.email}!`)
+    router.push(route)
   } catch (e) {
-    error.value = e.message;
+    const message = e.message || 'Google-registratie mislukt.'
+    if (message.includes('auth/popup-closed-by-user')) {
+      toast.error('Google-popup is gesloten. Probeer opnieuw.')
+    } else {
+      toast.error('Google registratie mislukt: ' + message)
+    }
   }
 }
 
 const goToLogin = () => {
-  router.push('/login');
-};
+  router.push('/login')
+}
 </script>
 
 <template>
   <Navbar />
+
+  <!-- Toast Container voor meldingen -->
 
   <div class="register-page">
     <div class="register-card">
@@ -209,15 +184,9 @@ const goToLogin = () => {
 
       <!-- Register Form -->
       <form @submit.prevent="handleRegister" class="register-form">
-        <div v-if="error" class="error-box">
-          {{ error }}
-        </div>
-
         <!-- Student Form -->
         <div v-if="isStudent()" class="form-section">
           <h4>👨‍🎓 Student Registratie</h4>
-
-          <!-- Naam veld verwijderd -->
 
           <div>
             <label>Email:</label>
@@ -235,6 +204,7 @@ const goToLogin = () => {
           </div>
         </div>
 
+        <!-- Bedrijf Form -->
         <div v-if="isBedrijf()" class="form-section">
           <h4>🏢 Bedrijf Registratie</h4>
 
@@ -261,7 +231,7 @@ const goToLogin = () => {
         <div class="divider">
           <span class="divider-text">OF</span>
         </div>
-        
+
         <button type="button" class="google-login-btn" @click="handleGoogleRegister">
           <img src="/Images/google-logo.png" alt="Google logo" class="google-icon" />
           <span>Registreer met Google</span>
@@ -278,3 +248,4 @@ const goToLogin = () => {
     </div>
   </div>
 </template>
+

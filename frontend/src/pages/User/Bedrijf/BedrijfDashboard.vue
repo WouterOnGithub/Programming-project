@@ -1,7 +1,52 @@
 <template>
   <BedrijfDashboardLayout>
-    <!-- Main content -->
-    <main class="dashboard-main">
+    <!-- Mobile View -->
+    <div class="mobile-view">
+      <!-- Verification Status Banner -->
+      <div v-if="verificatieStatus !== 'goedgekeurd'" class="verification-banner-mobile">
+        <div v-if="verificatieStatus === 'wachtend op verificatie'" class="status-pending">
+          ⏳ Wacht op verificatie...
+        </div>
+        <div v-else-if="verificatieStatus === 'geweigerd'" class="status-rejected">
+          ❌ Geweigerd: {{ afwijzingsreden || 'Geen reden' }}
+        </div>
+      </div>
+ 
+      <!-- Stats Grid -->
+      <div class="mobile-stats-grid">
+        <div v-for="stat in statsData" :key="stat.title" class="mobile-stat-card">
+          <i :class="[stat.icon, 'stat-icon-mobile']"></i>
+          <span class="stat-title-mobile">{{ stat.title }}</span>
+          <span class="stat-value-mobile">{{ stat.value }}</span>
+        </div>
+      </div>
+ 
+      <!-- Interested Students -->
+      <div class="mobile-card">
+        <h3 class="mobile-card-header">Geïnteresseerde Studenten</h3>
+        <ul v-if="displayedStudents.length > 0">
+          <li v-for="student in displayedStudents" :key="student.id">{{ student.name }}</li>
+        </ul>
+        <p v-else class="no-data-mobile">Nog geen studenten gematched.</p>
+        <button v-if="interestedStudents.length > 3" @click="goToMatches" class="meer-zien-knop-mobile">Meer Zien &rarr;</button>
+      </div>
+ 
+      <!-- Appointments -->
+      <div class="mobile-card">
+        <h3 class="mobile-card-header">Geplande Afspraken</h3>
+        <div v-if="displayedAfspraken.length > 0">
+          <div v-for="afspraak in displayedAfspraken" :key="afspraak.id" class="mobile-afspraak-item">
+            <span>{{ afspraak.studentNaam }} - {{ afspraak.displayTime }}</span>
+            <button @click="bekijkProfiel(afspraak.studentId)" class="profiel-knop-mobile">Profiel</button>
+          </div>
+        </div>
+        <p v-else class="no-data-mobile">Nog geen afspraken gepland.</p>
+        <button v-if="geplandeAfspraken.length > 3" @click="goToGesprekken" class="meer-zien-knop-mobile">Alle afspraken &rarr;</button>
+      </div>
+    </div>
+ 
+    <!-- Desktop content -->
+    <main class="dashboard-main desktop-view">
       <!-- Verification Status Banner -->
       <div v-if="verificatieStatus !== 'goedgekeurd'" class="verification-banner">
         <div v-if="verificatieStatus === 'wachtend op verificatie'" class="status-pending">
@@ -11,11 +56,11 @@
           ❌ Uw bedrijf is geweigerd. Reden: {{ afwijzingsreden || 'Geen reden opgegeven' }}
         </div>
       </div>
-
+ 
       <!-- Statistieken -->
       <section class="dashboard-stats">
-        <component v-for="(stat, index) in statsData" 
-          :key="index" 
+        <component v-for="(stat, index) in statsData"
+          :key="index"
           :is="stat.isLink ? 'router-link' : 'div'"
           :to="stat.path"
           class="stat-wrapper"
@@ -86,7 +131,7 @@
     </main>
   </BedrijfDashboardLayout>
 </template>
-
+ 
 <script setup>
 import { ref, onMounted, computed, watch, onBeforeUnmount } from 'vue'
 import BedrijfDashboardLayout from '../../../components/BedrijfDashboardLayout.vue'
@@ -95,14 +140,14 @@ import { useToast } from 'vue-toastification'
 import { auth, db } from '../../../firebase/config'
 import { doc, onSnapshot, collection, query, where, getDocs, getDoc, orderBy } from 'firebase/firestore'
 import { onAuthStateChanged } from 'firebase/auth'
-
+ 
 const toast = useToast()
 const router = useRouter()
-
+ 
 // Add verification status tracking
 const verificatieStatus = ref('wachtend op verificatie')
 const afwijzingsreden = ref('')
-
+ 
 // Reactive current user
 const currentUser = ref(null)
 const interestedStudents = ref([])
@@ -110,17 +155,17 @@ const loadingStudents = ref(true)
 const geplandeAfspraken = ref([])
 const loadingAfspraken = ref(true)
 const locatieGegevens = ref(null)
-
+ 
 let authListenerUnsubscribe = null;
 let companyListenerUnsubscribe = null;
-
+ 
 const displayedStudents = computed(() => interestedStudents.value.slice(0, 3))
 const displayedAfspraken = computed(() => geplandeAfspraken.value.slice(0, 3))
-
+ 
 const goToMatches = () => {
   router.push('/bedrijfmatch')
 }
-
+ 
 const bekijkProfiel = (studentId) => {
   if (!studentId) {
     toast.error("Student ID ontbreekt, kan profiel niet openen.");
@@ -128,24 +173,24 @@ const bekijkProfiel = (studentId) => {
   }
   router.push(`/bedrijf/student/${studentId}`);
 }
-
+ 
 const goToGesprekken = () => {
   router.push('/GesprekkenBd')
 }
-
+ 
 const formatTijd = (timestamp) => {
   if (!timestamp || !timestamp.toDate) return 'Onbekende tijd'
   return timestamp.toDate().toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })
 }
-
+ 
 const setupCompanyListener = (userId) => {
   // Ruim eventuele vorige listener op
   if (companyListenerUnsubscribe) {
     companyListenerUnsubscribe();
   }
-
+ 
   console.log('Setting up company listener for:', userId)
-  
+ 
   const companyRef = doc(db, 'bedrijf', userId)
   companyListenerUnsubscribe = onSnapshot(companyRef, (doc) => {
     if (doc.exists()) {
@@ -160,7 +205,7 @@ const setupCompanyListener = (userId) => {
     console.error('Error listening to company data:', error)
   })
 }
-
+ 
 const fetchInterestedStudents = async (bedrijfId) => {
   if (!bedrijfId) return
   loadingStudents.value = true
@@ -169,12 +214,12 @@ const fetchInterestedStudents = async (bedrijfId) => {
     // Dit is een efficiëntere manier dan alle studenten doorzoeken.
     const matchesQuery = query(collection(db, 'matches'), where('bedrijfId', '==', bedrijfId))
     const matchesSnap = await getDocs(matchesQuery)
-
+ 
     if (matchesSnap.empty) {
       interestedStudents.value = []
       return
     }
-
+ 
     const studentPromises = matchesSnap.docs.map(async (matchDoc) => {
       const matchData = matchDoc.data()
       const studentDoc = await getDoc(doc(db, 'student', matchData.studentId))
@@ -188,9 +233,9 @@ const fetchInterestedStudents = async (bedrijfId) => {
       }
       return null
     })
-
+ 
     interestedStudents.value = (await Promise.all(studentPromises)).filter(Boolean)
-
+ 
   } catch (error) {
     console.error("Fout bij ophalen van geïnteresseerde studenten:", error)
     toast.error("Kon gematchte studenten niet laden.")
@@ -198,36 +243,36 @@ const fetchInterestedStudents = async (bedrijfId) => {
     loadingStudents.value = false
   }
 }
-
+ 
 const fetchGeplandeAfspraken = async (bedrijfId) => {
   if (!bedrijfId) return;
   loadingAfspraken.value = true;
   try {
     // Query aangepast om alle afspraken op te halen, zoals op GesprekkenBd
     const afsprakenQuery = query(
-      collection(db, "afspraken"), 
+      collection(db, "afspraken"),
       where("bedrijfId", "==", bedrijfId)
     );
     const afsprakenSnap = await getDocs(afsprakenQuery);
-
+ 
     if (afsprakenSnap.empty) {
       geplandeAfspraken.value = [];
       loadingAfspraken.value = false;
       return;
     }
-
+ 
     const afsprakenPromises = afsprakenSnap.docs.map(async (afspraakDoc) => {
       const afspraakData = afspraakDoc.data();
-      
+     
       // Stop als er geen student gekoppeld is
       if (!afspraakData.studentUid) {
         console.warn(`Afspraak document ${afspraakDoc.id} wordt overgeslagen omdat studentUid ontbreekt.`);
         return null;
       }
-
+ 
       let normalizedStartTime;
       let displayTime;
-
+ 
       // Logica om zowel nieuwe (tijdslot) als oude (time) data te verwerken
       if (afspraakData.tijdslot && afspraakData.tijdslot.startTime) {
           normalizedStartTime = afspraakData.tijdslot.startTime.toDate();
@@ -236,21 +281,21 @@ const fetchGeplandeAfspraken = async (bedrijfId) => {
           const datePart = afspraakData.aangemaaktOp.toDate();
           const timePart = afspraakData.time.split(' - ')[0].trim();
           const [hours, minutes] = timePart.split(':');
-          
+         
           normalizedStartTime = new Date(datePart);
           normalizedStartTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-          
+         
           displayTime = afspraakData.time; // Toon "10:00 - 10:15"
       } else {
           console.warn(`Afspraak document ${afspraakDoc.id} wordt overgeslagen omdat tijdinformatie (tijdslot of time/aangemaaktOp) ontbreekt.`);
           return null;
       }
-
+ 
       // Haal studentgegevens op
       const studentDocRef = doc(db, 'student', afspraakData.studentUid);
       const studentSnap = await getDoc(studentDocRef);
       const studentData = studentSnap.exists() ? studentSnap.data() : {};
-
+ 
       return {
         id: afspraakDoc.id,
         studentId: afspraakData.studentUid,
@@ -259,15 +304,15 @@ const fetchGeplandeAfspraken = async (bedrijfId) => {
         displayTime: displayTime
       };
     });
-
+ 
     // Filter null values eruit en sla alle afspraken op
     const alleAfspraken = (await Promise.all(afsprakenPromises)).filter(Boolean);
-
+ 
     // Sorteer de afspraken lokaal op de genormaliseerde starttijd
     alleAfspraken.sort((a, b) => a.normalizedStartTime - b.normalizedStartTime);
-
+ 
     geplandeAfspraken.value = alleAfspraken;
-    
+   
   } catch (error) {
     console.error("Fout bij ophalen van afspraken:", error);
     toast.error("Kon de geplande afspraken niet laden.");
@@ -276,13 +321,13 @@ const fetchGeplandeAfspraken = async (bedrijfId) => {
     loadingAfspraken.value = false;
   }
 };
-
+ 
 const fetchAppointmentCount = async (bedrijfId) => {
   if (!bedrijfId) return;
   try {
     const afsprakenQuery = query(collection(db, "afspraken"), where("bedrijfId", "==", bedrijfId));
     const afsprakenSnap = await getDocs(afsprakenQuery);
-    
+   
     const afsprakenStat = statsData.value.find(stat => stat.id === 'afspraken');
     if (afsprakenStat) {
       afsprakenStat.value = afsprakenSnap.size.toString();
@@ -291,11 +336,11 @@ const fetchAppointmentCount = async (bedrijfId) => {
     console.error("Fout bij ophalen van aantal afspraken:", error);
   }
 };
-
+ 
 const fetchLocatieGegevens = async (bedrijfId) => {
   if (!bedrijfId) return
   const locatieStat = statsData.value.find(s => s.id === 'locatie')
-
+ 
   try {
     const locQuery = query(collection(db, 'company_locations'), where('companyId', '==', bedrijfId))
     const locSnap = await getDocs(locQuery)
@@ -328,11 +373,10 @@ const fetchLocatieGegevens = async (bedrijfId) => {
      }
   }
 }
-
+ 
 onMounted(() => {
   console.log('BedrijfDashboard mounted')
-  toast.success('Welkom terug op je bedrijfsdashboard!')
-  
+ 
   authListenerUnsubscribe = onAuthStateChanged(auth, (user) => {
     console.log('Auth state changed:', user);
     currentUser.value = user;
@@ -350,12 +394,12 @@ onMounted(() => {
       interestedStudents.value = [];
       geplandeAfspraken.value = [];
       locatieGegevens.value = null;
-      
+     
       const afsprakenStat = statsData.value.find(s => s.id === 'afspraken');
       if (afsprakenStat) {
         afsprakenStat.value = '0';
       }
-
+ 
       const locatieStat = statsData.value.find(s => s.id === 'locatie');
       if(locatieStat) {
         locatieStat.value = 'Laden...';
@@ -364,7 +408,7 @@ onMounted(() => {
     }
   });
 })
-
+ 
 onBeforeUnmount(() => {
   console.log("Cleaning up BedrijfDashboard listeners.");
   if (authListenerUnsubscribe) {
@@ -374,7 +418,7 @@ onBeforeUnmount(() => {
     companyListenerUnsubscribe();
   }
 });
-
+ 
 const navigation = [
   { name: 'Dashboard', href: '/BedrijfDashboard', icon: 'fas fa-chart-pie' },
   { name: 'Favorieten', href: '/bedrijf/favorieten', icon: 'fas fa-envelope' },
@@ -385,9 +429,9 @@ const navigation = [
   { name: 'Profiel', href: '/bedrijf/profiel', icon: 'fas fa-user' },
   { name: 'Instellingen', href: '/SettingsBe', icon: 'fas fa-cog' }
 ]
-
+ 
 const userData = ref({ companyName: 'Cronos' })
-
+ 
 const statsData = ref([
   {
     title: 'Eventdatum',
@@ -419,7 +463,7 @@ const statsData = ref([
   },
 ])
 </script>
-
+ 
 <style scoped>
 /* Add new styles for notification integration */
 .dashboard-header-with-notifications {
@@ -430,31 +474,31 @@ const statsData = ref([
   border-bottom: 1px solid #e5e7eb;
   padding: 1.5rem 2rem;
 }
-
+ 
 .dashboard-header-content h1 {
   font-size: 1.3rem;
   font-weight: 600;
   color: #c20000;
   margin: 0;
 }
-
+ 
 .dashboard-header-content p {
   color: #6b7280;
   font-size: 0.95rem;
   margin: 0;
 }
-
+ 
 .dashboard-header-actions {
   display: flex;
   align-items: center;
   gap: 1rem;
 }
-
+ 
 /* Verification status banner styles */
 .verification-banner {
   margin: 1.5rem 2rem 0 2rem;
 }
-
+ 
 .status-pending {
   background: #fff3cd;
   color: #856404;
@@ -463,7 +507,7 @@ const statsData = ref([
   border: 1px solid #ffeaa7;
   font-weight: 500;
 }
-
+ 
 .status-rejected {
   background: #f8d7da;
   color: #721c24;
@@ -472,7 +516,7 @@ const statsData = ref([
   border: 1px solid #f5c6cb;
   font-weight: 500;
 }
-
+ 
 /* Keep all existing styles */
 .dashboard-container {
   display: flex;
@@ -906,14 +950,14 @@ const statsData = ref([
   font-weight: bold;
   cursor: pointer;
 }
-
+ 
 .disabled-link {
   background-color: #e5e7eb !important;
   color: #9ca3af !important;
   cursor: not-allowed;
   pointer-events: none;
 }
-
+ 
 .stat-wrapper.is-link {
   text-decoration: none;
   color: inherit;
@@ -921,22 +965,22 @@ const statsData = ref([
   border-radius: 0.75rem; /* Match stat-card border-radius */
   transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
 }
-
+ 
 .stat-wrapper.is-link:hover {
   transform: translateY(-4px);
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
-
+ 
 .stat-wrapper.is-link .stat-card {
   height: 100%;
 }
-
+ 
 .afspraken-lijst {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
 }
-
+ 
 .afspraak-item {
   display: flex;
   justify-content: space-between;
@@ -946,22 +990,22 @@ const statsData = ref([
   border-radius: 0.5rem;
   border: 1px solid #e5e7eb;
 }
-
+ 
 .afspraak-info {
   display: flex;
   flex-direction: column;
 }
-
+ 
 .student-naam {
   font-weight: 600;
   color: #111827;
 }
-
+ 
 .afspraak-tijd {
   font-size: 0.9rem;
   color: #6b7280;
 }
-
+ 
 .profiel-knop {
   background-color: #c20000;
   color: white;
@@ -973,9 +1017,204 @@ const statsData = ref([
   cursor: pointer;
   transition: background-color 0.2s;
 }
-
+ 
 .profiel-knop:hover {
   background-color: #a50000;
 }
+ 
+/* START: MOBILE STYLES */
+.mobile-view {
+  display: none;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1rem;
+  background-color: #f8f9fa;
+  min-height: 100vh;
+}
+ 
+.desktop-view {
+  display: flex; /* or block, depending on original CSS */
+}
+ 
+@media (max-width: 768px) {
+  .desktop-view {
+    display: none;
+  }
+  .mobile-view {
+    display: flex;
+  }
+  .verification-banner-mobile {
+     margin: 0;
+  }
+}
+ 
+.mobile-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+}
+ 
+.mobile-stat-card {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  padding: 1.25rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.5rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+ 
+.mobile-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+ 
+.stat-icon-mobile {
+  font-size: 1.8rem;
+  color: #c20000;
+}
+ 
+.stat-title-mobile {
+  font-size: 0.8rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+ 
+.stat-value-mobile {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #111827;
+}
+ 
+.mobile-card {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  padding: 1.25rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+ 
+.mobile-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+ 
+.mobile-card-header {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+ 
+.mobile-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+ 
+.mobile-card ul li {
+  background: #f8f9fa;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-weight: 500;
+  color: #374151;
+}
+ 
+.no-data-mobile {
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.9rem;
+  padding: 1.5rem 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+ 
+.meer-zien-knop-mobile {
+  background: none;
+  border: 1px solid #e5e7eb;
+  color: #374151;
+  font-weight: 500;
+  cursor: pointer;
+  display: block;
+  width: 100%;
+  text-align: center;
+  margin-top: 1rem;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+ 
+.meer-zien-knop-mobile:hover {
+  background-color: #f8f9fa;
+  border-color: #d1d5db;
+}
+ 
+.mobile-afspraak-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+}
+ 
+.mobile-afspraak-item:last-child {
+  margin-bottom: 0;
+}
+ 
+.mobile-afspraak-item span {
+  font-weight: 500;
+  color: #374151;
+  flex: 1;
+  margin-right: 1rem;
+}
+ 
+.profiel-knop-mobile {
+  background-color: #c20000;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  white-space: nowrap;
+}
+ 
+.profiel-knop-mobile:hover {
+  background-color: #a50000;
+}
+ 
+.status-pending, .status-rejected {
+  border-radius: 12px;
+  padding: 1.25rem;
+  font-weight: 500;
+  text-align: center;
+  background-color: #ffffff;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+ 
+.status-pending {
+  color: #856404;
+  border: 1px solid #ffeaa7;
+}
+ 
+.status-rejected {
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+/* END: MOBILE STYLES */
 </style>
-
+ 
+ 
+ 

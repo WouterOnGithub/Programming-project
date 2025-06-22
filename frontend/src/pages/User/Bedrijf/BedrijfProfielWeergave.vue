@@ -63,6 +63,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getAuth } from 'firebase/auth'
 import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore'
+import { useToast } from 'vue-toastification'
 import profielfoto from '/Images/profielfoto.jpg'
 import BedrijfDashboardLayout from '../../../components/BedrijfDashboardLayout.vue'
 
@@ -74,11 +75,13 @@ const error = ref(null)
 
 const db = getFirestore()
 const auth = getAuth()
+const toast = useToast()
 
 onMounted(async () => {
   const user = auth.currentUser
   if (!user) {
-    error.value = 'Niet ingelogd.'
+    toast.error('Niet ingelogd. Log eerst in.')
+    error.value = null
     loading.value = false
     return
   }
@@ -88,10 +91,12 @@ onMounted(async () => {
     if (!snapshot.empty) {
       bedrijf.value = snapshot.docs[0].data()
     } else {
-      error.value = 'Geen bedrijfsprofiel gevonden.'
+      toast.info('Geen bedrijfsprofiel gevonden.')
+      error.value = null
     }
   } catch (e) {
-    error.value = 'Fout bij ophalen bedrijfsprofiel.'
+    toast.error('Fout bij ophalen bedrijfsprofiel.')
+    error.value = null
   } finally {
     loading.value = false
   }
@@ -123,9 +128,7 @@ function handleClickOutside(event) {
 if (typeof window !== 'undefined') {
   window.addEventListener('mousedown', handleClickOutside)
 }
-
 </script>
-
 <style scoped>
 .dashboard-container {
   display: flex;

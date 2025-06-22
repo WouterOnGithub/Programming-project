@@ -1,6 +1,5 @@
 <template>
   <StudentDashboardLayout>
-    <!-- Alleen de main content van de instellingenpagina, zonder sidebar/header -->
     <main class="dashboard-main">
       <section class="dashboard-2col">
         <!-- Kaart: Wachtwoord wijzigen -->
@@ -53,7 +52,7 @@
 </template>
 
 <script>
-import StudentDashboardLayout from '../../components/StudentDashboardLayout.vue'
+import StudentDashboardLayout from '../../components/StudentDashboardLayout.vue';
 import {
   getAuth,
   updatePassword,
@@ -62,6 +61,9 @@ import {
   EmailAuthProvider,
   reauthenticateWithCredential
 } from 'firebase/auth';
+import { doc, deleteDoc, getFirestore } from 'firebase/firestore';
+import { useToast } from 'vue-toastification';
+import 'vue-toastification/dist/index.css';
 
 export default {
   name: 'InstellingenStu',
@@ -73,11 +75,13 @@ export default {
       message: '',
       passwordError: '',
       userData: {},
+      toast: useToast()
     };
   },
   methods: {
     async changePassword() {
       this.passwordError = '';
+      const toast = this.toast;
       try {
         const auth = getAuth();
         const user = auth.currentUser;
@@ -98,13 +102,12 @@ export default {
         }
 
         const credential = EmailAuthProvider.credential(user.email, this.currentPassword);
-
         await reauthenticateWithCredential(user, credential);
         await updatePassword(user, this.newPassword);
 
         this.currentPassword = '';
         this.newPassword = '';
-        alert('Je wachtwoord is gewijzigd.');
+        toast.success('Je wachtwoord is succesvol gewijzigd.');
       } catch (error) {
         if (error.code === 'auth/invalid-credential') {
           this.passwordError = 'Het huidige wachtwoord klopt niet.';
@@ -119,6 +122,7 @@ export default {
     },
 
     async deleteAccount() {
+      const toast = this.toast;
       if (!confirm('Weet je zeker dat je je account wilt verwijderen?')) return;
 
       const auth = getAuth();
@@ -126,44 +130,41 @@ export default {
       const user = auth.currentUser;
 
       if (!user) {
-        this.message = 'Je bent niet ingelogd. Log opnieuw in en probeer het opnieuw.';
+        toast.error('Je bent niet ingelogd. Log opnieuw in en probeer het opnieuw.');
         return;
       }
 
       if (user.providerData[0]?.providerId === 'google.com') {
-        this.message = 'Je kan je account niet verwijderen als je bent ingelogd via Google.';
+        toast.error('Je kan je account niet verwijderen als je bent ingelogd via Google.');
         return;
       }
 
       try {
-        // Verwijder gebruiker uit Firestore
         await deleteDoc(doc(db, 'student', user.uid));
-        // Verwijder Firebase Auth-account
         await deleteUser(user);
-
-        // Log automatisch uit (optioneel)
         await auth.signOut();
-
-        // 🔁 Stuur naar loginpagina
+        toast.success('Je account is verwijderd.');
         this.$router.push('/login');
       } catch (error) {
-        console.error('Fout bij verwijderen account:', error);
         if (error.code === 'auth/requires-recent-login') {
-          this.message = 'Log opnieuw in om je account te kunnen verwijderen.';
+          toast.error('Log opnieuw in om je account te kunnen verwijderen.');
         } else {
-          this.message = 'Fout bij verwijderen account. Probeer opnieuw.';
+          toast.error('Fout bij verwijderen account. Probeer opnieuw.');
         }
       }
     },
 
     logout() {
+      const toast = this.toast;
       const auth = getAuth();
       signOut(auth);
+      toast.info('Je bent uitgelogd.');
       this.$router.push('/login');
     }
   }
-}
+};
 </script>
+
 
 <style scoped>
 .dashboard-container {

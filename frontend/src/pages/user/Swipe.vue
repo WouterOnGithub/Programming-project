@@ -74,18 +74,18 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { db, auth } from '../../firebase/config';
-import { collection, getDocs, setDoc, doc, serverTimestamp, getDoc } from 'firebase/firestore';
+import {
+  collection,
+  getDocs,
+  setDoc,
+  doc,
+  serverTimestamp,
+  getDoc
+} from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
-import StudentDashboardLayout from '../../components/StudentDashboardLayout.vue'
-import { notificationService } from '../../services/notificationService'
-
-const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: 'fas fa-chart-pie' },
-  { name: 'Job Swiping', href: '/swipe', icon: 'fas fa-heart' },
-  { name: 'Afspraken', href: '/appointments', icon: 'fas fa-calendar' },
-  { name: 'Profiel', href: '/profile', icon: 'fas fa-user' },
-  { name: 'Instellingen', href: '/SettingsStu', icon: 'fas fa-cog' },
-];
+import StudentDashboardLayout from '../../components/StudentDashboardLayout.vue';
+import { notificationService } from '../../services/notificationService';
+import { useToast } from 'vue-toastification';
 
 export default {
   name: 'JobSwiping',
@@ -93,6 +93,7 @@ export default {
     StudentDashboardLayout
   },
   setup() {
+    const toast = useToast();
     const animateReject = ref(false);
     const animateAccept = ref(false);
     const jobs = ref([]);
@@ -106,24 +107,37 @@ export default {
         router.push({ name: 'BedrijfProfielVoorStudent', params: { id: bedrijfId } });
       } else {
         console.error('No company ID provided to viewProfile function');
+        toast.error('Fout: geen bedrijf gevonden.');
       }
     };
 
     const handleSwipe = async (collectionName, job, data) => {
       if (!currentUser.value?.uid || !job?.id) {
-        console.error("Kan niet swipen: gebruiker of job niet gevonden.", { uid: currentUser.value?.uid, jobId: job?.id });
+        console.error("Kan niet swipen: gebruiker of job niet gevonden.", {
+          uid: currentUser.value?.uid,
+          jobId: job?.id
+        });
         error.value = `Kon actie niet verwerken. Probeer opnieuw in te loggen.`;
+        toast.error("Je moet ingelogd zijn om deze actie uit te voeren.");
         return;
       }
+
       const { uid: studentId } = currentUser.value;
       const { id: bedrijfId } = job;
 
       try {
         const docRef = doc(db, 'student', studentId, collectionName, bedrijfId);
         await setDoc(docRef, data);
+
+        if (collectionName === 'favorieten') {
+          toast.success("Toegevoegd aan favorieten!");
+        } else if (data.status === 'niet_interessant') {
+          toast.info("Job afgewezen.");
+        }
       } catch (e) {
         console.error(`Fout bij opslaan van ${collectionName}:`, e);
         error.value = `Kon actie niet verwerken. Probeer opnieuw.`;
+        toast.error("Actie mislukt. Probeer opnieuw.");
       }
     };
 
@@ -131,18 +145,20 @@ export default {
       if (!user) {
         loading.value = false;
         error.value = "Geen gebruiker gevonden. Log in om te swipen.";
+        toast.error("Geen gebruiker gevonden. Log in om te swipen.");
         return;
       }
+
       currentUser.value = user;
       const studentId = user.uid;
 
       try {
         loading.value = true;
         const swipedIds = new Set();
-        
+
         const swipesSnap = await getDocs(collection(db, 'student', studentId, 'swipes'));
         swipesSnap.forEach(doc => swipedIds.add(doc.id));
-        
+
         const favSnap = await getDocs(collection(db, 'student', studentId, 'favorieten'));
         favSnap.forEach(doc => swipedIds.add(doc.id));
 
@@ -166,6 +182,7 @@ export default {
       } catch (err) {
         console.error("Fout bij laden van bedrijven:", err);
         error.value = 'Fout bij laden van bedrijven.';
+        toast.error('Fout bij laden van bedrijven. Probeer later opnieuw.');
       } finally {
         loading.value = false;
       }
@@ -180,6 +197,7 @@ export default {
           loading.value = false;
           jobs.value = [];
           error.value = "Log in om bedrijven te swipen.";
+          toast.error("Je bent uitgelogd. Log opnieuw in om te swipen.");
         }
       });
     });
@@ -191,7 +209,7 @@ export default {
         jobs.value.shift();
         animateReject.value = false;
         animateAccept.value = false;
-      }, 300); // Wacht tot animatie klaar is
+      }, 300);
     };
 
     const rejectJob = () => {
@@ -206,36 +224,34 @@ export default {
 
     const acceptJob = async () => {
       animateAccept.value = true;
-      
+
       try {
-        // Sla de swipe op
         await handleSwipe('swipes', currentJob.value, {
           bedrijfUid: currentJob.value.id,
           status: 'interessant',
           timestamp: serverTimestamp()
         });
-        
-        // Haal studentgegevens op voor notificatie
+
         const studentId = currentUser.value?.uid;
         const studentDoc = await getDoc(doc(db, 'student', studentId));
         const studentData = studentDoc.exists() ? studentDoc.data() : {};
         const studentName = `${studentData.voornaam || 'Onbekende'} ${studentData.achternaam || 'Student'}`;
-        
-        // Stuur notificatie naar bedrijf
+
         await notificationService.createCompanyNewMatchNotification(
-          currentJob.value.id, 
+          currentJob.value.id,
           studentName
         );
-        
+
+        toast.success("Je hebt een match! 🎉");
         nextJob();
       } catch (error) {
         console.error('Fout bij accepteren van job:', error);
+        toast.error("Fout bij het verwerken van je match. Probeer opnieuw.");
         nextJob();
       }
     };
 
     const favoriteJob = () => {
-      // Optioneel: animatie voor favoriet
       handleSwipe('favorieten', currentJob.value, {
         bedrijfUid: currentJob.value.id,
         timestamp: serverTimestamp()
@@ -255,9 +271,10 @@ export default {
       error,
       viewProfile
     };
-  },
+  }
 };
 </script>
+
 
 <style scoped>
 .dashboard-container {

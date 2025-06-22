@@ -91,26 +91,25 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { Heart, Calendar, User, Search, Building } from 'lucide-vue-next'
+import { Heart, Calendar, User, Search } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import BedrijfDashboardLayout from '../../../components/BedrijfDashboardLayout.vue'
 import { getAuth } from 'firebase/auth'
 import { getFirestore, collection, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore'
 import { notificationService } from '../../../services/notificationService'
+import { useToast } from 'vue-toastification'
 
 const db = getFirestore();
 const auth = getAuth();
 const router = useRouter()
+const toast = useToast()
+
 const matchStudenten = ref([])
 const zoekterm = ref('')
 
-console.log('BedrijfMatch component geladen');
-
 onMounted(async () => {
-  console.log('auth.currentUser:', auth.currentUser);
   let bedrijfId = auth.currentUser?.uid;
   let bedrijfEmail = auth.currentUser?.email;
-  console.log('bedrijfId:', bedrijfId);
   if (!bedrijfId) {
     await new Promise(resolve => {
       const unsub = auth.onAuthStateChanged(user => {
@@ -120,17 +119,17 @@ onMounted(async () => {
         resolve();
       });
     });
-    console.log('bedrijfId na onAuthStateChanged:', bedrijfId);
   }
-  if (!bedrijfId) return;
-  console.debug('Ingelogde bedrijfUid:', bedrijfId);
-  // Haal alle studenten op
+  if (!bedrijfId) {
+    toast.error('Je bent niet ingelogd. Meld opnieuw aan.')
+    return;
+  }
+
   const studentenSnap = await getDocs(collection(db, 'student'));
   const studentenMap = {};
   studentenSnap.forEach(docu => { studentenMap[docu.id] = docu.data(); });
   let relevanteSwipes = [];
   for (const studentId of Object.keys(studentenMap)) {
-    // Haal swipes uit subcollectie van student
     const swipesSnap = await getDocs(collection(db, 'student', studentId, 'swipes'));
     relevanteSwipes.push(...swipesSnap.docs
       .map(docu => ({ id: docu.id, ...docu.data(), studentUid: studentId }))
@@ -144,8 +143,7 @@ onMounted(async () => {
         .filter(d => d.bedrijfEmail === bedrijfEmail && d.status === 'interessant'));
     }
   }
-  console.debug('Relevante swipes:', relevanteSwipes);
-  // Haal studenten op
+
   matchStudenten.value = relevanteSwipes.map(swipe => {
     const student = studentenMap[swipe.studentUid] || {};
     let richting = '-';
@@ -161,8 +159,7 @@ onMounted(async () => {
       swipeDocId: swipe.id
     };
   });
-  console.debug('Matchende studenten:', matchStudenten.value);
-});
+})
 
 const gefilterdeStudenten = computed(() =>
   matchStudenten.value.filter((student) =>
@@ -174,10 +171,6 @@ const gefilterdeStudenten = computed(() =>
 
 const toonProfiel = (id) => {
   router.push({ name: 'StudentProfielVoorBedrijf', params: { id: id } })
-}
-
-const planAfspraak = (id) => {
-  console.log(`Plan afspraak met student ${id}`)
 }
 
 const showVerwijderPopup = ref(false)
@@ -194,75 +187,37 @@ const bevestigVerwijderen = () => {
   teVerwijderenStudentId.value = null
 }
 
-function handleAvatarClick() {
-  showDropdown.value = !showDropdown.value
-}
-
-function handleLogout() {
-  router.push('/')
-}
-
-function handleClickOutside(event) {
-  const dropdown = document.getElementById('bedrijf-profile-dropdown')
-  const avatar = document.getElementById('bedrijf-profile-avatar')
-  if (dropdown && !dropdown.contains(event.target) && avatar && !avatar.contains(event.target)) {
-    showDropdown.value = false
-  }
-}
-
-if (typeof window !== 'undefined') {
-  window.addEventListener('mousedown', handleClickOutside)
-}
-
 const accepteerStudent = async (swipeDocId, studentId) => {
   try {
-    // Zet status op 'geaccepteerd' in student/{studentId}/swipes
     await updateDoc(doc(db, 'student', studentId, 'swipes', swipeDocId), { status: 'geaccepteerd' });
-    
-    // Haal studentgegevens op voor notificatie
     const studentDoc = await getDoc(doc(db, 'student', studentId));
     const studentData = studentDoc.exists() ? studentDoc.data() : {};
-    const studentName = `${studentData.voornaam || 'Onbekende'} ${studentData.achternaam || 'Student'}`;
-    
-    // Haal bedrijfsgegevens op voor notificatie
     const bedrijfId = auth.currentUser?.uid;
     const bedrijfDoc = await getDoc(doc(db, 'bedrijf', bedrijfId));
     const bedrijfData = bedrijfDoc.exists() ? bedrijfDoc.data() : {};
-    const bedrijfNaam = bedrijfData.bedrijfsnaam || 'Onbekend Bedrijf';
-    
-    // Stuur notificatie naar student
-    await notificationService.createStudentMatchAcceptedNotification(studentId, bedrijfNaam);
-    
-    // Herlaad matches zodat de student verdwijnt uit de lijst
+    await notificationService.createStudentMatchAcceptedNotification(studentId, bedrijfData.bedrijfsnaam || 'Onbekend Bedrijf');
     await reloadMatches();
+    toast.success('Student succesvol geaccepteerd!')
   } catch (error) {
     console.error('Fout bij accepteren van student:', error);
+    toast.error('Er is iets misgegaan. Probeer opnieuw.')
   }
 }
 
 const weigerStudent = async (swipeDocId, studentId) => {
   try {
-    // Zet status op 'geweigerd' in student/{studentId}/swipes
     await updateDoc(doc(db, 'student', studentId, 'swipes', swipeDocId), { status: 'geweigerd' });
-    
-    // Haal studentgegevens op voor notificatie
     const studentDoc = await getDoc(doc(db, 'student', studentId));
     const studentData = studentDoc.exists() ? studentDoc.data() : {};
-    const studentName = `${studentData.voornaam || 'Onbekende'} ${studentData.achternaam || 'Student'}`;
-    
-    // Haal bedrijfsgegevens op voor notificatie
     const bedrijfId = auth.currentUser?.uid;
     const bedrijfDoc = await getDoc(doc(db, 'bedrijf', bedrijfId));
     const bedrijfData = bedrijfDoc.exists() ? bedrijfDoc.data() : {};
-    const bedrijfNaam = bedrijfData.bedrijfsnaam || 'Onbekend Bedrijf';
-    
-    // Stuur notificatie naar student
-    await notificationService.createStudentMatchRejectedNotification(studentId, bedrijfNaam);
-    
-    // Herlaad matches zodat de student verdwijnt uit de lijst
+    await notificationService.createStudentMatchRejectedNotification(studentId, bedrijfData.bedrijfsnaam || 'Onbekend Bedrijf');
     await reloadMatches();
+    toast.success('Student succesvol geweigerd.')
   } catch (error) {
     console.error('Fout bij afwijzen van student:', error);
+    toast.error('Er is iets misgegaan. Probeer opnieuw.')
   }
 }
 
@@ -285,7 +240,6 @@ async function reloadMatches() {
   studentenSnap.forEach(docu => { studentenMap[docu.id] = docu.data(); });
   let relevanteSwipes = [];
   for (const studentId of Object.keys(studentenMap)) {
-    // Haal swipes uit subcollectie van student
     const swipesSnap = await getDocs(collection(db, 'student', studentId, 'swipes'));
     relevanteSwipes.push(...swipesSnap.docs
       .map(docu => ({ id: docu.id, ...docu.data(), studentUid: studentId }))
@@ -316,6 +270,7 @@ async function reloadMatches() {
   });
 }
 </script>
+
 
 <style scoped>
 .dashboard-container {
