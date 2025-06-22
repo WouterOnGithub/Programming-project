@@ -32,7 +32,8 @@
         <div class="dashboard-header-actions">
           <NotificationCenter 
             v-if="currentUser?.uid" 
-            :companyId="currentUser.uid" 
+            :userId="currentUser.uid" 
+            userType="student"
             :key="currentUser.uid"
           />
           <div class="dashboard-profile-avatar" id="student-profile-avatar" @click="handleAvatarClick">

@@ -46,7 +46,8 @@
         <div class="dashboard-header-actions">
           <NotificationCenter 
             v-if="currentUser?.uid" 
-            :companyId="currentUser.uid" 
+            :userId="currentUser.uid" 
+            userType="company"
             :key="currentUser.uid"
           />
           <div

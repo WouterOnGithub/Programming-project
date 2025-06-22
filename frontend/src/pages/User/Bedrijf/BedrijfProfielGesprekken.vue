@@ -163,6 +163,7 @@ import { useRouter } from 'vue-router'
 import { getAuth } from 'firebase/auth'
 import { getFirestore, collection, query, where, getDocs, doc, getDoc, deleteDoc, updateDoc } from 'firebase/firestore'
 import BedrijfDashboardLayout from '../../../components/BedrijfDashboardLayout.vue'
+import { notificationService } from '../../../services/notificationService'
 
 const navigation = [
   { name: 'Dashboard', href: '/bedrijf/dashboard' },
@@ -327,6 +328,30 @@ const bevestigAnnulering = async () => {
       status: 'geannuleerd',
       annuleringsReden: annuleerReden.value
     });
+    
+    // Haal afspraakgegevens op voor notificatie
+    const afspraakDoc = await getDoc(afspraakRef);
+    const afspraakData = afspraakDoc.exists() ? afspraakDoc.data() : {};
+    
+    if (afspraakData.studentUid) {
+      // Haal studentgegevens op
+      const studentDoc = await getDoc(doc(db, 'student', afspraakData.studentUid));
+      const studentData = studentDoc.exists() ? studentDoc.data() : {};
+      const studentName = `${studentData.voornaam || 'Onbekende'} ${studentData.achternaam || 'Student'}`;
+      
+      // Haal bedrijfsgegevens op
+      const bedrijfId = auth.currentUser?.uid;
+      const bedrijfDoc = await getDoc(doc(db, 'bedrijf', bedrijfId));
+      const bedrijfData = bedrijfDoc.exists() ? bedrijfDoc.data() : {};
+      const bedrijfNaam = bedrijfData.bedrijfsnaam || 'Onbekend Bedrijf';
+      
+      // Stuur notificatie naar student
+      await notificationService.createStudentAppointmentCancelledNotification(
+        afspraakData.studentUid, 
+        bedrijfNaam, 
+        annuleerReden.value
+      );
+    }
     
     // Update de lokale state
     const index = gesprekken.value.findIndex(g => g.id === afspraakVoorAnnuleringId.value);
