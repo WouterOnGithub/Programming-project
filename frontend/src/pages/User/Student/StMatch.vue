@@ -111,12 +111,12 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { Heart, Calendar, User, Search, Building } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import StudentDashboardLayout from '../../../components/StudentDashboardLayout.vue'
 import { getAuth } from 'firebase/auth'
-import { getFirestore, collection, getDocs, doc, getDoc, addDoc, updateDoc, query, where, deleteDoc } from 'firebase/firestore'
+import { getFirestore, collection, getDocs, doc, getDoc, addDoc, updateDoc, query, where, deleteDoc, onSnapshot } from 'firebase/firestore'
 import { notificationService } from '../../../services/notificationService'
 
 const db = getFirestore();
@@ -131,47 +131,55 @@ const takenSlots = ref([])
 const selectedBedrijfId = ref(null)
 const showConfirm = ref(false)
 const matchToDelete = ref(null)
+const studentTakenSlots = ref([]); // Alle tijden van de student, bij alle bedrijven
+let unsubscribe = null; // Voor de realtime listener
 
 onMounted(async () => {
-  let studentId = auth.currentUser?.uid;
-  if (!studentId) {
-    await new Promise(resolve => {
-      const unsub = auth.onAuthStateChanged(user => {
-        studentId = user?.uid;
-        unsub();
-        resolve();
-      });
-    });
+  const user = auth.currentUser;
+  if (!user) {
+    console.error("Geen gebruiker ingelogd.");
+    return;
   }
-  if (!studentId) return;
-  // Haal alle swipes met status 'interessant' of 'geaccepteerd' uit subcollectie
-  const swipesSnap = await getDocs(collection(db, 'student', studentId, 'swipes'));
-  const relevantSwipes = swipesSnap.docs
-    .map(docu => ({ id: docu.id, ...docu.data() }))
-    .filter(d => (d.status === 'interessant' || d.status === 'geaccepteerd'));
-  // Haal bedrijven op
+  const studentId = user.uid;
+
+  // Haal eerst alle bedrijf-data op
   const bedrijvenSnap = await getDocs(collection(db, 'bedrijf'));
   const bedrijvenMap = {};
   bedrijvenSnap.forEach(docu => { bedrijvenMap[docu.id] = docu.data(); });
-  // Combineer
-  matchBedrijven.value = relevantSwipes.map(swipe => {
-    const bedrijf = bedrijvenMap[swipe.bedrijfUid] || {};
-    let sector = '-';
-    if (bedrijf.sector) {
-      sector = Array.isArray(bedrijf.sector) ? bedrijf.sector.join(', ') : bedrijf.sector;
-    } else if (bedrijf.opZoekNaar) {
-      sector = Array.isArray(bedrijf.opZoekNaar) ? bedrijf.opZoekNaar.join(', ') : bedrijf.opZoekNaar;
-    }
-    return {
-      id: swipe.bedrijfUid,
-      naam: bedrijf.bedrijfsnaam || 'Onbekend',
-      sector,
-      afkorting: (bedrijf.bedrijfsnaam || '??').substring(0,2).toUpperCase(),
-      locatie: bedrijf.gesitueerdIn || '-',
-      status: swipe.status,
-      logoUrl: bedrijf.foto
-    };
+
+  // Zet de realtime listener op
+  const q = query(collection(db, 'student', studentId, 'swipes'), where('status', 'in', ['interessant', 'geaccepteerd']));
+
+  unsubscribe = onSnapshot(q, (swipesSnap) => {
+    const relevantSwipes = swipesSnap.docs.map(docu => ({ id: docu.id, ...docu.data() }));
+    
+    matchBedrijven.value = relevantSwipes.map(swipe => {
+      const bedrijf = bedrijvenMap[swipe.bedrijfUid] || {};
+      let sector = '-';
+      if (bedrijf.sector) {
+        sector = Array.isArray(bedrijf.sector) ? bedrijf.sector.join(', ') : bedrijf.sector;
+      } else if (bedrijf.opZoekNaar) {
+        sector = Array.isArray(bedrijf.opZoekNaar) ? bedrijf.opZoekNaar.join(', ') : bedrijf.opZoekNaar;
+      }
+      return {
+        id: swipe.bedrijfUid,
+        naam: bedrijf.bedrijfsnaam || 'Onbekend',
+        sector,
+        afkorting: (bedrijf.bedrijfsnaam || '??').substring(0,2).toUpperCase(),
+        locatie: bedrijf.gesitueerdIn || '-',
+        status: swipe.status,
+        logoUrl: bedrijf.foto
+      };
+    });
+  }, (error) => {
+    console.error("Fout bij realtime ophalen van matches: ", error);
   });
+});
+
+onBeforeUnmount(() => {
+  if (unsubscribe) {
+    unsubscribe();
+  }
 });
 
 const gefilterdeBedrijven = computed(() =>
@@ -269,11 +277,20 @@ const planAfspraak = async (id) => {
     // 2. Genereer de tijdsloten
     timeSlots.value = generateTimeSlots(starttijd, eindtijd, gesprekDuur);
 
-    // 3. Haal reeds geboekte tijdsloten op
+    // 3. Haal reeds geboekte tijdsloten op voor dit bedrijf
     const afsprakenSnap = await getDocs(
       query(collection(db, 'afspraken'), where('bedrijfId', '==', id))
     );
     takenSlots.value = afsprakenSnap.docs.map(docu => docu.data().time);
+
+    // 4. Haal ALLE afspraken van de student op (voor alle bedrijven)
+    const studentId = auth.currentUser?.uid;
+    if (studentId) {
+      const studentAfsprakenSnap = await getDocs(query(collection(db, 'afspraken'), where('studentUid', '==', studentId)));
+      studentTakenSlots.value = studentAfsprakenSnap.docs.map(docu => docu.data().time);
+    } else {
+      studentTakenSlots.value = [];
+    }
 
     showTimeModal.value = true;
   } catch (error) {
@@ -337,44 +354,8 @@ function isEmpty(obj) {
 }
 
 async function reloadMatches() {
-  let studentId = auth.currentUser?.uid;
-  if (!studentId) {
-    await new Promise(resolve => {
-      const unsub = auth.onAuthStateChanged(user => {
-        studentId = user?.uid;
-        unsub();
-        resolve();
-      });
-    });
-  }
-  if (!studentId) return;
-  const swipesSnap = await getDocs(collection(db, 'student', studentId, 'swipes'));
-  const relevantSwipes = swipesSnap.docs
-    .map(docu => ({ id: docu.id, ...docu.data() }))
-    .filter(d => (d.status === 'interessant' || d.status === 'geaccepteerd'));
-  const bedrijvenSnap = await getDocs(collection(db, 'bedrijf'));
-  const bedrijvenMap = {};
-  bedrijvenSnap.forEach(docu => { bedrijvenMap[docu.id] = docu.data(); });
-  matchBedrijven.value = relevantSwipes
-    .filter(swipe => bedrijvenMap[swipe.bedrijfUid] && !isEmpty(bedrijvenMap[swipe.bedrijfUid]))
-    .map(swipe => {
-      const bedrijf = bedrijvenMap[swipe.bedrijfUid];
-      let sector = '-';
-      if (bedrijf.sector) {
-        sector = Array.isArray(bedrijf.sector) ? bedrijf.sector.join(', ') : bedrijf.sector;
-      } else if (bedrijf.opZoekNaar) {
-        sector = Array.isArray(bedrijf.opZoekNaar) ? bedrijf.opZoekNaar.join(', ') : bedrijf.opZoekNaar;
-      }
-      return {
-        id: swipe.bedrijfUid,
-        naam: bedrijf.bedrijfsnaam || 'Onbekend',
-        sector,
-        afkorting: (bedrijf.bedrijfsnaam || '??').substring(0,2).toUpperCase(),
-        locatie: bedrijf.gesitueerdIn || '-',
-        status: swipe.status,
-        logoUrl: bedrijf.foto
-      };
-    });
+  // Deze functie is niet meer nodig, onSnapshot doet het werk.
+  // Je kunt de aanroepen naar reloadMatches() verwijderen of leeg laten.
 }
 
 function closeTimeModal() {
@@ -383,9 +364,40 @@ function closeTimeModal() {
   selectedBedrijfId.value = null
 }
 
+const parseSlotToDates = (slotString) => {
+  if (!slotString || !slotString.includes(' - ')) return null;
+  const [startTimeStr, endTimeStr] = slotString.split(' - ');
+  const startDate = new Date();
+  const [startHours, startMinutes] = startTimeStr.trim().split(':').map(Number);
+  startDate.setHours(startHours, startMinutes, 0, 0);
+
+  const endDate = new Date();
+  const [endHours, endMinutes] = endTimeStr.trim().split(':').map(Number);
+  endDate.setHours(endHours, endMinutes, 0, 0);
+
+  return { start: startDate, end: endDate };
+}
+
+const doTimeRangesOverlap = (range1, range2) => {
+  if (!range1 || !range2) return false;
+  return range1.start < range2.end && range1.end > range2.start;
+}
+
 function isSlotTaken(slot) {
   if (slot === 'Pauze') return true;
-  return takenSlots.value.includes(slot);
+  // 1. Is het slot al bezet bij dit bedrijf?
+  if (takenSlots.value.includes(slot)) return true;
+  
+  // 2. Overlapt dit slot met een andere afspraak van de student?
+  const currentSlotRange = parseSlotToDates(slot);
+  for (const studentSlot of studentTakenSlots.value) {
+    const existingSlotRange = parseSlotToDates(studentSlot);
+    if (doTimeRangesOverlap(currentSlotRange, existingSlotRange)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 async function verwijderMatch(bedrijfId) {
@@ -844,7 +856,7 @@ const goToProfile = (bedrijfId) => {
 
 .timeslot-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 0.5rem;
   margin-bottom: 1rem;
 }

@@ -158,23 +158,19 @@ export default {
       error.value = null;
     
       try {
-        // --- Tijdelijke reset voor testdoeleinden ---
-        const clearSubcollection = async (subcollectionName) => {
+        // Haal alle bestaande swipe-gerelateerde subcollecties op
+        const getIdsFromSubcollection = async (subcollectionName) => {
           const subcollectionRef = collection(db, 'student', studentId, subcollectionName);
           const snapshot = await getDocs(subcollectionRef);
-          const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
-          await Promise.all(deletePromises);
-          console.log(`Subcollectie "${subcollectionName}" is gereset.`);
+          return snapshot.docs.map(doc => doc.id);
         };
     
-        // Wacht expliciet tot de reset voltooid is
-        await clearSubcollection('swipes');
-        await clearSubcollection('favorieten');
-        // --- Einde van de tijdelijke reset ---
+        const swipedIds = new Set(await getIdsFromSubcollection('swipes'));
+        const favorietIds = new Set(await getIdsFromSubcollection('favorieten'));
+        const matchIds = new Set(await getIdsFromSubcollection('matches'));
+        const nietGeinteresseerdIds = new Set(await getIdsFromSubcollection('niet_geinteresseerd'));
     
-        // Nu de subcollecties leeg zijn, kunnen we de rest laden.
-        const swipedIds = new Set(); // Zal leeg zijn
-        
+        // Haal alle goedgekeurde bedrijven op
         const q = query(collection(db, 'bedrijf'), where('verificatieStatus', '==', 'goedgekeurd'));
         const companiesSnap = await getDocs(q);
     
@@ -183,6 +179,12 @@ export default {
           jobs.value = [];
         } else {
           jobs.value = companiesSnap.docs
+            .filter(doc =>
+              !swipedIds.has(doc.id) &&
+              !favorietIds.has(doc.id) &&
+              !matchIds.has(doc.id) &&
+              !nietGeinteresseerdIds.has(doc.id)
+            )
             .map(doc => ({
               id: doc.id,
               bedrijfUid: doc.id,

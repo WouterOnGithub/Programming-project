@@ -67,7 +67,15 @@
                 <div class="detail-icon">📍</div>
                 <div class="detail-content">
                   <div class="detail-label">Locatie</div>
-                  <div class="detail-text">{{ appointment.location }}</div>
+                  <div v-if="appointment.hasSpecificLocation" class="location-info">
+                    <div class="detail-text">Stand {{ appointment.location }}</div>
+                    <router-link :to="'/student/grondplan/' + appointment.bedrijfId" class="map-link">
+                      Zie op grondplan
+                    </router-link>
+                  </div>
+                  <div v-else class="detail-text no-location">
+                    Dit bedrijf heeft nog geen locatie.
+                  </div>
                 </div>
               </div>
               <div class="detail-item">
@@ -94,22 +102,31 @@
 
       <!-- Modal voor tijdslot selectie -->
       <div v-if="showTimeModal" class="modal-overlay">
-        <div class="modal-content">
-          <h3>Kies een nieuw tijdslot</h3>
-          <div class="timeslot-grid">
-            <button
-              v-for="slot in timeSlots"
-              :key="slot"
-              :disabled="isSlotTaken(slot)"
-              :class="['timeslot-btn', { 'pauze': slot === 'Pauze', taken: isSlotTaken(slot), selected: selectedTimeSlot === slot }]"
-              @click="slot !== 'Pauze' && selectTimeSlot(slot)"
-            >
-              {{ slot }}
-            </button>
+        <div class="modal-content stmatch-modal">
+          <h3>Kies een tijdslot voor je gesprek</h3>
+          <div class="timeslot-grid stmatch-grid">
+            <template v-for="slot in timeSlots" :key="slot">
+              <button
+                :disabled="getSlotStatus(slot).status !== 'free'"
+                :class="['timeslot-btn stmatch-btn', { 
+                  'pauze': getSlotStatus(slot).status === 'pauze', 
+                  'taken-by-other': getSlotStatus(slot).status === 'taken_by_other',
+                  'taken-by-me': getSlotStatus(slot).status === 'taken_by_me',
+                  'selected': selectedTimeSlot === slot 
+                }]"
+                @click="getSlotStatus(slot).status === 'free' && selectTimeSlot(slot)"
+              >
+                <div v-if="getSlotStatus(slot).status === 'taken_by_me'" class="taken-by-me-content">
+                  <span class="main-time">{{ slot }}</span>
+                  <span class="sub-text">Al geboekt bij: {{ getSlotStatus(slot).companyName }}</span>
+                </div>
+                <span v-else>{{ slot }}</span>
+              </button>
+            </template>
           </div>
-          <div class="modal-actions">
-            <button class="action-btn btn-save" :disabled="!selectedTimeSlot" @click="saveTime(editingAppointmentId, selectedTimeSlot)">Opslaan</button>
-            <button class="action-btn btn-cancel-edit" @click="closeTimeModal">Annuleren</button>
+          <div class="modal-actions stmatch-actions">
+            <button class="action-btn btn-save stmatch-save" :disabled="!selectedTimeSlot" @click="saveTime(editingAppointmentId, selectedTimeSlot)">Bevestig</button>
+            <button class="action-btn btn-cancel-edit stmatch-cancel" @click="closeTimeModal">Annuleren</button>
           </div>
         </div>
       </div>
@@ -181,27 +198,39 @@ const setupAppointmentsListener = (studentId) => {
         ...new Set(afsprakenSnap.docs.map((doc) => doc.data().bedrijfId).filter(Boolean)),
       ];
       const bedrijvenMap = {};
+      const locatiesMap = {};
 
       if (bedrijfIds.length > 0) {
+        // Haal bedrijven op
         const bedrijvenQuery = query(collection(db, 'bedrijf'), where(documentId(), 'in', bedrijfIds));
         const bedrijvenSnap = await getDocs(bedrijvenQuery);
         bedrijvenSnap.forEach((docu) => {
           bedrijvenMap[docu.id] = docu.data();
+        });
+        // Haal locaties op
+        const locatiesQuery = query(collection(db, 'companyLocations'), where('companyId', 'in', bedrijfIds));
+        const locatiesSnap = await getDocs(locatiesQuery);
+        locatiesSnap.forEach((docu) => {
+          locatiesMap[docu.data().companyId] = docu.data();
         });
       }
 
       appointments.value = afsprakenSnap.docs.map((docu) => {
         const data = docu.data();
         const bedrijf = bedrijvenMap[data.bedrijfId] || {};
+        const locatie = locatiesMap[data.bedrijfId];
         return {
           id: docu.id,
           ...data,
           status: data.status || 'upcoming',
           company: bedrijf.bedrijfsnaam || 'Onbekend Bedrijf',
-          location: bedrijf.gesitueerdIn || 'Onbekend',
-          duration: data.duur || '10 min',
+          position: Array.isArray(bedrijf.opZoekNaar) ? bedrijf.opZoekNaar.join(', ') : (bedrijf.opZoekNaar || '-'),
+          location: locatie?.locationName,
+          hasSpecificLocation: !!locatie?.locationName,
+          duration: bedrijf.gesprekDuur ? `${bedrijf.gesprekDuur} min` : (data.duur || '10 min'),
           avatar: (bedrijf.bedrijfsnaam || '?')[0],
           annuleringsReden: data.annuleringsReden || null,
+          bedrijfId: data.bedrijfId
         };
       });
 
@@ -254,6 +283,7 @@ const selectedTimeSlot = ref(null);
 const editingAppointmentOriginalTime = ref(null);
 const timeSlots = ref([]);
 const takenSlots = ref([]);
+const studentTakenSlots = ref([]);
 const showCancelConfirmModal = ref(false);
 const appointmentToCancelId = ref(null);
 
@@ -332,6 +362,26 @@ const startEditTime = async (appointmentId) => {
     );
     takenSlots.value = afsprakenSnap.docs.map((d) => d.data().time);
 
+    const studentId = auth.currentUser?.uid;
+    if (studentId) {
+      const studentAfsprakenSnap = await getDocs(query(collection(db, 'afspraken'), where('studentUid', '==', studentId)));
+      
+      const afsprakenMetBedrijf = await Promise.all(studentAfsprakenSnap.docs.map(async (apptDoc) => {
+        const apptData = apptDoc.data();
+        if (!apptData.bedrijfId) return null;
+        const bedrijfDoc = await getDoc(doc(db, 'bedrijf', apptData.bedrijfId));
+        return {
+          time: apptData.time,
+          companyName: bedrijfDoc.exists() ? bedrijfDoc.data().bedrijfsnaam : 'een ander bedrijf'
+        };
+      }));
+
+      studentTakenSlots.value = afsprakenMetBedrijf.filter(Boolean);
+
+    } else {
+      studentTakenSlots.value = [];
+    }
+
     showTimeModal.value = true;
   } catch (err) {
     console.error('Fout bij ophalen van tijdsloten:', err);
@@ -350,6 +400,25 @@ function selectTimeSlot(slot) {
   selectedTimeSlot.value = slot;
 }
 
+const parseSlotToDates = (slotString) => {
+  if (!slotString || !slotString.includes(' - ')) return null;
+  const [startTimeStr, endTimeStr] = slotString.split(' - ');
+  const startDate = new Date();
+  const [startHours, startMinutes] = startTimeStr.trim().split(':').map(Number);
+  startDate.setHours(startHours, startMinutes, 0, 0);
+
+  const endDate = new Date();
+  const [endHours, endMinutes] = endTimeStr.trim().split(':').map(Number);
+  endDate.setHours(endHours, endMinutes, 0, 0);
+
+  return { start: startDate, end: endDate };
+}
+
+const doTimeRangesOverlap = (range1, range2) => {
+  if (!range1 || !range2) return false;
+  return range1.start < range2.end && range1.end > range2.start;
+}
+
 async function saveTime(id, slot) {
   const appt = appointments.value.find((a) => a.id === id);
   if (!appt) return;
@@ -364,10 +433,33 @@ async function saveTime(id, slot) {
   }
 }
 
-function isSlotTaken(slot) {
-  if (slot === 'Pauze') return true;
-  if (slot === editingAppointmentOriginalTime.value) return false;
-  return takenSlots.value.includes(slot);
+function getSlotStatus(slot) {
+  if (slot === 'Pauze') {
+    return { status: 'pauze' };
+  }
+  if (slot === editingAppointmentOriginalTime.value) {
+    return { status: 'free' };
+  }
+
+  // Exacte match voor andere studenten bij dit bedrijf
+  if (takenSlots.value.includes(slot) && slot !== editingAppointmentOriginalTime.value) {
+    return { status: 'taken_by_other' };
+  }
+
+  // Overlap check voor afspraken van de student zelf
+  const currentSlotRange = parseSlotToDates(slot);
+  for (const studentAppointment of studentTakenSlots.value) {
+    // Sla de afspraak die we nu aanpassen over in de check
+    if (studentAppointment.time === editingAppointmentOriginalTime.value) {
+      continue;
+    }
+    const existingSlotRange = parseSlotToDates(studentAppointment.time);
+    if (doTimeRangesOverlap(currentSlotRange, existingSlotRange)) {
+      return { status: 'taken_by_me', companyName: studentAppointment.companyName };
+    }
+  }
+
+  return { status: 'free' };
 }
 
 const openCancelConfirmModal = (appointmentId) => {
@@ -775,22 +867,19 @@ function getStatusText(status) {
   border-color: #9ca3af;
 }
 .btn-save {
-  background: #16a34a;
+  background-color: #16a34a;
   color: white;
-  border-color: #16a34a;
 }
-.btn-save:hover {
-  background: #15803d;
-  border-color: #15803d;
+.btn-save:hover:not(:disabled) {
+  background-color: #15803d;
 }
 .btn-cancel-edit {
-  background: #f3f4f6;
+  background-color: #f3f4f6;
   color: #dc2626;
-  border-color: #e5e7eb;
+  border: 1px solid #e5e7eb;
 }
 .btn-cancel-edit:hover {
-  background: #fee2e2;
-  border-color: #fca5a5;
+  background-color: #e5e7eb;
 }
 .btn-cancel {
   background: #dc2626;
@@ -843,37 +932,48 @@ function getStatusText(status) {
   overflow-y: auto;
 }
 .timeslot-grid {
-  max-height: 350px;
-  overflow-y: auto;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 0.5rem;
   margin-bottom: 1rem;
 }
 .timeslot-btn {
-  padding: 0.7rem 1.2rem;
-  border-radius: 20px;
-  border: 1px solid #d1d5db;
-  background: #f3f4f6;
-  color: #222;
-  font-weight: 600;
-  font-size: 1rem;
+  padding: 0.75rem 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  color: #374151;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  font-size: 0.875rem;
+}
+.timeslot-btn:hover:not(:disabled):not(.pauze) {
+  border-color: #c20000;
+  background: #fef2f2;
+  color: #c20000;
 }
 .timeslot-btn.selected {
-  background: #16a34a;
-  color: #fff;
-  border-color: #16a34a;
+  border-color: #c20000;
+  background: #c20000;
+  color: white;
 }
 .timeslot-btn.taken {
-  background: #d1d5db;
-  color: #888;
+  background: #f3f4f6;
+  color: #9ca3af;
   cursor: not-allowed;
   border-color: #d1d5db;
 }
-.timeslot-btn:not(.taken):hover {
-  background: #e5e7eb;
+.timeslot-btn.pauze {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #f59e0b;
+  cursor: not-allowed;
+  font-weight: 600;
+}
+.timeslot-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 .modal-actions {
   display: flex;
@@ -890,12 +990,6 @@ function getStatusText(status) {
   padding: 0.75rem;
   border-radius: 6px;
   border: 1px solid #dee2e6;
-}
-.timeslot-btn.pauze {
-  background-color: #e5e7eb;
-  color: #6b7280;
-  cursor: not-allowed;
-  font-style: italic;
 }
 .cancellation-reason {
   background-color: #fef2f2;
@@ -924,15 +1018,137 @@ function getStatusText(status) {
 }
 .confirmation-modal p {
   color: #6b7280;
-  margin-bottom: 2rem;
-}
-.modal-actions button:hover {
-  opacity: 0.9;
-}
-.confirmation-modal p {
   margin: 1rem 0 1.5rem;
   line-height: 1.6;
 }
+
+.modal-actions button:hover {
+  opacity: 0.9;
+}
+
+.timeslot-btn.taken-by-other {
+  background: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
+  border-color: #d1d5db;
+}
+.timeslot-btn.taken-by-me {
+  background: #fff;
+  border-color: #d1d5db;
+  cursor: not-allowed;
+  padding: 0.5rem;
+  height: auto;
+}
+
+.taken-by-me-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.2;
+}
+
+.taken-by-me-content .main-time {
+  font-weight: 500;
+  color: #9ca3af;
+}
+
+.taken-by-me-content .sub-text {
+  font-size: 0.75rem;
+  color: #dc2626;
+  font-weight: 500;
+}
+
+/* --- STMATCH MODAL STIJL --- */
+.stmatch-modal {
+  background-color: white;
+  padding: 2rem;
+  border-radius: 0.5rem;
+  width: 80%;
+  max-width: 400px;
+}
+.stmatch-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.stmatch-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  background-color: #fff;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.stmatch-btn:hover {
+  background-color: #f3f4f6;
+}
+.stmatch-btn.selected {
+  background-color: #c20000;
+  color: #fff;
+}
+.stmatch-btn.taken-by-other {
+  background-color: #f3f4f6;
+  cursor: not-allowed;
+  color: #9ca3af;
+}
+.stmatch-btn.taken-by-me {
+  background-color: #fff;
+  border-color: #d1d5db;
+  cursor: not-allowed;
+  padding: 0.5rem;
+  height: auto;
+}
+.stmatch-btn.pauze {
+  background-color: #e5e7eb;
+  color: #6b7280;
+  cursor: not-allowed;
+  font-style: italic;
+}
+.stmatch-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1rem;
+}
+.stmatch-save {
+  background-color: #c20000;
+  color: #fff;
+}
+.stmatch-save:hover:not(:disabled) {
+  background-color: #b91c1c;
+}
+.stmatch-cancel {
+  background-color: #f3f4f6;
+}
+.stmatch-cancel:hover {
+  background-color: #e5e7eb;
+}
+.location-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.map-link {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #c20000;
+  text-decoration: underline;
+  margin-top: 4px;
+  cursor: pointer;
+}
+
+.map-link:hover {
+  color: #991b1b;
+}
+
+.no-location {
+  font-style: italic;
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
 @media (max-width: 768px) {
   .content-section {
     padding: 0;

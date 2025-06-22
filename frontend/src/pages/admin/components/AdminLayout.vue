@@ -40,13 +40,21 @@
         <router-view />
       </div>
     </main>
+    
+    <footer class="admin-footer">
+      <div class="admin-footer-content">
+        <p>© 2025 Erasmus Hogeschool Brussel.</p>
+      </div>
+    </footer>
   </div>
 </template>
 
 <script>
 import AdminNavigation from './AdminNavigation.vue'
 import { getAuth, signOut } from 'firebase/auth'
+import { doc, getDoc } from 'firebase/firestore'
 import { useRouter } from 'vue-router'
+import { db } from '../../../firebase/config'
 
 export default {
   name: 'AdminLayout',
@@ -55,7 +63,7 @@ export default {
   },
   data() {
     return {
-      isSidebarOpen: true, // Default to open
+      isSidebarOpen: true,
       isMobile: false
     }
   },
@@ -64,11 +72,20 @@ export default {
     const auth = getAuth()
 
     const handleLogout = async () => {
-      try {
-        await signOut(auth)
+      const user = auth.currentUser
+      let isAdmin = false
+
+      if (user) {
+        const adminDoc = await getDoc(doc(db, 'admin', user.uid))
+        isAdmin = adminDoc.exists()
+      }
+
+      await signOut(auth)
+
+      if (isAdmin) {
+        router.push('/admin/loginAdmin')
+      } else {
         router.push('/login')
-      } catch (error) {
-        console.error('Error logging out:', error)
       }
     }
 
@@ -76,6 +93,7 @@ export default {
       handleLogout
     }
   },
+
   mounted() {
     // Load sidebar state from localStorage
     const savedState = localStorage.getItem('adminSidebarOpen')
@@ -104,6 +122,14 @@ export default {
 </script>
 
 <style scoped>
+.admin-footer {
+  background-color: #ffffff;
+  border-top: 1px solid #e5e7eb;
+  padding: 16px 24px;
+  text-align: center;
+  font-size: 14px;
+  color: #6b7280;
+}
 .admin-layout {
   display: grid;
   grid-template-areas: 

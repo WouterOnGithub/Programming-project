@@ -1,5 +1,7 @@
 // Notification service for handling company verification notifications
 
+import { doc } from 'firebase/firestore'
+
 export class NotificationService {
   constructor() {
     this.listeners = new Map()
@@ -365,6 +367,31 @@ export class NotificationService {
     } catch (error) {
       console.error('Error creating company appointment scheduled notification:', error)
       throw error
+    }
+  }
+
+  /**
+   * Create a notification for a student when a company's location is set/updated.
+   */
+  async createStudentAppointmentLocationSetNotification(studentId, companyName, locationName, floorName) {
+    try {
+      if (!studentId || !companyName || !locationName || !floorName) {
+        console.warn('Missing required parameters for createStudentAppointmentLocationSetNotification');
+        return;
+      }
+
+      const { db, collection, addDoc, serverTimestamp } = await this.getFirebaseServices();
+      await addDoc(collection(db, 'notifications'), {
+        studentId,
+        type: 'location_set',
+        title: 'Locatie van je afspraak is bekend!',
+        message: `De locatie voor je afspraak met "${companyName}" is nu bekend: ${locationName} (op ${floorName}).`,
+        read: false,
+        createdAt: serverTimestamp()
+      });
+    } catch (error) {
+      console.error('Error creating student location set notification:', error);
+      throw error;
     }
   }
 

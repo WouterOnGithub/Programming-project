@@ -113,27 +113,23 @@ const matchBedrijf = async () => {
     const studentDoc = await getDoc(doc(db, 'student', user.uid));
     const studentData = studentDoc.exists() ? studentDoc.data() : {};
     const studentName = `${studentData.voornaam || 'Onbekende'} ${studentData.achternaam || 'Student'}`;
-    
+
     // Haal bedrijfsgegevens op voor notificatie
     const bedrijfDoc = await getDoc(doc(db, 'bedrijf', route.params.id));
     const bedrijfData = bedrijfDoc.exists() ? bedrijfDoc.data() : {};
     const bedrijfNaam = bedrijfData.bedrijfsnaam || 'Onbekend Bedrijf';
-    
-    // Maak een 'interessant' swipe aan
-    const swipeData = {
-      studentUid: user.uid,
-      bedrijfUid: route.params.id,
-      type: 'interessant',
-      timestamp: serverTimestamp(),
-      studentNaam: studentName,
-      bedrijfNaam: bedrijfNaam
-    };
 
-    await setDoc(doc(db, 'swipes', `${user.uid}_${route.params.id}`), swipeData);
-    
+    // Maak een 'interessant' swipe aan in de subcollectie van de student
+    const swipeDocRef = doc(db, 'student', user.uid, 'swipes', route.params.id);
+    await setDoc(swipeDocRef, {
+      bedrijfUid: route.params.id,
+      status: 'interessant',
+      timestamp: serverTimestamp()
+    });
+
     // Stuur notificatie naar bedrijf
     await notificationService.createCompanyNewMatchNotification(route.params.id, studentName);
-    
+
     // Navigeer terug naar de vorige pagina
     router.go(-1);
   } catch (e) {

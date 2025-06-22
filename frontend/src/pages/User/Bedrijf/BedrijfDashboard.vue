@@ -76,6 +76,7 @@
                 <i :class="stat.icon"></i>
               </div>
             </div>
+            <p v-if="stat.change" class="stat-change">{{ stat.change }}</p>
           </div>
         </component>
       </section>
@@ -158,6 +159,7 @@ const locatieGegevens = ref(null)
  
 let authListenerUnsubscribe = null;
 let companyListenerUnsubscribe = null;
+let locatieListenerUnsubscribe = null;
  
 const displayedStudents = computed(() => interestedStudents.value.slice(0, 3))
 const displayedAfspraken = computed(() => geplandeAfspraken.value.slice(0, 3))
@@ -337,46 +339,48 @@ const fetchAppointmentCount = async (bedrijfId) => {
   }
 };
  
-const fetchLocatieGegevens = async (bedrijfId) => {
-  if (!bedrijfId) return
-  const locatieStat = statsData.value.find(s => s.id === 'locatie')
- 
-  try {
-    const locQuery = query(collection(db, 'company_locations'), where('companyId', '==', bedrijfId))
-    const locSnap = await getDocs(locQuery)
+// Nieuwe functie: realtime locatie listener
+const setupLocatieListener = (bedrijfId) => {
+  if (locatieListenerUnsubscribe) {
+    locatieListenerUnsubscribe();
+  }
+  const locQuery = query(collection(db, 'companyLocations'), where('companyId', '==', bedrijfId));
+  locatieListenerUnsubscribe = onSnapshot(locQuery, (locSnap) => {
+    const locatieStat = statsData.value.find(s => s.id === 'locatie');
     if (!locSnap.empty) {
-      const locationData = locSnap.docs[0].data()
-      locatieGegevens.value = locationData
+      const locationData = locSnap.docs[0].data();
+      locatieGegevens.value = locationData;
       if (locatieStat) {
-        locatieStat.value = `Stand ${locationData.standId || 'Onbekend'}`
-        locatieStat.isLink = false
-        locatieStat.path = null
-        locatieStat.color = 'text-purple-600'
-        locatieStat.change = ''
+        locatieStat.value = `${locationData.locationName || 'Onbekend'}`;
+        locatieStat.isLink = true;
+        locatieStat.path = '/bedrijf/grondplan';
+        locatieStat.color = 'text-purple-600';
+        locatieStat.change = 'Zien op grondplan';
       }
     } else {
-      locatieGegevens.value = null
+      locatieGegevens.value = null;
       if (locatieStat) {
-        locatieStat.value = 'Nog niet toegewezen door de school'
-        locatieStat.isLink = false
-        locatieStat.path = null
-        locatieStat.change = ''
+        locatieStat.value = 'Nog niet toegewezen door de school';
+        locatieStat.isLink = false;
+        locatieStat.path = null;
+        locatieStat.change = '';
       }
     }
-  } catch (error) {
-    console.error("Fout bij ophalen van locatiegegevens:", error)
-    locatieGegevens.value = null
-     if (locatieStat) {
-        locatieStat.value = 'Fout bij laden'
-        locatieStat.isLink = false
-        locatieStat.path = null
-     }
-  }
+  }, (error) => {
+    console.error('Fout bij realtime locatie ophalen:', error);
+    locatieGegevens.value = null;
+    const locatieStat = statsData.value.find(s => s.id === 'locatie');
+    if (locatieStat) {
+      locatieStat.value = 'Fout bij laden';
+      locatieStat.isLink = false;
+      locatieStat.path = null;
+    }
+  });
 }
  
 onMounted(() => {
   console.log('BedrijfDashboard mounted')
- 
+
   authListenerUnsubscribe = onAuthStateChanged(auth, (user) => {
     console.log('Auth state changed:', user);
     currentUser.value = user;
@@ -385,12 +389,13 @@ onMounted(() => {
       setupCompanyListener(user.uid)
       fetchInterestedStudents(user.uid)
       fetchGeplandeAfspraken(user.uid)
-      fetchLocatieGegevens(user.uid)
+      setupLocatieListener(user.uid)
       fetchAppointmentCount(user.uid)
     } else {
       console.log('No user logged in');
       // Ruim data en listeners op als gebruiker uitlogt
       if (companyListenerUnsubscribe) companyListenerUnsubscribe();
+      if (locatieListenerUnsubscribe) locatieListenerUnsubscribe();
       interestedStudents.value = [];
       geplandeAfspraken.value = [];
       locatieGegevens.value = null;
@@ -399,7 +404,7 @@ onMounted(() => {
       if (afsprakenStat) {
         afsprakenStat.value = '0';
       }
- 
+
       const locatieStat = statsData.value.find(s => s.id === 'locatie');
       if(locatieStat) {
         locatieStat.value = 'Laden...';
@@ -416,6 +421,9 @@ onBeforeUnmount(() => {
   }
   if (companyListenerUnsubscribe) {
     companyListenerUnsubscribe();
+  }
+  if (locatieListenerUnsubscribe) {
+    locatieListenerUnsubscribe();
   }
 });
  
@@ -752,6 +760,12 @@ const statsData = ref([
   font-size: 1.5rem;
   font-weight: 600;
   color: #111827;
+}
+.stat-change {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: #6b7280;
+  font-weight: 500;
 }
 .stat-icon {
   background: #f3f4f6;

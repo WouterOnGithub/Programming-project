@@ -24,6 +24,7 @@ import SettingsBe from '../pages/User/Bedrijf/SettingsBe.vue'
 import StudentProfielVoorBedrijf from '../pages/User/Bedrijf/StudentProfielVoorBedrijf.vue'
 import NotFound from '../pages/User/NotFound.vue'
 import BedrijfProfielVoorStudent from '../pages/User/Student/BedrijfProfielVoorStudent.vue'
+import BedrijfGrondplan from '../pages/User/Bedrijf/Grondplan.vue'
 
 const userRoutes = [
   { path: '/', name: 'Home', component: HomePage },
@@ -49,100 +50,96 @@ const userRoutes = [
   { path: '/stmatch', name: 'Stmatch', component: StMatch },
   { path: '/bedrijfmatch', name: 'Bedrijfmatch', component: BedrijfMatch },
   { path: '/bedrijf/student/:id', name: 'StudentProfielVoorBedrijf', component: StudentProfielVoorBedrijf },
-  { path: '/test', name: 'TestPage', component: () => import('../pages/User/TestPage.vue') },
   { path: '/student/bedrijf/:id', name: 'BedrijfProfielVoorStudent', component: BedrijfProfielVoorStudent },
+  { path: '/bedrijf/grondplan', name: 'BedrijfGrondplan', component: BedrijfGrondplan },
+  {
+    path: '/student/grondplan/:companyId',
+    name: 'StudentGrondplan',
+    component: () => import('../pages/User/Student/StudentGrondplan.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/admin/loginAdmin',
+    name: 'LoginAdmin',
+    component: () => import('../pages/admin/Login/Login.vue'),
+    meta: { hideFooter: true }
+  },
+  { path: '/test', name: 'TestPage', component: () => import('../pages/User/TestPage.vue') },
 ]
 
-// Combineer alles in één routerconfig
 const routes = [
   ...userRoutes,
   ...adminRoutes,
   { path: '/:pathMatch(.*)*', name: 'NotFound', component: NotFound }
 ]
- 
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
-  scrollBehavior(to, from, savedPosition) {
-    return { top: 0 } 
+  scrollBehavior() {
+    return { top: 0 }
   }
 })
 
-
 router.beforeEach(async (to, from, next) => {
-
-  const { getAuth } = await import('firebase/auth')
+  const { getAuth, onAuthStateChanged } = await import('firebase/auth')
   const { db } = await import('../firebase/config')
-  const { collection, query, where, getDocs, doc, getDoc } = await import('firebase/firestore')
-  
-  const auth = getAuth();
-  const user = auth.currentUser;
+  const { doc, getDoc, collection, query, where, getDocs } = await import('firebase/firestore')
 
-  // Altijd 404 tonen voor niet-bestaande routes
-  if (to.name === 'NotFound') {
-    return next();
-  }
+  const auth = getAuth()
+  const waitForAuth = () =>
+    new Promise((resolve) => {
+      const unsub = onAuthStateChanged(auth, (user) => {
+        unsub()
+        resolve(user)
+      })
+    })
 
-  // Admin-routes: alleen admin, anders altijd 404
-  if (to.path.startsWith('/admin')) {
-    if (!user) {
-      return next({ name: 'NotFound' });
-    }
-    const adminDoc = await getDoc(doc(db, 'admin', user.uid));
-    if (adminDoc.exists()) {
-      return next();
-    } else {
-      return next({ name: 'NotFound' });
-    }
-  }
+  const user = auth.currentUser || await waitForAuth()
 
-  // Wacht tot auth geladen is (voor page refresh)
-  if (!user) {
-    // Toegestaan: login, register, home
-    if (["/login", "/register", "/"].includes(to.path)) {
-      return next();
+  // Toegestaan zonder login
+  const publicPaths = ['/', '/login', '/register', '/admin/loginAdmin']
+  if (!user && !publicPaths.includes(to.path)) {
+    if (to.path.startsWith('/admin')) {
+      return next('/admin/loginAdmin');
     }
-    // Anders: forceer login
     return next('/login');
   }
 
-  // Student-only routes
+  // Admin loginpagina altijd toegankelijk
+  if (to.path === '/admin/loginAdmin') return next()
+
+  // Admin-routes
+  if (to.path.startsWith('/admin')) {
+    if (!user) return next({ name: 'NotFound' })
+    const adminDoc = await getDoc(doc(db, 'admin', user.uid))
+    return adminDoc.exists() ? next() : next({ name: 'NotFound' })
+  }
+
+  // Student-routes
   const studentOnly = [
-    '/dashboard', '/swipe', '/appointments', '/profile', '/WeergaveSt', '/Favorietenst', '/WijzigenSt', '/SettingsStu', '/Stinvoer', '/stmatch', '/InvoerenSt'
-  ];
+    '/dashboard', '/swipe', '/appointments', '/profile',
+    '/WeergaveSt', '/Favorietenst', '/WijzigenSt', '/SettingsStu',
+    '/Stinvoer', '/stmatch', '/InvoerenSt', '/student/grondplan'
+  ]
   if (studentOnly.some(p => to.path.startsWith(p))) {
-    if ((to.path === '/Stinvoer' || to.path === '/InvoerenSt') && to.query.fromRegister === '1') {
-      return next();
-    }
-    const q = query(collection(db, 'student'), where('authUid', '==', user.uid));
-    const snap = await getDocs(q);
-    if (!snap.empty) {
-      return next();
-    } else {
-      return next({ name: 'NotFound' });
-    }
+    const q = query(collection(db, 'student'), where('authUid', '==', user.uid))
+    const snap = await getDocs(q)
+    return !snap.empty ? next() : next({ name: 'NotFound' })
   }
 
-  // Bedrijf-only routes
+  // Bedrijf-routes
   const bedrijfOnly = [
-    '/BedrijfDashboard', '/WijzigBd', '/WeergaveBd', '/GesprekkenBd', '/Favorietenbd', '/InvoerenBd', '/bedrijfmatch', '/SettingsBe'
-  ];
+    '/BedrijfDashboard', '/WijzigBd', '/WeergaveBd', '/GesprekkenBd',
+    '/Favorietenbd', '/InvoerenBd', '/bedrijfmatch', '/SettingsBe', '/bedrijf/grondplan'
+  ]
   if (bedrijfOnly.some(p => to.path.startsWith(p))) {
-    if (to.path === '/InvoerenBd' && to.query.fromRegister === '1') {
-      return next();
-    }
-    const q = query(collection(db, 'bedrijf'), where('authUid', '==', user.uid));
-    const snap = await getDocs(q);
-    if (!snap.empty) {
-      return next();
-    } else {
-      return next({ name: 'NotFound' });
-    }
+    const q = query(collection(db, 'bedrijf'), where('authUid', '==', user.uid))
+    const snap = await getDocs(q)
+    return !snap.empty ? next() : next({ name: 'NotFound' })
   }
 
-  // Overige routes: altijd doorlaten
-  return next();
-});
-// === Einde navigation guard ===
+  return next()
+})
 
 export default router

@@ -1,4 +1,4 @@
-const TEST_MODE = true; // Zet op true om adminroutes altijd door te laten voor testen
+const TEST_MODE = false; // Zet op true om adminroutes altijd door te laten voor testen
 
 import { useRouter } from 'vue-router';
  

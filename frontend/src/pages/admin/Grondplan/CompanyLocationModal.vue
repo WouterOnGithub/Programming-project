@@ -71,26 +71,32 @@
           <div class="form-group">
             <label for="location-name">Locatienaam: *</label>
             <div class="location-name-input">
-              <select 
-                v-if="!showCustomLocationInput"
-                id="location-name"
-                v-model="locationData.locationName" 
-                required
-                class="form-select"
-                @change="onLocationNameChange"
-              >
-                <option value="">Selecteer een locatie...</option>
-                <option 
-                  v-for="locationName in availableLocationNames" 
-                  :key="locationName" 
-                  :value="locationName"
-                >
-                  {{ locationName }}
-                </option>
-                <option value="__custom__">+ Nieuwe locatie toevoegen</option>
-              </select>
-              
-              <div v-else class="custom-location-input">
+              <div class="custom-dropdown" ref="dropdownRef">
+                <div class="dropdown-selected" @click="toggleDropdown">
+                  <span>{{ locationData.locationName || 'Selecteer een locatie...' }}</span>
+                  <span class="dropdown-arrow">▼</span>
+                </div>
+                <div v-if="dropdownOpen" class="dropdown-list">
+                  <div v-for="locationName in availableLocationNames" :key="locationName" class="dropdown-item">
+                    <span class="dropdown-label" @click="selectLocation(locationName)">
+                      {{ locationName }}
+                      <span v-if="getLocationInUseBy(locationName)" class="in-use">(in gebruik door: {{ getLocationInUseBy(locationName) }})</span>
+                    </span>
+                    <button type="button"
+                      class="dropdown-delete"
+                      :disabled="!!getLocationInUseBy(locationName)"
+                      @click.stop="onDeleteLocationName(locationName)"
+                      :title="getLocationInUseBy(locationName) ? 'Kan niet verwijderen: in gebruik door ' + getLocationInUseBy(locationName) : 'Verwijder deze locatie'"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <div class="dropdown-item add-new" @click="showAddLocationInput">
+                    + Nieuwe locatie toevoegen
+                  </div>
+                </div>
+              </div>
+              <div v-if="showCustomLocationInput" class="custom-location-input">
                 <input 
                   id="custom-location-name"
                   type="text" 
@@ -174,8 +180,12 @@
 </template>
 
 <script>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { locationService } from '../../../services/locationService'
+import { companyLocationService } from '../../../services/companyLocationService'
+import { notificationService } from '../../../services/notificationService';
+import { db } from '../../../firebase/config';
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 // Companies will be passed as props from parent component
 
 export default {
@@ -188,6 +198,10 @@ export default {
     floor: {
       type: String,
       required: true
+    },
+    floorName: {
+      type: String,
+      required: true,
     },
     existingMarker: {
       type: Object,
@@ -243,6 +257,17 @@ export default {
         const isAlreadyPlaced = placedCompanyIds.includes(company.id);
         return isVerified && !isAlreadyPlaced;
       });
+    })
+    
+    const filteredLocationNames = computed(() => {
+      // Locatienamen die al in gebruik zijn op dit grondplan
+      const inUse = props.placedMarkers
+        .filter(marker => marker.locationName && (!isEditing.value || marker.id !== props.existingMarker?.id))
+        .map(marker => marker.locationName)
+      return availableLocationNames.value.filter(name =>
+        // Alleen tonen als niet in gebruik, of als je deze locatie aan het bewerken bent
+        !inUse.includes(name) || (isEditing.value && props.existingMarker?.locationName === name)
+      )
     })
     
     // Location name functions
@@ -313,33 +338,71 @@ export default {
     }
     
     const saveLocation = async () => {
-      if (!selectedCompanyId.value || !locationData.value.locationName) {
-        if (!locationData.value.locationName) {
-          alert('Selecteer een locatienaam voordat u opslaat.')
-        }
-        return
-      }
-      
-      saving.value = true
-      
+      if (saving.value || deleting.value) return;
+      saving.value = true;
       try {
-        const locationToSave = {
+        const dataToSave = {
           companyId: selectedCompanyId.value,
+          grondplanId: props.floor,
           x: locationData.value.x,
           y: locationData.value.y,
-          notes: locationData.value.notes.trim(),
           locationName: locationData.value.locationName,
-          grondplanId: props.floor
-        }
+          notes: locationData.value.notes,
+          companyName: selectedCompany.value?.bedrijfsnaam || selectedCompany.value?.name || '',
+          floorName: props.floorName || '',
+        };
         
-        emit('save', locationToSave)
+        const savedLocation = await companyLocationService.saveLocation(isEditing.value ? props.location.id : null, dataToSave);
+        
+        // Notification logic
+        await handleStudentNotifications(
+          selectedCompanyId.value,
+          selectedCompany.value?.bedrijfsnaam,
+          locationData.value.locationName,
+          props.floorName
+        );
+
+        emit('save', savedLocation);
+        closeModal();
       } catch (error) {
-        console.error('Error saving location:', error)
-        alert('Er is een fout opgetreden bij het opslaan van de locatie.')
+        console.error('Error saving location:', error);
+        // TODO: show error message to user
       } finally {
-        saving.value = false
+        saving.value = false;
       }
     }
+    
+    const handleStudentNotifications = async (companyId, companyName, locationName, floorName) => {
+        try {
+            // 1. Find all appointments for this company
+            const appointmentsQuery = query(collection(db, 'afspraken'), where('bedrijfId', '==', companyId));
+            const appointmentsSnap = await getDocs(appointmentsQuery);
+
+            if (appointmentsSnap.empty) {
+                console.log('No appointments found for this company, no notifications sent.');
+                return;
+            }
+
+            // 2. Get unique student UIDs
+            const studentUids = [...new Set(appointmentsSnap.docs.map(doc => doc.data().studentUid))];
+
+            // 3. Create a notification for each student
+            for (const studentId of studentUids) {
+                if (studentId) {
+                  await notificationService.createStudentAppointmentLocationSetNotification(
+                    studentId,
+                    companyName,
+                    locationName,
+                    floorName
+                  );
+                }
+            }
+
+            console.log(`Sent location notifications to ${studentUids.length} students.`);
+        } catch (error) {
+            console.error('Error sending student location notifications:', error);
+        }
+    };
     
     const deleteLocation = async () => {
       if (!props.existingMarker) return
@@ -357,6 +420,15 @@ export default {
         alert('Er is een fout opgetreden bij het verwijderen van de locatie.')
       } finally {
         deleting.value = false
+      }
+    }
+    
+    const deleteLocationName = async (locationName) => {
+      if (!confirm(`Weet je zeker dat je locatie '${locationName}' wilt verwijderen?`)) return;
+      await locationService.removeLocationName(props.floor, locationName);
+      await loadLocationNames();
+      if (locationData.value.locationName === locationName) {
+        locationData.value.locationName = '';
       }
     }
     
@@ -405,6 +477,64 @@ export default {
       locationData.value.y = newLocation.y
     }, { deep: true })
     
+    // Helper: door wie is deze locatie in gebruik?
+    function getLocationInUseBy(locationName) {
+      const marker = props.placedMarkers.find(m => m.locationName === locationName)
+      if (!marker) return null
+      // Als je deze locatie aan het bewerken bent, mag je wel verwijderen
+      if (isEditing.value && props.existingMarker?.locationName === locationName && props.existingMarker?.id === marker.id) return null
+      const company = props.companies.find(c => c.id === marker.companyId)
+      return company ? (company.bedrijfsnaam || company.name) : 'Onbekend bedrijf'
+    }
+    // Handler voor verwijderen
+    async function onDeleteLocationName(locationName) {
+      if (getLocationInUseBy(locationName)) {
+        alert('Deze locatie is in gebruik en kan niet verwijderd worden.')
+        return
+      }
+      await deleteLocationName(locationName)
+    }
+    
+    const dropdownOpen = ref(false)
+    const dropdownRef = ref(null)
+    function toggleDropdown() {
+      dropdownOpen.value = !dropdownOpen.value
+    }
+    function closeDropdown() {
+      dropdownOpen.value = false
+    }
+    function selectLocation(locationName) {
+      locationData.value.locationName = locationName
+      closeDropdown()
+    }
+    // Buiten klikken sluit dropdown
+    function handleClickOutside(event) {
+      if (dropdownRef.value && !dropdownRef.value.contains(event.target)) {
+        closeDropdown()
+      }
+    }
+    onMounted(() => {
+      document.addEventListener('mousedown', handleClickOutside)
+    })
+    onUnmounted(() => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    })
+    
+    function showAddLocationInput() {
+      showCustomLocationInput.value = true;
+      closeDropdown();
+    }
+    // Focus op input als showCustomLocationInput true wordt
+    watch(showCustomLocationInput, async (val) => {
+      if (val) {
+        await nextTick();
+        const input = document.getElementById('custom-location-name');
+        if (input) input.focus();
+      } else {
+        customLocationName.value = '';
+      }
+    });
+    
     return {
       selectedCompanyId,
       saving,
@@ -421,7 +551,17 @@ export default {
       cancelCustomLocation,
       closeModal,
       saveLocation,
-      deleteLocation
+      deleteLocation,
+      deleteLocationName,
+      filteredLocationNames,
+      getLocationInUseBy,
+      onDeleteLocationName,
+      dropdownOpen,
+      dropdownRef,
+      toggleDropdown,
+      closeDropdown,
+      selectLocation,
+      showAddLocationInput
     }
   }
 }
@@ -795,6 +935,85 @@ export default {
 
 .modal-content {
   animation: modalSlideIn 0.3s ease-out;
+}
+
+/* Custom dropdown styles */
+.custom-dropdown {
+  position: relative;
+  width: 100%;
+  max-width: 350px;
+}
+.dropdown-selected {
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 8px 12px;
+  background: #fff;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.dropdown-arrow {
+  margin-left: 8px;
+  font-size: 0.9em;
+}
+.dropdown-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 0 0 4px 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  z-index: 10;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.dropdown-item:hover {
+  background: #f5f5f5;
+}
+.dropdown-label {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.dropdown-delete {
+  background: none;
+  border: none;
+  color: #e57373;
+  font-size: 1.1em;
+  cursor: pointer;
+  margin-left: 8px;
+  padding: 0 4px;
+}
+.dropdown-delete:disabled {
+  color: #ccc;
+  cursor: not-allowed;
+}
+.in-use {
+  color: #888;
+  font-size: 0.92em;
+  margin-left: 4px;
+}
+.add-new {
+  color: #007bff;
+  font-weight: 500;
+  cursor: pointer;
+  border-top: 1px solid #eee;
+  margin-top: 4px;
+}
+.add-new:hover {
+  background: #eaf4ff;
 }
 </style>
 
