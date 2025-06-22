@@ -610,6 +610,75 @@ textarea {
   }
 }
 
+/* Enhanced Mobile Responsive Styles */
+@media (max-width: 768px) {
+  .main-content {
+    padding: 1rem;
+  }
+
+  .banner {
+    flex-direction: column;
+    text-align: center;
+    padding: 1.5rem;
+    gap: 1rem;
+  }
+
+  .banner-img {
+    width: 80px;
+    height: 80px;
+  }
+
+  .banner-text h2 {
+    font-size: 1.4rem;
+  }
+
+  .go-back-knop {
+    position: static;
+    align-self: center;
+    margin-bottom: 1rem;
+  }
+
+  .form-container {
+    padding: 1.5rem;
+    margin: 0 auto 1rem auto;
+  }
+
+  .form-grid {
+    gap: 1.5rem;
+  }
+
+  .form-group {
+    margin-bottom: 0;
+  }
+
+  .chip-cloud {
+    gap: 6px;
+  }
+
+  .chip {
+    font-size: 0.85rem;
+    padding: 4px 8px;
+  }
+
+  .custom-skill-input {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .custom-skill-input input {
+    width: 100%;
+  }
+
+  .custom-skill-btn {
+    align-self: flex-start;
+  }
+
+  .submit-knop {
+    width: 100%;
+    text-align: center;
+  }
+}
+
 .chip-cloud {
   display: flex;
   flex-wrap: wrap;

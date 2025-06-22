@@ -11,7 +11,7 @@
           ❌ Geweigerd: {{ afwijzingsreden || 'Geen reden' }}
         </div>
       </div>
- 
+
       <!-- Stats Grid -->
       <div class="mobile-stats-grid">
         <div v-for="stat in statsData" :key="stat.title" class="mobile-stat-card">
@@ -20,7 +20,7 @@
           <span class="stat-value-mobile">{{ stat.value }}</span>
         </div>
       </div>
- 
+
       <!-- Interested Students -->
       <div class="mobile-card">
         <h3 class="mobile-card-header">Geïnteresseerde Studenten</h3>
@@ -30,7 +30,7 @@
         <p v-else class="no-data-mobile">Nog geen studenten gematched.</p>
         <button v-if="interestedStudents.length > 3" @click="goToMatches" class="meer-zien-knop-mobile">Meer Zien &rarr;</button>
       </div>
- 
+
       <!-- Appointments -->
       <div class="mobile-card">
         <h3 class="mobile-card-header">Geplande Afspraken</h3>
@@ -44,7 +44,7 @@
         <button v-if="geplandeAfspraken.length > 3" @click="goToGesprekken" class="meer-zien-knop-mobile">Alle afspraken &rarr;</button>
       </div>
     </div>
- 
+
     <!-- Desktop content -->
     <main class="dashboard-main desktop-view">
       <!-- Verification Status Banner -->
@@ -1021,7 +1021,7 @@ const statsData = ref([
 .profiel-knop:hover {
   background-color: #a50000;
 }
- 
+
 /* START: MOBILE STYLES */
 .mobile-view {
   display: none;
@@ -1031,11 +1031,19 @@ const statsData = ref([
   background-color: #f8f9fa;
   min-height: 100vh;
 }
+
  
 .desktop-view {
   display: flex; /* or block, depending on original CSS */
 }
  
+
+
+.desktop-view {
+  display: flex; /* or block, depending on original CSS */
+}
+
+
 @media (max-width: 768px) {
   .desktop-view {
     display: none;
@@ -1047,13 +1055,13 @@ const statsData = ref([
      margin: 0;
   }
 }
- 
+
 .mobile-stats-grid {
   display: grid;
   grid-template-columns: 1fr;
   gap: 1.25rem;
 }
- 
+
 .mobile-stat-card {
   background: #ffffff;
   border-radius: 12px;
@@ -1066,29 +1074,29 @@ const statsData = ref([
   gap: 0.5rem;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
- 
+
 .mobile-stat-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
- 
+
 .stat-icon-mobile {
   font-size: 1.8rem;
   color: #c20000;
 }
- 
+
 .stat-title-mobile {
   font-size: 0.8rem;
   color: #6b7280;
   font-weight: 500;
 }
- 
+
 .stat-value-mobile {
   font-size: 1.2rem;
   font-weight: 600;
   color: #111827;
 }
- 
+
 .mobile-card {
   background: #ffffff;
   border-radius: 12px;
@@ -1096,12 +1104,12 @@ const statsData = ref([
   padding: 1.25rem;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
- 
+
 .mobile-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
- 
+
 .mobile-card-header {
   font-size: 1.2rem;
   font-weight: 600;
@@ -1109,7 +1117,7 @@ const statsData = ref([
   margin-bottom: 1rem;
   text-align: center;
 }
- 
+
 .mobile-card ul {
   list-style: none;
   padding: 0;
@@ -1118,7 +1126,7 @@ const statsData = ref([
   flex-direction: column;
   gap: 0.75rem;
 }
- 
+
 .mobile-card ul li {
   background: #f8f9fa;
   padding: 0.75rem 1rem;
@@ -1126,7 +1134,7 @@ const statsData = ref([
   font-weight: 500;
   color: #374151;
 }
- 
+
 .no-data-mobile {
   text-align: center;
   color: #6b7280;
@@ -1135,7 +1143,7 @@ const statsData = ref([
   background: #f8f9fa;
   border-radius: 8px;
 }
- 
+
 .meer-zien-knop-mobile {
   background: none;
   border: 1px solid #e5e7eb;
@@ -1151,12 +1159,12 @@ const statsData = ref([
   font-size: 0.9rem;
   transition: all 0.2s ease;
 }
- 
+
 .meer-zien-knop-mobile:hover {
   background-color: #f8f9fa;
   border-color: #d1d5db;
 }
- 
+
 .mobile-afspraak-item {
   display: flex;
   justify-content: space-between;
@@ -1166,18 +1174,26 @@ const statsData = ref([
   border-radius: 8px;
   margin-bottom: 0.75rem;
 }
+
  
 .mobile-afspraak-item:last-child {
   margin-bottom: 0;
 }
  
+
+
+.mobile-afspraak-item:last-child {
+  margin-bottom: 0;
+}
+
+
 .mobile-afspraak-item span {
   font-weight: 500;
   color: #374151;
   flex: 1;
   margin-right: 1rem;
 }
- 
+
 .profiel-knop-mobile {
   background-color: #c20000;
   color: white;
@@ -1190,11 +1206,19 @@ const statsData = ref([
   transition: background-color 0.2s ease;
   white-space: nowrap;
 }
+
  
 .profiel-knop-mobile:hover {
   background-color: #a50000;
 }
  
+
+
+.profiel-knop-mobile:hover {
+  background-color: #a50000;
+}
+
+
 .status-pending, .status-rejected {
   border-radius: 12px;
   padding: 1.25rem;
@@ -1203,12 +1227,12 @@ const statsData = ref([
   background-color: #ffffff;
   box-shadow: 0 2px 10px rgba(0,0,0,0.05);
 }
- 
+
 .status-pending {
   color: #856404;
   border: 1px solid #ffeaa7;
 }
- 
+
 .status-rejected {
   color: #721c24;
   border: 1px solid #f5c6cb;

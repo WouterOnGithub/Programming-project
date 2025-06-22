@@ -263,6 +263,7 @@ import { collection, getDocs, addDoc, updateDoc, doc, getDoc, query, where, dele
 import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'
 import CompanyLocationModal from './CompanyLocationModal.vue'
 import CompanySearch from './CompanySearch.vue'
+import { notificationService } from '../../../services/notificationService'
 
 // Import LeafletJS
 import L from 'leaflet'
@@ -455,6 +456,33 @@ export default {
         draggable: editMode.value
       })
       
+      marker.markerData = markerData
+      
+      if (editMode.value) {
+        let originalPosition = null
+        
+        marker.on('dragstart', () => {
+          originalPosition = marker.getLatLng()
+        })
+        
+        marker.on('dragend', (event) => {
+          const leafletMarker = event.target
+          const newLatLng = leafletMarker.getLatLng()
+          const newCoords = latLngToPercent(newLatLng.lat, newLatLng.lng)
+          
+          editingMarker.value = {
+            ...markerData,
+            leafletMarker,
+            originalPosition
+          }
+          
+          selectedLocation.x = newCoords.x
+          selectedLocation.y = newCoords.y
+          
+          showCompanyModal.value = true
+        })
+      }
+      
       const popupContent = `
         <div class="company-popup">
           <div class="popup-header">
@@ -477,9 +505,13 @@ export default {
         </div>
       `
       
+
       marker.bindPopup(popupContent, {
         maxWidth: 300,
-        className: 'company-popup-container'
+        className: 'company-popup-container',
+        closeButton: true,
+        autoClose: false,
+        closeOnClick: false
       })
       
       if (editMode.value) {
@@ -491,6 +523,7 @@ export default {
       }
       
       marker.markerData = markerData
+
       
       return marker
     }
@@ -504,27 +537,10 @@ export default {
         const marker = createCompanyMarker(markerData)
         markersLayer.value.addLayer(marker)
       })
-    }
-    
-    const updateMarkerPosition = async (markerId, newX, newY) => {
-      try {
-        const markerRef = doc(db, 'companyLocations', markerId)
-        await updateDoc(markerRef, {
-          x: newX,
-          y: newY,
-          updatedAt: new Date()
-        })
-        
-        const markerIndex = companyMarkers.value.findIndex(m => m.id === markerId)
-        if (markerIndex !== -1) {
-          companyMarkers.value[markerIndex].x = newX
-          companyMarkers.value[markerIndex].y = newY
-        }
-        
-        console.log('Marker position updated successfully')
-      } catch (error) {
-        console.error('Error updating marker position:', error)
-        alert('Er is een fout opgetreden bij het bijwerken van de markerlocatie.')
+      
+      // Ensure map is ready after adding markers
+      if (map.value) {
+        map.value.invalidateSize()
       }
     }
     
@@ -726,6 +742,9 @@ export default {
     
     // Company Modal Methods
     const closeCompanyModal = () => {
+      if (editingMarker.value && editingMarker.value.leafletMarker && editingMarker.value.originalPosition) {
+        editingMarker.value.leafletMarker.setLatLng(editingMarker.value.originalPosition);
+      }
       showCompanyModal.value = false
       editingMarker.value = null
     }
@@ -742,12 +761,19 @@ export default {
           throw new Error(`Company with ID ${locationData.companyId} not found.`)
         }
 
+        const notificationCompanyId = company.authUid || company.id
+        const companyName = company.bedrijfsnaam || company.name
+        const grondplanName = currentGrondplan.value?.name || ''
+
         if (editingMarker.value) {
+          // Get old location name for change notification
+          const oldLocationName = editingMarker.value.locationName || ''
+          
           const index = companyMarkers.value.findIndex(m => m.id === editingMarker.value.id)
           if (index !== -1) {
             companyMarkers.value[index] = {
-              ...locationWithGrondplan,
-              id: editingMarker.value.id
+              ...companyMarkers.value[index],
+              ...locationWithGrondplan
             }
             
             const markerRef = doc(db, 'companyLocations', editingMarker.value.id)
@@ -757,8 +783,20 @@ export default {
               x: locationWithGrondplan.x,
               y: locationWithGrondplan.y,
               notes: locationWithGrondplan.notes,
+              locationName: locationWithGrondplan.locationName,
               updatedAt: new Date()
             })
+
+            // Send location change notification if location name changed
+            if (oldLocationName !== locationWithGrondplan.locationName) {
+              await notificationService.createLocationChangeNotification(
+                notificationCompanyId,
+                companyName,
+                oldLocationName,
+                locationWithGrondplan.locationName,
+                grondplanName
+              )
+            }
           }
         } else {
           const newMarkerRef = await addDoc(collection(db, 'companyLocations'), {
@@ -767,6 +805,7 @@ export default {
             x: locationWithGrondplan.x,
             y: locationWithGrondplan.y,
             notes: locationWithGrondplan.notes || '',
+            locationName: locationWithGrondplan.locationName,
             createdAt: new Date()
           })
           
@@ -780,6 +819,14 @@ export default {
             id: newMarkerRef.id,
             ...locationWithGrondplan
           })
+
+          // Send location placement notification
+          await notificationService.createLocationPlacementNotification(
+            notificationCompanyId,
+            companyName,
+            locationWithGrondplan.locationName,
+            grondplanName
+          )
         }
         
         loadCompanyMarkersOnMap()
@@ -822,11 +869,21 @@ export default {
         const [lat, lng] = percentToLatLng(marker.x, marker.y)
         map.value.setView([lat, lng], 2)
         
-        markersLayer.value.eachLayer(leafletMarker => {
-          if (leafletMarker.markerData && leafletMarker.markerData.id === marker.id) {
-            leafletMarker.openPopup()
+        // Add delay to ensure map has finished zooming before opening popup
+        setTimeout(() => {
+          try {
+            markersLayer.value.eachLayer(leafletMarker => {
+              if (leafletMarker.markerData && leafletMarker.markerData.id === marker.id) {
+                // Check if marker is still on the map and visible
+                if (leafletMarker._map && leafletMarker._map.hasLayer(leafletMarker)) {
+                  leafletMarker.openPopup()
+                }
+              }
+            })
+          } catch (error) {
+            console.warn('Error opening popup:', error)
           }
-        })
+        }, 300) // 300ms delay to allow zoom animation to complete
       } else if (editMode.value) {
         console.log('Opening company modal for new placement')
         selectedLocation.x = 50

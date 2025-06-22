@@ -228,6 +228,7 @@
 
 <script>
 import { onMounted, ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import Navbar from '../../components/Navbar.vue'
 import '../../css/Home.css'
 import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore'
@@ -237,7 +238,11 @@ export default {
   name: 'Homepage',
   components: { Navbar },
   setup() {
+
     const toast = useToast()
+
+    const router = useRouter()
+
     const db = getFirestore()
     const bedrijven = ref([])
     const loading = ref(true)
@@ -246,6 +251,10 @@ export default {
     const companySearch = ref('')
     const currentSlide = ref(0)
     const slidesToShow = ref(5)
+
+    const goToRegister = () => {
+      router.push('/register')
+    }
 
     const fetchBedrijven = async () => {
       try {
@@ -307,6 +316,7 @@ export default {
     })
 
     return {
+      goToRegister,
       showAllCompanies,
       bedrijven,
       filteredCompanies,

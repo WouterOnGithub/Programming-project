@@ -534,6 +534,81 @@ textarea {
     flex-direction: column;
   }
 }
+
+/* Enhanced Mobile Responsive Styles */
+@media (max-width: 768px) {
+  .bedrijf-invoer {
+    padding: 1rem 1rem 2rem;
+  }
+
+  .header-blok {
+    padding: 2rem 1rem 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .titel {
+    font-size: 2rem;
+  }
+
+  .uitleg {
+    font-size: 1rem;
+  }
+
+  .formulier-grid {
+    gap: 1.5rem;
+  }
+
+  .form-column {
+    width: 100%;
+  }
+
+  .form-group {
+    margin-bottom: 1.2rem;
+  }
+
+  .tijd-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .foto-preview-wrapper {
+    width: 100px;
+    height: 100px;
+  }
+
+  .chip-cloud {
+    gap: 6px;
+  }
+
+  .chip {
+    font-size: 0.85rem;
+    padding: 4px 8px;
+  }
+
+  .custom-skill-input {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .custom-skill-input input {
+    width: 100%;
+  }
+
+  .custom-skill-btn {
+    align-self: flex-start;
+  }
+
+  .toestemming-richting {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+
+  .toestemming-richting input[type="checkbox"] {
+    transform: scale(1.2);
+  }
+}
+
 .tijd-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;

@@ -176,9 +176,11 @@ export default {
             schedule: doc.data().starttijd && doc.data().eindtijd ? `${doc.data().starttijd} - ${doc.data().eindtijd}` : '-',
             skills: doc.data().skills || [],
             linkedinUrl: doc.data().linkedin || '#',
-            logo: doc.data().foto || null
+            logo: doc.data().foto || null,
+            verificationStatus: doc.data().verificationStatus || 'wachtend'
           }))
-          .filter(job => !swipedIds.has(job.bedrijfUid));
+          .filter(job => !swipedIds.has(job.bedrijfUid))
+          .filter(job => job.verificationStatus === 'geverifieerd');
       } catch (err) {
         console.error("Fout bij laden van bedrijven:", err);
         error.value = 'Fout bij laden van bedrijven.';
