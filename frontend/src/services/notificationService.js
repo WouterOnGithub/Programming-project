@@ -167,6 +167,65 @@ export class NotificationService {
     const notificationRef = doc(db, 'notifications', notificationId)
     await deleteDoc(notificationRef)
   }
+
+  /**
+   * Create a location placement notification
+   */
+  async createLocationPlacementNotification(companyId, companyName, locationName, grondplanName) {
+    try {
+      if (!companyId || !companyName || !locationName) {
+        console.warn('Missing required parameters for createLocationPlacementNotification')
+        return
+      }
+
+      const { db, collection, addDoc, serverTimestamp } = await this.getFirebaseServices()
+      await addDoc(collection(db, 'notifications'), {
+        companyId,
+        type: 'location_placement',
+        title: 'Locatie Toegewezen',
+        message: `Uw bedrijf "${companyName}" is geplaatst op locatie "${locationName}"${grondplanName ? ` in ${grondplanName}` : ''}.`,
+        locationName,
+        grondplanName: grondplanName || '',
+        read: false,
+        createdAt: serverTimestamp()
+      })
+    } catch (error) {
+      console.error('Error creating location placement notification:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Create a location change notification
+   */
+  async createLocationChangeNotification(companyId, companyName, oldLocationName, newLocationName, grondplanName) {
+    try {
+      if (!companyId || !companyName || !newLocationName) {
+        console.warn('Missing required parameters for createLocationChangeNotification')
+        return
+      }
+
+      const { db, collection, addDoc, serverTimestamp } = await this.getFirebaseServices()
+      const message = oldLocationName 
+        ? `Uw bedrijf "${companyName}" is verplaatst van "${oldLocationName}" naar "${newLocationName}"${grondplanName ? ` in ${grondplanName}` : ''}.`
+        : `Uw bedrijf "${companyName}" is verplaatst naar locatie "${newLocationName}"${grondplanName ? ` in ${grondplanName}` : ''}.`
+
+      await addDoc(collection(db, 'notifications'), {
+        companyId,
+        type: 'location_change',
+        title: 'Locatie Gewijzigd',
+        message,
+        oldLocationName: oldLocationName || '',
+        newLocationName,
+        grondplanName: grondplanName || '',
+        read: false,
+        createdAt: serverTimestamp()
+      })
+    } catch (error) {
+      console.error('Error creating location change notification:', error)
+      throw error
+    }
+  }
 }
 
 // Export a singleton instance
@@ -175,7 +234,9 @@ export const notificationService = new NotificationService()
 // Export constants
 export const NOTIFICATION_TYPES = {
   VERIFICATION_APPROVED: 'verification_approved',
-  VERIFICATION_REJECTED: 'verification_rejected'
+  VERIFICATION_REJECTED: 'verification_rejected',
+  LOCATION_PLACEMENT: 'location_placement',
+  LOCATION_CHANGE: 'location_change'
 }
 
 export const VERIFICATION_STATUS = {

@@ -30,6 +30,8 @@
             <div class="notification-icon">
               <span v-if="notification.type === 'verification_approved'">✅</span>
               <span v-else-if="notification.type === 'verification_rejected'">❌</span>
+              <span v-else-if="notification.type === 'location_placement'">📍</span>
+              <span v-else-if="notification.type === 'location_change'">🔄</span>
               <span v-else>📢</span>
             </div>
             
