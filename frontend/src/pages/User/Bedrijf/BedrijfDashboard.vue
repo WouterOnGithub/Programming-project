@@ -1,7 +1,52 @@
 <template>
   <BedrijfDashboardLayout>
-    <!-- Main content -->
-    <main class="dashboard-main">
+    <!-- Mobile View -->
+    <div class="mobile-view">
+      <!-- Verification Status Banner -->
+      <div v-if="verificatieStatus !== 'goedgekeurd'" class="verification-banner-mobile">
+        <div v-if="verificatieStatus === 'wachtend op verificatie'" class="status-pending">
+          ⏳ Wacht op verificatie...
+        </div>
+        <div v-else-if="verificatieStatus === 'geweigerd'" class="status-rejected">
+          ❌ Geweigerd: {{ afwijzingsreden || 'Geen reden' }}
+        </div>
+      </div>
+
+      <!-- Stats Grid -->
+      <div class="mobile-stats-grid">
+        <div v-for="stat in statsData" :key="stat.title" class="mobile-stat-card">
+          <i :class="[stat.icon, 'stat-icon-mobile']"></i>
+          <span class="stat-title-mobile">{{ stat.title }}</span>
+          <span class="stat-value-mobile">{{ stat.value }}</span>
+        </div>
+      </div>
+
+      <!-- Interested Students -->
+      <div class="mobile-card">
+        <h3 class="mobile-card-header">Geïnteresseerde Studenten</h3>
+        <ul v-if="displayedStudents.length > 0">
+          <li v-for="student in displayedStudents" :key="student.id">{{ student.name }}</li>
+        </ul>
+        <p v-else class="no-data-mobile">Nog geen studenten gematched.</p>
+        <button v-if="interestedStudents.length > 3" @click="goToMatches" class="meer-zien-knop-mobile">Meer Zien &rarr;</button>
+      </div>
+
+      <!-- Appointments -->
+      <div class="mobile-card">
+        <h3 class="mobile-card-header">Geplande Afspraken</h3>
+        <div v-if="displayedAfspraken.length > 0">
+          <div v-for="afspraak in displayedAfspraken" :key="afspraak.id" class="mobile-afspraak-item">
+            <span>{{ afspraak.studentNaam }} - {{ afspraak.displayTime }}</span>
+            <button @click="bekijkProfiel(afspraak.studentId)" class="profiel-knop-mobile">Profiel</button>
+          </div>
+        </div>
+        <p v-else class="no-data-mobile">Nog geen afspraken gepland.</p>
+        <button v-if="geplandeAfspraken.length > 3" @click="goToGesprekken" class="meer-zien-knop-mobile">Alle afspraken &rarr;</button>
+      </div>
+    </div>
+
+    <!-- Desktop content -->
+    <main class="dashboard-main desktop-view">
       <!-- Verification Status Banner -->
       <div v-if="verificatieStatus !== 'goedgekeurd'" class="verification-banner">
         <div v-if="verificatieStatus === 'wachtend op verificatie'" class="status-pending">
@@ -977,5 +1022,198 @@ const statsData = ref([
 .profiel-knop:hover {
   background-color: #a50000;
 }
+
+/* START: MOBILE STYLES */
+.mobile-view {
+  display: none;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1rem;
+  background-color: #f0f2f5;
+  min-height: 100vh;
+}
+
+.desktop-view {
+  display: flex; /* or block, depending on original CSS */
+}
+
+@media (max-width: 768px) {
+  .desktop-view {
+    display: none;
+  }
+  .mobile-view {
+    display: flex;
+  }
+  .verification-banner-mobile {
+     margin: 0;
+  }
+}
+
+.mobile-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+}
+
+.mobile-stat-card {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  padding: 1.25rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.5rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.mobile-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.stat-icon-mobile {
+  font-size: 1.8rem;
+  color: #c20000;
+}
+
+.stat-title-mobile {
+  font-size: 0.8rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.stat-value-mobile {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.mobile-card {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  padding: 1.25rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.mobile-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.mobile-card-header {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.mobile-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.mobile-card ul li {
+  background: #f8f9fa;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.no-data-mobile {
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.9rem;
+  padding: 1.5rem 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.meer-zien-knop-mobile {
+  background: none;
+  border: 1px solid #e5e7eb;
+  color: #374151;
+  font-weight: 500;
+  cursor: pointer;
+  display: block;
+  width: 100%;
+  text-align: center;
+  margin-top: 1rem;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.meer-zien-knop-mobile:hover {
+  background-color: #f8f9fa;
+  border-color: #d1d5db;
+}
+
+.mobile-afspraak-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+}
+
+.mobile-afspraak-item:last-child {
+  margin-bottom: 0;
+}
+
+.mobile-afspraak-item span {
+  font-weight: 500;
+  color: #374151;
+  flex: 1;
+  margin-right: 1rem;
+}
+
+.profiel-knop-mobile {
+  background-color: #c20000;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  white-space: nowrap;
+}
+
+.profiel-knop-mobile:hover {
+  background-color: #a50000;
+}
+
+.status-pending, .status-rejected {
+  border-radius: 12px;
+  padding: 1.25rem;
+  font-weight: 500;
+  text-align: center;
+  background-color: #ffffff;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.status-pending {
+  color: #856404;
+  border: 1px solid #ffeaa7;
+}
+
+.status-rejected {
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+/* END: MOBILE STYLES */
 </style>
 

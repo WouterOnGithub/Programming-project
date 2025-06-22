@@ -1,7 +1,19 @@
 <template>
   <div class="dashboard-container">
+    <!-- Mobile Header -->
+    <header class="mobile-header">
+      <div class="logo-container">
+        <img src="/Images/ehb-logo.png" alt="EHB logo" class="mobile-logo-img" />
+      </div>
+      <button class="hamburger-btn" @click="toggleSidebar">
+        <div class="hamburger-box">
+          <div class="hamburger-inner"></div>
+        </div>
+      </button>
+    </header>
+
     <!-- Sidebar -->
-    <aside class="sidebar-nav">
+    <aside class="sidebar-nav" :class="{ 'is-open': isSidebarOpen }">
       <div class="sidebar-header">
         <div class="sidebar-logo">
           <img src="/Images/ehb-logo.png" alt="EHB logo" class="ehb-logo-img" />
@@ -25,7 +37,8 @@
     </aside>
 
     <main class="dashboard-main">
-      <header class="dashboard-header">
+      <!-- Desktop Header -->
+      <header class="dashboard-header desktop-only">
         <div>
           <h1>Welkom {{ userData.companyName }}</h1>
           <p>{{ pageSubtitle }}</p>
@@ -62,13 +75,52 @@
         </div>
       </header>
 
+      <!-- Mobile Welcome Card -->
+      <div class="mobile-welcome-card mobile-only">
+        <div class="welcome-text">
+          <h1>Welkom {{ userData.companyName }}</h1>
+          <p>{{ pageSubtitle }}</p>
+        </div>
+        <div class="mobile-actions">
+          <NotificationCenter 
+            v-if="currentUser?.uid" 
+            :companyId="currentUser.uid" 
+            :key="currentUser.uid"
+          />
+          <div
+            class="dashboard-profile-avatar"
+            @click="handleAvatarClick"
+          >
+            <img
+              v-if="userFoto"
+              :src="userFoto"
+              alt="Bedrijfslogo"
+              class="avatar-img"
+            />
+            <span v-else>
+              {{ userData.companyName ? userData.companyName[0] : 'B' }}
+            </span>
+          </div>
+           <div
+            v-if="showDropdown"
+            class="profile-dropdown mobile"
+          >
+            <button class="dropdown-item" @click="goToProfile">Profiel</button>
+            <button class="dropdown-item" @click="handleLogout">Uitloggen</button>
+          </div>
+        </div>
+      </div>
+
       <slot />
     </main>
+
+    <!-- Overlay for mobile sidebar -->
+    <div v-if="isSidebarOpen" class="sidebar-overlay" @click="toggleSidebar"></div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getAuth, onAuthStateChanged } from 'firebase/auth'
 import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore'
@@ -81,6 +133,7 @@ const userFoto = ref(null)
 const userData = ref({ companyName: '' })
 const currentUser = ref(null)
 const showDropdown = ref(false)
+const isSidebarOpen = ref(false)
 
 const navigation = [
   { name: 'Dashboard', href: '/BedrijfDashboard', icon: 'fas fa-chart-pie' },
@@ -132,6 +185,10 @@ function goToProfile() {
   router.push('/WeergaveBd')
 }
 
+function toggleSidebar() {
+  isSidebarOpen.value = !isSidebarOpen.value
+}
+
 onMounted(() => {
   setTimeout(() => {
     document.addEventListener('mousedown', handleClickOutside)
@@ -158,6 +215,14 @@ onMounted(() => {
 onBeforeUnmount(() => {
   document.removeEventListener('mousedown', handleClickOutside)
 })
+
+// Watch for route changes to close the sidebar on navigation
+watch(
+  () => $route.path,
+  () => {
+    isSidebarOpen.value = false
+  }
+)
 </script>
 
 <style scoped>
@@ -309,4 +374,171 @@ onBeforeUnmount(() => {
   object-fit: cover;
   display: block;
 }
+
+/* START: MOBILE-SPECIFIC STYLES */
+.mobile-header {
+  display: none; /* This will be overridden by the media query */
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  padding: 0.75rem 1.25rem;
+  margin: 1rem 1rem 0 1rem;
+}
+
+.mobile-welcome-card {
+  display: none; /* Hidden by default */
+}
+
+.mobile-only {
+  display: none;
+}
+
+.desktop-only {
+  display: flex;
+}
+
+.sidebar-overlay {
+  display: none; /* Hidden by default */
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1040; /* Below sidebar, above content */
+}
+
+@media (max-width: 768px) {
+  .desktop-only {
+    display: none;
+  }
+
+  .mobile-only {
+    display: flex;
+  }
+  
+  .mobile-header {
+    display: flex;
+  }
+
+  .logo-container {
+    height: 40px;
+  }
+
+  .mobile-logo-img {
+    height: 100%;
+    width: auto;
+    object-fit: contain;
+  }
+
+  .hamburger-btn {
+    background: none;
+    border: none;
+    color: #c20000;
+    cursor: pointer;
+    padding: 10px;
+    display: inline-block;
+  }
+
+  .hamburger-box {
+    width: 30px;
+    height: 24px;
+    position: relative;
+  }
+
+  .hamburger-inner,
+  .hamburger-inner::before,
+  .hamburger-inner::after {
+    width: 30px;
+    height: 3px;
+    background-color: #c20000;
+    border-radius: 4px;
+    position: absolute;
+    transition: transform 0.2s ease-in-out;
+  }
+
+  .hamburger-inner {
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .hamburger-inner::before,
+  .hamburger-inner::after {
+    content: '';
+    display: block;
+  }
+
+  .hamburger-inner::before {
+    top: -10px;
+  }
+
+  .hamburger-inner::after {
+    bottom: -10px;
+  }
+
+  .dashboard-container {
+    flex-direction: column;
+  }
+  
+  .dashboard-main {
+    padding-top: 0; /* Remove padding since header is no longer fixed */
+  }
+
+  .sidebar-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-in-out;
+    z-index: 1050;
+    width: 260px;
+  }
+
+  .sidebar-nav.is-open {
+    transform: translateX(0);
+  }
+
+  .sidebar-overlay {
+    display: block; /* Show overlay when sidebar is open */
+  }
+
+  .mobile-welcome-card {
+    align-items: center;
+    justify-content: space-between;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    padding: 1rem 1.25rem;
+    margin: 1rem;
+  }
+  
+  .welcome-text h1 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #c20000;
+    margin: 0 0 0.25rem 0;
+  }
+
+  .welcome-text p {
+    font-size: 0.9rem;
+    color: #6b7280;
+    margin: 0;
+  }
+  
+  .mobile-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    position: relative;
+  }
+  
+  .profile-dropdown.mobile {
+    top: 45px;
+    right: 0;
+  }
+}
+/* END: MOBILE-SPECIFIC STYLES */
 </style>
