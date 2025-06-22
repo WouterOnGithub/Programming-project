@@ -265,7 +265,7 @@ export default {
         bedrijven.value = snapshot.docs.map(doc => ({
           id: doc.id,
           naam: doc.data().bedrijfsnaam || 'Onbekende Bedrijfsnaam',
-          foto: doc.data().logoUrl || '/Images/placeholder-logo.png',
+          foto: doc.data().foto || '/Images/placeholder-logo.png',
           linkedin: doc.data().linkedin || '#',
         }))
       } catch (err) {
