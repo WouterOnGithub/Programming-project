@@ -71,6 +71,7 @@ Kleine preview met de belangrijkste informatie uit het volledige profiel.
 - **Deelnemende bedrijven:** Overzicht van alle bedrijven
 
 <H3> 👨‍💼 ADMIN PANEL</H3>
+
 - **Gebruikersbeheer:** Studenten en bedrijven beheren
 - **Verificatie:** Bedrijfsverificatie systeem
 - **Grondplan beheer:** Beurslocatie configuratie
@@ -87,8 +88,9 @@ Backend: - **Firebase** - Backend-as-a-Service
   - **Storage** - File storage
   - **Hosting** - Web hosting
 
-Database: Firebase firestore
-          collections:  - `student` - Student profielen
+Database: Firebase firestore,
+          collections:  
+  - `student` - Student profielen
   - `bedrijf` - Bedrijfsprofielen
   - `admin` - Admin gebruikers
   - `notifications` - Notificaties
