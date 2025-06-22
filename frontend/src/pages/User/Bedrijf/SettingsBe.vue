@@ -644,4 +644,58 @@ async function logout() {
   background-color: #fff;
 }
 
+/* Enhanced Mobile Responsive Styles */
+@media (max-width: 768px) {
+  .dashboard-main {
+    padding: 0;
+  }
+
+  .dashboard-2col {
+    margin: 1rem 1rem 0 1rem;
+    gap: 1rem;
+  }
+
+  .dashboard-card {
+    padding: 1.2rem;
+  }
+
+  .dashboard-card-header {
+    margin-bottom: 0.8rem;
+  }
+
+  .dashboard-card-header h3 {
+    font-size: 1.1rem;
+  }
+
+  .setting-input {
+    padding: 0.8rem 0.9rem;
+    margin-bottom: 0.8rem;
+    font-size: 0.95rem;
+  }
+
+  .dashboard-action-btn {
+    padding: 0.8rem 1rem;
+    height: auto;
+    min-height: 2.8rem;
+    font-size: 0.95rem;
+  }
+
+  .dashboard-action-btn.bg-primary {
+    margin-top: 1rem;
+  }
+
+  .dashboard-message {
+    margin: 1rem;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    background: #f3f4f6;
+    color: #374151;
+    text-align: center;
+  }
+
+  .text-error {
+    font-size: 0.8rem;
+    margin-top: 0.4rem;
+  }
+}
 </style> 
