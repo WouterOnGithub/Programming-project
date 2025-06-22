@@ -479,7 +479,10 @@ export default {
       
       marker.bindPopup(popupContent, {
         maxWidth: 300,
-        className: 'company-popup-container'
+        className: 'company-popup-container',
+        closeButton: true,
+        autoClose: false,
+        closeOnClick: false
       })
       
       if (editMode.value) {
@@ -504,6 +507,11 @@ export default {
         const marker = createCompanyMarker(markerData)
         markersLayer.value.addLayer(marker)
       })
+      
+      // Ensure map is ready after adding markers
+      if (map.value) {
+        map.value.invalidateSize()
+      }
     }
     
     const updateMarkerPosition = async (markerId, newX, newY) => {
@@ -822,11 +830,21 @@ export default {
         const [lat, lng] = percentToLatLng(marker.x, marker.y)
         map.value.setView([lat, lng], 2)
         
-        markersLayer.value.eachLayer(leafletMarker => {
-          if (leafletMarker.markerData && leafletMarker.markerData.id === marker.id) {
-            leafletMarker.openPopup()
+        // Add delay to ensure map has finished zooming before opening popup
+        setTimeout(() => {
+          try {
+            markersLayer.value.eachLayer(leafletMarker => {
+              if (leafletMarker.markerData && leafletMarker.markerData.id === marker.id) {
+                // Check if marker is still on the map and visible
+                if (leafletMarker._map && leafletMarker._map.hasLayer(leafletMarker)) {
+                  leafletMarker.openPopup()
+                }
+              }
+            })
+          } catch (error) {
+            console.warn('Error opening popup:', error)
           }
-        })
+        }, 300) // 300ms delay to allow zoom animation to complete
       } else if (editMode.value) {
         console.log('Opening company modal for new placement')
         selectedLocation.x = 50
