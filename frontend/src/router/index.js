@@ -97,23 +97,34 @@ router.beforeEach(async (to, from, next) => {
 
   const user = auth.currentUser || await waitForAuth()
 
-  // Toegestaan zonder login
-  const publicPaths = ['/', '/login', '/register', '/admin/loginAdmin']
-  if (!user && !publicPaths.includes(to.path)) {
-    if (to.path.startsWith('/admin')) {
+  // Admin-routes check
+  if (to.path.startsWith('/admin')) {
+    // Toegang tot admin login pagina
+    if (to.path === '/admin/loginAdmin') {
+      return next();
+    }
+    // Als geen gebruiker, stuur naar admin login
+    if (!user) {
       return next('/admin/loginAdmin');
     }
-    return next('/login');
+    // Controleer of gebruiker admin is
+    try {
+      const userDoc = await getDoc(doc(db, 'admin', user.uid));
+      if (userDoc.exists()) {
+        return next(); // Toegang verleend
+      } else {
+        return next('/admin/loginAdmin'); // Geen admin, stuur naar login
+      }
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+      return next('/admin/loginAdmin'); // Fout, stuur naar login
+    }
   }
 
-  // Admin loginpagina altijd toegankelijk
-  if (to.path === '/admin/loginAdmin') return next()
-
-  // Admin-routes
-  if (to.path.startsWith('/admin')) {
-    if (!user) return next({ name: 'NotFound' })
-    const adminDoc = await getDoc(doc(db, 'admin', user.uid))
-    return adminDoc.exists() ? next() : next({ name: 'NotFound' })
+  // Toegestaan zonder login voor publieke paden
+  const publicPaths = ['/', '/login', '/register']
+  if (!user && !publicPaths.includes(to.path)) {
+    return next('/login');
   }
 
   // Student-routes

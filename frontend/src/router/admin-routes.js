@@ -7,34 +7,6 @@ const adminRoutes = [
     path: '/admin',
     component: () => import('../pages/admin/components/AdminLayout.vue'),
     meta: { requiresAdmin: true },
-    beforeEnter: async (to, from, next) => {
-      if (TEST_MODE) {
-        next();
-        return;
-      }
-      
-      // Import Firebase services inside the guard to ensure they're available
-      const { auth, db } = await import('../firebase/config');
-      const { doc, getDoc } = await import('firebase/firestore');
-      
-      const user = auth.currentUser;
-      if (!user) {
-        next('/login');
-        return;
-      }
- 
-      try {
-        const userDoc = await getDoc(doc(db, 'admin', user.uid));
-        if (userDoc.exists()) {
-          next();
-        } else {
-          next('/');
-        }
-      } catch (error) {
-        console.error('Error checking admin status:', error);
-        next('/');
-      }
-    },
     children: [
       {
         path: '',
