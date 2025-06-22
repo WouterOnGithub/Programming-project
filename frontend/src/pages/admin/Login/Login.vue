@@ -187,6 +187,18 @@ const handlePasswordReset = async () => {
 </template>
 
 <style scoped>
+/* Light Mode (Default) */
+:root {
+  --background-primary: #f0f2f5;
+  --background-secondary: #ffffff;
+  --text-primary: #1c1e21;
+  --text-secondary: #606770;
+  --color-primary: #007bff;
+  --color-primary-hover: #0056b3;
+  --border-color: #dddfe2;
+  --logo-filter: none;
+}
+
 .admin-footer {
   background-color: #ffffff;
   border-top: 1px solid #e5e7eb;
@@ -248,12 +260,14 @@ const handlePasswordReset = async () => {
 .login-card {
   background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(20px);
+  padding: 40px;
   border-radius: 20px;
-  padding: 48px 40px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
   width: 100%;
   max-width: 420px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  transition: all 0.3s ease;
 }
 
 .login-header {
@@ -261,31 +275,24 @@ const handlePasswordReset = async () => {
   margin-bottom: 40px;
 }
 
-.logo {
+.login-header .logo {
   margin-bottom: 24px;
-  display: flex;
-  justify-content: center;
 }
 .ehb-login-logo {
-  height: 60px;
-  object-fit: contain;
-  display: block;
-  margin: 0 auto 20px auto;
+  height: 50px;
 }
 
 .login-header h1 {
-  font-size: 32px;
-  font-weight: 600;
-  color: #1d1d1f;
+  font-size: 28px;
+  font-weight: 700;
+  color: #1c1e21;
   margin-bottom: 8px;
-  letter-spacing: -0.5px;
 }
 
 .login-header p {
-  font-size: 17px;
-  color: #86868b;
-  font-weight: 400;
-  margin: 0;
+  color: #606770;
+  font-size: 16px;
+  margin-bottom: 32px;
 }
 
 .login-form {
@@ -301,46 +308,40 @@ const handlePasswordReset = async () => {
 
 .input {
   width: 100%;
-  padding: 16px 20px;
-  font-size: 17px;
-  border: 1.5px solid #d1d1d6;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.8);
-  transition: all 0.2s ease;
-  font-family: inherit;
-  color: #1d1d1f;
+  padding: 14px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 16px;
+  background-color: #ffffff;
+  color: #1c1e21;
+  transition: all 0.2s;
+}
+
+.input::placeholder {
+  color: #6b7280;
 }
 
 .input:focus {
   outline: none;
-  border-color: #007aff;
-  box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
-  background: white;
-}
-
-.input::placeholder {
-  color: #86868b;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2);
 }
 
 .primary-btn {
   width: 100%;
-  padding: 16px;
-  font-size: 17px;
-  font-weight: 600;
+  padding: 14px;
+  background-color: #007bff;
   color: white;
-  background: #007aff;
   border: none;
-  border-radius: 12px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
-  font-family: inherit;
-  margin-top: 8px;
+  transition: background-color 0.2s;
 }
 
-.primary-btn:hover:not(:disabled) {
-  background: #0056cc;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+.primary-btn:hover {
+  background-color: #0056b3;
 }
 
 .primary-btn:active {
@@ -375,8 +376,7 @@ const handlePasswordReset = async () => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(4px);
+  background-color: rgba(0, 0, 0, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -385,69 +385,48 @@ const handlePasswordReset = async () => {
 }
 
 .modal {
-  background: white;
-  border-radius: 20px;
+  background: #ffffff;
   padding: 32px;
+  border-radius: 16px;
   width: 100%;
-  max-width: 400px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-  animation: modalSlideIn 0.3s ease-out;
-}
-
-@keyframes modalSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+  max-width: 420px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
 }
 
 .modal-header {
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: 24px;
 }
 
 .modal-header h2 {
-  font-size: 24px;
-  font-weight: 600;
-  color: #1d1d1f;
+  font-size: 22px;
   margin-bottom: 8px;
-  letter-spacing: -0.3px;
+  color: #1c1e21;
 }
 
 .modal-header p {
-  font-size: 15px;
-  color: #86868b;
-  line-height: 1.4;
-  margin: 0;
+  color: #606770;
 }
 
 .modal-actions {
   display: flex;
+  justify-content: flex-end;
   gap: 12px;
   margin-top: 24px;
 }
 
 .secondary-btn {
-  flex: 1;
-  padding: 14px;
-  font-size: 17px;
-  font-weight: 500;
-  color: #007aff;
-  background: transparent;
-  border: 1.5px solid #d1d1d6;
-  border-radius: 12px;
+  padding: 10px 20px;
+  background: #e4e6eb;
+  color: #1c1e21;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
-  font-family: inherit;
 }
 
 .secondary-btn:hover {
-  background: #f5f5f7;
-  border-color: #007aff;
+  background: #d8dbe0;
 }
 
 .primary-btn {
@@ -474,46 +453,4 @@ const handlePasswordReset = async () => {
     flex: none;
   }
 }
-
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .login-container {
-    background: linear-gradient(135deg, #1c1c1e 0%, #2c2c2e 100%);
-  }
-  
-  .login-card {
-    background: rgba(28, 28, 30, 0.9);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-  }
-  
-  .login-header h1 {
-    color: #f2f2f7;
-  }
-  
-  .input {
-    background: rgba(44, 44, 46, 0.8);
-    border-color: #38383a;
-    color: #f2f2f7;
-  }
-  
-  .input:focus {
-    background: #44444a;
-  }
-  
-  .secondary-btn {
-    border-color: #38383a;
-    color: #007aff;
-  }
-  
-  .secondary-btn:hover {
-    background: #2c2c2e;
-  }
-  
-  .modal {
-    background: #1c1c1e;
-  }
-  
-  .modal-header h2 {
-    color: #f2f2f7;
-  }
-}</style>
+</style>
