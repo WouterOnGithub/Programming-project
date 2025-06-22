@@ -53,6 +53,12 @@ const userRoutes = [
   { path: '/test', name: 'TestPage', component: () => import('../pages/User/TestPage.vue') },
   { path: '/student/bedrijf/:id', name: 'BedrijfProfielVoorStudent', component: BedrijfProfielVoorStudent },
   { path: '/bedrijf/grondplan', name: 'BedrijfGrondplan', component: BedrijfGrondplan },
+  {
+    path: '/student/grondplan/:companyId',
+    name: 'StudentGrondplan',
+    component: () => import('../pages/User/Student/StudentGrondplan.vue'),
+    meta: { requiresAuth: true }
+  }
 ]
 
 // Combineer alles in één routerconfig

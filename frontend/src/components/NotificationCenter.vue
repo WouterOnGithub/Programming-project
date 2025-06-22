@@ -37,6 +37,7 @@
               <span v-else-if="notification.type === 'new_match'">👋</span>
               <span v-else-if="notification.type === 'appointment_cancelled'">❌</span>
               <span v-else-if="notification.type === 'appointment_scheduled'">📅</span>
+              <span v-else-if="notification.type === 'location_set'">📍</span>
               <span v-else>📢</span>
             </div>
             
@@ -103,7 +104,14 @@ export default {
     }
 
     const isClickable = (notificationType) => {
-      return ['new_match', 'match_accepted', 'match_rejected', 'appointment_scheduled', 'appointment_cancelled'].includes(notificationType)
+      return [
+        'new_match', 
+        'match_accepted', 
+        'match_rejected', 
+        'appointment_scheduled', 
+        'appointment_cancelled',
+        'location_set' 
+      ].includes(notificationType)
     }
 
     const handleNotificationClick = async (notification) => {
@@ -141,6 +149,11 @@ export default {
             router.push('/appointments')
           } else if (props.userType === 'company') {
             router.push('/GesprekkenBd')
+          }
+          break
+        case 'location_set':
+          if (props.userType === 'student') {
+            router.push('/appointments')
           }
           break
         default:

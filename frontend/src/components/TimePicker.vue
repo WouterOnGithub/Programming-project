@@ -18,6 +18,10 @@ const props = defineProps({
   max: {
     type: String,
     default: '23:59'
+  },
+  disabled: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -87,11 +91,11 @@ watch(() => props.modelValue, (newVal) => {
   <div class="time-picker-group">
     <label>{{ label }}</label>
     <div class="time-picker-inputs">
-      <select v-model="selectedHour" class="time-picker-select">
+      <select v-model="selectedHour" class="time-picker-select" :disabled="disabled">
         <option v-for="hour in hours" :key="hour" :value="hour">{{ hour }}</option>
       </select>
       <span>:</span>
-      <select v-model="selectedMinute" class="time-picker-select">
+      <select v-model="selectedMinute" class="time-picker-select" :disabled="disabled">
         <option v-for="minute in minutes" :key="minute" :value="minute">{{ minute }}</option>
       </select>
     </div>
@@ -136,5 +140,11 @@ watch(() => props.modelValue, (newVal) => {
   background-repeat: no-repeat;
   background-position: right 0.7em top 50%, 0 0;
   background-size: 0.65em auto, 100%;
+}
+
+.time-picker-select:disabled {
+  background-color: #ececec;
+  color: #b0b0b0;
+  cursor: not-allowed;
 }
 </style> 
