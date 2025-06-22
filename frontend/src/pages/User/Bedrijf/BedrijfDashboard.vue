@@ -1029,7 +1029,7 @@ const statsData = ref([
   flex-direction: column;
   gap: 1.25rem;
   padding: 1rem;
-  background-color: #f0f2f5;
+  background-color: #f8f9fa;
   min-height: 100vh;
 }
 

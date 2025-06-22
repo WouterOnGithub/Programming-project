@@ -89,6 +89,7 @@
           />
           <div
             class="dashboard-profile-avatar"
+            id="bedrijf-profile-avatar-mobile"
             @click="handleAvatarClick"
           >
             <img
@@ -103,6 +104,7 @@
           </div>
            <div
             v-if="showDropdown"
+            id="bedrijf-profile-dropdown-mobile"
             class="profile-dropdown mobile"
           >
             <button class="dropdown-item" @click="goToProfile">Profiel</button>
@@ -170,12 +172,15 @@ function handleLogout() {
 }
 
 function handleClickOutside(event) {
-  const dropdown = document.getElementById('bedrijf-profile-dropdown')
-  const avatar = document.getElementById('bedrijf-profile-avatar')
-  if (
-    dropdown && !dropdown.contains(event.target) &&
-    avatar && !avatar.contains(event.target)
-  ) {
+  const desktopDropdown = document.getElementById('bedrijf-profile-dropdown')
+  const desktopAvatar = document.getElementById('bedrijf-profile-avatar')
+  const mobileDropdown = document.getElementById('bedrijf-profile-dropdown-mobile')
+  const mobileAvatar = document.getElementById('bedrijf-profile-avatar-mobile')
+
+  const isDesktopClick = (desktopDropdown && desktopDropdown.contains(event.target)) || (desktopAvatar && desktopAvatar.contains(event.target))
+  const isMobileClick = (mobileDropdown && mobileDropdown.contains(event.target)) || (mobileAvatar && mobileAvatar.contains(event.target))
+
+  if (!isDesktopClick && !isMobileClick) {
     showDropdown.value = false
   }
 }

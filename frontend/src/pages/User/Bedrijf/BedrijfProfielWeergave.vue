@@ -503,5 +503,61 @@ if (typeof window !== 'undefined') {
   opacity: 1;
   cursor: not-allowed;
 }
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+  .dashboard-card {
+    padding: 1rem;
+  }
+
+  .hero-banner {
+    flex-direction: column;
+    text-align: center;
+    gap: 1rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .hero-photo img {
+    width: 100px;
+    height: 100px;
+  }
+
+  .hero-text h1 {
+    font-size: 1.3rem;
+  }
+
+  .wijzig-knop {
+    position: static;
+    transform: none;
+    margin-top: 1rem;
+    align-self: center;
+  }
+
+  .section-card {
+    padding: 1.5rem;
+    margin-top: 1.5rem;
+  }
+
+  .section-card h2 {
+    font-size: 1.2rem;
+  }
+
+  .info-list li {
+    flex-direction: column;
+    gap: 0.3rem;
+    align-items: flex-start;
+  }
+
+  .info-list li strong {
+    font-weight: 600;
+    color: #c20000;
+  }
+
+  .intro-text {
+    padding: 0.8rem 1rem;
+    font-size: 0.95rem;
+  }
+}
 </style>
   
