@@ -23,22 +23,6 @@
           <p class="stat-label">Totaal bedrijven</p>
         </div>
       </router-link>
-
-      <router-link to="/admin/matches" class="stat-card" style="text-decoration: none; color: inherit;">
-        <div class="stat-icon matches">💫</div>
-        <div class="stat-content">
-          <h3 class="stat-number">{{ stats.totalMatches }}</h3>
-          <p class="stat-label">Totaal Matches</p>
-        </div>
-      </router-link>
-
-      <router-link to="/admin/appointments" class="stat-card" style="text-decoration: none; color: inherit;">
-        <div class="stat-icon appointments">📅</div>
-        <div class="stat-content">
-          <h3 class="stat-number">{{ stats.totalAppointments }}</h3>
-          <p class="stat-label">Totaal Afspraken</p>
-        </div>
-      </router-link>
     </div>  
 
 
@@ -84,80 +68,6 @@
                 <span class="action-icon">➕</span>
                 <span class="action-text">Nieuw Bedrijf</span>
               </router-link>
-            </div>
-            <div class="actions-column">
-              <router-link to="/admin/matches" class="action-button secondary">
-                <span class="action-icon">💫</span>
-                <span class="action-text">Matches Beheren</span>
-              </router-link>
-              <router-link to="/admin/appointments" class="action-button secondary">
-                <span class="action-icon">📅</span>
-                <span class="action-text">Afspraken Beheren</span>
-              </router-link>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Recent Matches -->
-      <div class="dashboard-card">
-        <div class="card-header">
-          <h2 class="card-title">Recente Matches</h2>
-          <router-link to="/admin/matches" class="view-all-link">Bekijk alle</router-link>
-        </div>
-        <div class="card-content">
-          <div class="match-list">
-            <div 
-              v-for="match in recentMatches" 
-              :key="match.id"
-              class="match-item"
-            >
-              <div class="match-info">
-                <div class="match-parties">
-                  <span class="student-name">{{ match.studentName }}</span>
-                  <span class="match-arrow">↔️</span>
-                  <span class="company-name">{{ match.companyName }}</span>
-                </div>
-                <p class="match-date">{{ formatDate(match.createdAt) }}</p>
-              </div>
-              <div class="match-status">
-                <span :class="['status-badge', match.status]">
-                  {{ getMatchStatus(match.status) }}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Upcoming Appointments -->
-      <div class="dashboard-card">
-        <div class="card-header">
-          <h2 class="card-title">Aankomende Afspraken</h2>
-          <router-link to="/admin/appointments" class="view-all-link">Bekijk alle</router-link>
-        </div>
-        <div class="card-content">
-          <div class="appointment-list">
-            <div 
-              v-for="appointment in upcomingAppointments" 
-              :key="appointment.id"
-              class="appointment-item"
-            >
-              <div class="appointment-time">
-                <span class="time">{{ formatTime(appointment.startTime) }}</span>
-                <span class="date">{{ formatDate(appointment.startTime) }}</span>
-              </div>
-              <div class="appointment-info">
-                <h4 class="appointment-title">{{ appointment.title }}</h4>
-                <p class="appointment-participants">
-                  {{ appointment.studentName }} & {{ appointment.companyName }}
-                </p>
-              </div>
-              <div class="appointment-status">
-                <span :class="['status-badge', appointment.status]">
-                  {{ getAppointmentStatus(appointment.status) }}
-                </span>
-              </div>
             </div>
           </div>
         </div>
