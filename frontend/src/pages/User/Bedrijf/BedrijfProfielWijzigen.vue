@@ -138,22 +138,7 @@
 import { ref, nextTick, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getAuth } from 'firebase/auth'
-import {
-  getFirestore,
-  collection,
-  query,
-  where,
-  getDocs,
-  doc,
-  updateDoc
-} from 'firebase/firestore'
-import {
-  getStorage,
-  ref as storageRef,
-  uploadBytes,
-  getDownloadURL
-} from 'firebase/storage'
-
+import { getFirestore, collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore'
 import profielfotoDefault from '/Images/profielfoto.jpg'
 import potlood from '/Images/potlood.png'
 import BedrijfDashboardLayout from '../../../components/BedrijfDashboardLayout.vue'
@@ -245,28 +230,15 @@ watch(() => bedrijfsdata.value.starttijd, (newStartTime) => {
   }
 })
 
-async function wijzigAfbeelding(event) {
+function wijzigAfbeelding(event) {
   const file = event.target.files[0]
   if (file && file.type.startsWith('image/')) {
-    try {
-      const storage = getStorage()
-      const auth = getAuth()
-      const user = auth.currentUser
-      if (!user) {
-        foutmelding.value = 'Niet ingelogd'
-        return
-      }
-
-      const imageRef = storageRef(storage, `bedrijf_fotos/${user.uid}/${file.name}`)
-      await uploadBytes(imageRef, file)
-      const downloadURL = await getDownloadURL(imageRef)
-
-      profielfotoURL.value = downloadURL
-      bedrijfsdata.value.foto = downloadURL
-    } catch (err) {
-      console.error("Fout bij uploaden foto:", err)
-      foutmelding.value = 'Fout bij uploaden van de foto.'
+    const reader = new FileReader()
+    reader.onload = () => {
+      profielfotoURL.value = reader.result
+      bedrijfsdata.value.foto = reader.result
     }
+    reader.readAsDataURL(file)
   }
 }
 
@@ -332,7 +304,6 @@ async function bevestigGegevens() {
   }
 }
 </script>
-
 
 <style scoped>
 .bedrijf-wijzig {

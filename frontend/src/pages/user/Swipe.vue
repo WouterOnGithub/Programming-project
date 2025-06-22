@@ -74,9 +74,10 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { db, auth } from '../../firebase/config';
-import { collection, getDocs, setDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { collection, getDocs, setDoc, doc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import StudentDashboardLayout from '../../components/StudentDashboardLayout.vue'
+import { notificationService } from '../../services/notificationService'
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: 'fas fa-chart-pie' },
@@ -203,14 +204,34 @@ export default {
       nextJob();
     };
 
-    const acceptJob = () => {
+    const acceptJob = async () => {
       animateAccept.value = true;
-      handleSwipe('swipes', currentJob.value, {
-        bedrijfUid: currentJob.value.id,
-        status: 'interessant',
-        timestamp: serverTimestamp()
-      });
-      nextJob();
+      
+      try {
+        // Sla de swipe op
+        await handleSwipe('swipes', currentJob.value, {
+          bedrijfUid: currentJob.value.id,
+          status: 'interessant',
+          timestamp: serverTimestamp()
+        });
+        
+        // Haal studentgegevens op voor notificatie
+        const studentId = currentUser.value?.uid;
+        const studentDoc = await getDoc(doc(db, 'student', studentId));
+        const studentData = studentDoc.exists() ? studentDoc.data() : {};
+        const studentName = `${studentData.voornaam || 'Onbekende'} ${studentData.achternaam || 'Student'}`;
+        
+        // Stuur notificatie naar bedrijf
+        await notificationService.createCompanyNewMatchNotification(
+          currentJob.value.id, 
+          studentName
+        );
+        
+        nextJob();
+      } catch (error) {
+        console.error('Fout bij accepteren van job:', error);
+        nextJob();
+      }
     };
 
     const favoriteJob = () => {

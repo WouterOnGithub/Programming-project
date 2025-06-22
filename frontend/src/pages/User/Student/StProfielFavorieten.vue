@@ -99,8 +99,9 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { Heart, Calendar, User, Search, Building } from 'lucide-vue-next'
 import StudentDashboardLayout from '../../../components/StudentDashboardLayout.vue'
 import { getAuth } from 'firebase/auth'
-import { getFirestore, collection, getDocs, doc, deleteDoc, query, where, documentId, setDoc, serverTimestamp } from 'firebase/firestore'
+import { getFirestore, collection, getDocs, doc, getDoc, deleteDoc, query, where, documentId, setDoc, serverTimestamp } from 'firebase/firestore'
 import { useRouter } from 'vue-router'
+import { notificationService } from '../../../services/notificationService'
 
 const db = getFirestore();
 const auth = getAuth();
@@ -229,7 +230,15 @@ const maakMatch = async (bedrijfId) => {
     const favorietDocRef = doc(db, 'student', studentId, 'favorieten', bedrijfId);
     await deleteDoc(favorietDocRef);
 
-    // 3. Update de UI
+    // 3. Haal studentgegevens op voor notificatie
+    const studentDoc = await getDoc(doc(db, 'student', studentId));
+    const studentData = studentDoc.exists() ? studentDoc.data() : {};
+    const studentName = `${studentData.voornaam || 'Onbekende'} ${studentData.achternaam || 'Student'}`;
+    
+    // 4. Stuur notificatie naar bedrijf
+    await notificationService.createCompanyNewMatchNotification(bedrijfId, studentName);
+
+    // 5. Update de UI
     matchedBedrijfIds.value.add(bedrijfId);
     bedrijven.value = bedrijven.value.filter(b => b.id !== bedrijfId);
     
