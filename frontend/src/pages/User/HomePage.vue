@@ -33,7 +33,7 @@
         <img src="/Images/carreer-launch2026.png" alt="Career Launch 2026" class="career-launch-img-modern" />
         <div class="career-launch-content-modern">
           <h2 class="career-launch-title-modern">CAREER LAUNCH '25-'26</h2>
-          <div class="career-launch-date-modern">DONDERDAG 13 MAART 2026</div>
+          <div class="career-launch-date-modern">VRIJDAG 13 MAART 2026</div>
           <p class="career-launch-desc-modern">
             Het ultieme netwerkevent van de design- en technologieopleidingen. Deze jaarlijkse jobbeurs slaat de brug tussen onze innovatieve opleidingen en het dynamische werkveld.
           </p>
@@ -48,7 +48,7 @@
           <div class="schedule-card">
             <h3>Dagplanning - Career Launch</h3>
             <div class="schedule-info">
-              <p><strong>Datum:</strong> donderdag 13 maart 2026</p>
+              <p><strong>Datum:</strong> vrijdag 13 maart 2026</p>
             </div>
             <ul class="schedule-list">
               <li><span class="time">10:00</span><span class="event">Start van het evenement</span></li>
