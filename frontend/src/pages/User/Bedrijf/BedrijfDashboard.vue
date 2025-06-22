@@ -370,17 +370,17 @@ const setupLocatieListener = (bedrijfId) => {
     console.error('Fout bij realtime locatie ophalen:', error);
     locatieGegevens.value = null;
     const locatieStat = statsData.value.find(s => s.id === 'locatie');
-    if (locatieStat) {
+     if (locatieStat) {
       locatieStat.value = 'Fout bij laden';
       locatieStat.isLink = false;
       locatieStat.path = null;
-    }
+     }
   });
 }
  
 onMounted(() => {
   console.log('BedrijfDashboard mounted')
-
+ 
   authListenerUnsubscribe = onAuthStateChanged(auth, (user) => {
     console.log('Auth state changed:', user);
     currentUser.value = user;
@@ -404,7 +404,7 @@ onMounted(() => {
       if (afsprakenStat) {
         afsprakenStat.value = '0';
       }
-
+ 
       const locatieStat = statsData.value.find(s => s.id === 'locatie');
       if(locatieStat) {
         locatieStat.value = 'Laden...';
@@ -442,12 +442,12 @@ const userData = ref({ companyName: 'Cronos' })
  
 const statsData = ref([
   {
+    id: 'event-date',
     title: 'Eventdatum',
-    value: '24 oktober 2025',
-    change: '',
-    trend: 'neutral',
-    icon: 'fas fa-calendar-day',
-    color: 'text-red-600',
+    value: '13 maart 2026',
+    icon: 'fas fa-calendar-alt',
+    color: 'text-purple-600',
+    action: () => {}
   },
   {
     id: 'afspraken',

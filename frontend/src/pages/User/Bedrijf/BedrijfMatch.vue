@@ -2,7 +2,6 @@
   <BedrijfDashboardLayout>
     <main class="dashboard-main">
       <section class="pagina">
-        <div style="color: #b80000; font-weight: bold; margin-bottom: 1rem;">Hier zoekt de pagina naar echte match-data uit Firestore (studenten die interesse hebben in jouw bedrijf).</div>
         <div class="hoofding">
           <div class="hoofding-links">
             <div class="icoon-container">

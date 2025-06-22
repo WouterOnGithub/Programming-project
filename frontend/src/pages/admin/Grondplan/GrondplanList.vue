@@ -107,35 +107,35 @@
           >
             <template #item="{element}">
               <div 
-                class="grondplan-item"
+            class="grondplan-item"
                 :class="{ 'active': currentGrondplanId === element.id }"
                 @click="selectGrondplan(element.id)"
-              >
+          >
                 <div class="drag-handle" @click.stop>
                   <span>⠿</span>
                 </div>
-                <div class="grondplan-thumbnail">
-                  <img 
+            <div class="grondplan-thumbnail">
+              <img 
                     :src="element.thumbnailUrl || element.imageUrl" 
                     :alt="element.name" 
-                    class="thumbnail-image"
-                  />
-                </div>
-                <div class="grondplan-info">
+                class="thumbnail-image"
+              />
+            </div>
+            <div class="grondplan-info">
                   <h4>{{ element.name }}</h4>
                   <p class="grondplan-date">{{ formatDate(element.uploadDate) }}</p>
                   <p class="grondplan-location">{{ element.building }} - {{ element.floors }}</p>
-                </div>
-                <div class="grondplan-actions">
-                  <button 
+            </div>
+            <div class="grondplan-actions">
+              <button 
                     @click.stop="editGrondplan(element)" 
-                    class="action-btn edit-btn" 
-                    title="Bewerk grondplan"
-                  >
-                    ✏️
-                  </button>
-                </div>
-              </div>
+                class="action-btn edit-btn" 
+                title="Bewerk grondplan"
+              >
+                ✏️
+              </button>
+            </div>
+          </div>
             </template>
           </draggable>
           
@@ -680,7 +680,7 @@ export default {
           const lastSelectedId = localStorage.getItem('lastSelectedGrondplanId')
           if (lastSelectedId && grondplannen.value.some(g => g.id === lastSelectedId)) {
             selectGrondplan(lastSelectedId)
-          } else {
+        } else {
             selectGrondplan(grondplannen.value[0].id)
           }
         } else {
@@ -969,24 +969,24 @@ export default {
           imageWidth = img.width
           imageHeight = img.height
         }
-
+        
         // Create a unique filename
         const timestamp = Date.now()
         const fileExtension = file.name.split('.').pop()
         const fileName = `grondplan_${timestamp}.${fileExtension}`
         const storagePath = `grondplannen/${fileName}`
-
+        
         // Upload to Firebase Storage
         const storageRefInst = storageRef(storage, storagePath)
         const uploadResult = await uploadBytes(storageRefInst, file)
         const downloadURL = await getDownloadURL(uploadResult.ref)
-
+        
         // Create thumbnail for images
         let thumbnailURL = downloadURL
         if (file.type.startsWith('image/')) {
           thumbnailURL = downloadURL
         }
-
+        
         // Save to Firestore
         const grondplanData = {
           name: newGrondplan.name,
@@ -1000,18 +1000,18 @@ export default {
           imageWidth,
           imageHeight
         }
-
+        
         await addDoc(collection(db, 'grondplannen'), grondplanData)
-
+        
         // Reset form and close modal
         closeModal()
-
+        
         // Reload grondplannen
         await fetchGrondplannen()
-
+        
         // Show success message
         console.log('Grondplan successfully uploaded!')
-
+        
       } catch (error) {
         console.error('Error uploading grondplan:', error)
         alert('Er is een fout opgetreden bij het uploaden van het grondplan.')

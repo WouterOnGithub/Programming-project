@@ -207,13 +207,31 @@ onMounted(() => {
   onAuthStateChanged(auth, async (user) => {
     currentUser.value = user
     if (user) {
-      const q = query(collection(db, 'bedrijf'), where('authUid', '==', user.uid))
-      const snapshot = await getDocs(q)
+      try {
+        const q = query(collection(db, 'bedrijf'), where('authUid', '==', user.uid))
+        const snapshot = await getDocs(q)
 
-      if (!snapshot.empty) {
-        const data = snapshot.docs[0].data()
-        userData.value.companyName = data.bedrijfsnaam || 'Bedrijf'
-        userFoto.value = data.foto || null
+        if (!snapshot.empty) {
+          const data = snapshot.docs[0].data()
+          userData.value.companyName = data.bedrijfsnaam || 'Bedrijf'
+          
+          // Verbeterde foto logica - probeer verschillende velden
+          if (data.foto) {
+            userFoto.value = data.foto
+          } else if (data.fotoUrl) {
+            userFoto.value = data.fotoUrl
+          } else if (data.logo) {
+            userFoto.value = data.logo
+          } else if (data.logoUrl) {
+            userFoto.value = data.logoUrl
+          } else {
+            userFoto.value = null
+          }
+          
+          console.log('Bedrijf logo geladen:', userFoto.value)
+        }
+      } catch (error) {
+        console.error('Fout bij ophalen bedrijf data:', error)
       }
     }
   })
@@ -327,9 +345,9 @@ watch(
   position: relative;
 }
 .dashboard-profile-avatar {
-  width: 2rem;
-  height: 2rem;
-  background: rgba(255, 255, 255, 0.6);
+  width: 2.5rem;
+  height: 2.5rem;
+  background: rgba(255,255,255,0.6);
   color: #c20000;
   border-radius: 50%;
   display: flex;
@@ -337,14 +355,25 @@ watch(
   justify-content: center;
   font-size: 1rem;
   font-weight: 600;
-  transition: transform 0.18s, box-shadow 0.18s;
+  transition: transform 0.18s cubic-bezier(0.4,0,0.2,1), box-shadow 0.18s cubic-bezier(0.4,0,0.2,1);
   cursor: pointer;
   overflow: hidden;
   border: 1.5px solid #222;
+  position: relative;
 }
 .dashboard-profile-avatar:hover {
   transform: scale(1.12);
-  box-shadow: 0 4px 16px rgba(194, 0, 0, 0.18);
+  box-shadow: 0 4px 16px rgba(194,0,0,0.18);
+}
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
 }
 .profile-dropdown {
   position: absolute;
@@ -373,13 +402,6 @@ watch(
 }
 .dropdown-item:hover {
   background: #f3f4f6;
-}
-.avatar-img {
-  width: 2rem;
-  height: 2rem;
-  border-radius: 50%;
-  object-fit: cover;
-  display: block;
 }
 
 /* START: MOBILE-SPECIFIC STYLES */

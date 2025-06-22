@@ -66,21 +66,8 @@ onMounted(async () => {
     const grondplanData = grondplanDoc.data();
     currentGrondplan.value = grondplanData;
 
-    // 3. Fetch all locations on this floor plan
-    const allLocationsQuery = query(collection(db, 'companyLocations'), where('grondplanId', '==', grondplanId));
-    const allLocationsSnap = await getDocs(allLocationsQuery);
-    const allLocations = allLocationsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-    // 4. Fetch details for all companies on the floor plan
-    const companyIds = [...new Set(allLocations.map(loc => loc.companyId))];
-    const companies = {};
-    if (companyIds.length > 0) {
-      const companiesQuery = query(collection(db, 'bedrijf'), where('authUid', 'in', companyIds));
-      const companiesSnap = await getDocs(companiesQuery);
-      companiesSnap.forEach(doc => {
-        companies[doc.data().authUid] = doc.data();
-      });
-    }
+    // We gebruiken alleen de locatie van het huidige bedrijf
+    const myCompanyDetails = (await getDoc(doc(db, 'bedrijf', user.uid))).data();
     
     loading.value = false;
     await nextTick();
@@ -105,43 +92,28 @@ onMounted(async () => {
       L.imageOverlay(grondplanData.imageUrl, bounds).addTo(map);
       map.fitBounds(bounds);
 
-      let myMarkerPosition;
+      // 3. Add marker for only the current user's company
+      const markerY = (myCompanyLocation.y / 100) * grondplanData.imageHeight;
+      const markerX = (myCompanyLocation.x / 100) * grondplanData.imageWidth;
 
-      // 5. Add markers for all companies
-      allLocations.forEach(loc => {
-        const company = companies[loc.companyId];
-        if (!company) return;
+      const iconHtml = `
+        <div class="company-marker">
+          <span class="marker-pin">📍</span>
+          <span class="marker-text">${myCompanyDetails.bedrijfsnaam}</span>
+        </div>
+      `;
 
-        const markerY = (loc.y / 100) * grondplanData.imageHeight;
-        const markerX = (loc.x / 100) * grondplanData.imageWidth;
-        const isCurrentUser = loc.companyId === user.uid;
-
-        const iconHtml = `
-          <div class="company-marker ${isCurrentUser ? 'current-user' : ''}">
-            <span class="marker-pin">📍</span>
-            <span class="marker-text">${company.bedrijfsnaam}</span>
-          </div>
-        `;
-
-        const companyIcon = L.divIcon({
-          html: iconHtml,
-          className: 'company-marker-wrapper', // A wrapper class for general styling
-          iconSize: [140, 40],
-          iconAnchor: [12, 40], // Point of the pin
-        });
-        
-        L.marker([markerY, markerX], { icon: companyIcon }).addTo(map)
-          .bindPopup(`<b>${company.bedrijfsnaam}</b><br>${loc.locationName}`);
-
-        if (isCurrentUser) {
-          myMarkerPosition = [markerY, markerX];
-        }
+      const companyIcon = L.divIcon({
+        html: iconHtml,
+        className: 'company-marker-wrapper',
+        iconSize: [140, 40],
+        iconAnchor: [12, 40],
       });
       
-      // Center map on current user's marker
-      if(myMarkerPosition) {
-        map.setView(myMarkerPosition, 1);
-      }
+      L.marker([markerY, markerX], { icon: companyIcon }).addTo(map);
+      
+      // Center map on the marker
+      map.setView([markerY, markerX], 1);
     }
   } catch (e) {
     console.error('Fout bij laden van grondplan:', e);
@@ -232,13 +204,5 @@ onBeforeUnmount(() => {
 :deep(.marker-pin) {
   font-size: 20px;
   margin-right: 5px;
-}
-
-:deep(.company-marker.current-user) {
-  background: #c20000;
-  color: white;
-  border-color: #a50000;
-  transform: scale(1.1);
-  z-index: 1000 !important;
 }
 </style> 

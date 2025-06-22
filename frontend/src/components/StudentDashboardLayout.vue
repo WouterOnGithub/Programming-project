@@ -40,8 +40,11 @@
     <main class="dashboard-main">
       <header class="dashboard-header">
         <div class="header-content">
-          <h1>Welkom {{ userData.name }}</h1>
-          <p>{{ pageSubtitle }}</p>
+          <img src="/Images/ehb-logo.png" alt="EHB logo" class="ehb-logo-img-header" />
+          <div>
+            <h1>Welkom {{ userData.name }}</h1>
+            <p>{{ pageSubtitle }}</p>
+          </div>
         </div>
         <div class="dashboard-header-actions">
           <NotificationCenter 
@@ -157,13 +160,29 @@ onMounted(() => {
     currentUser.value = user
 
     if (user) {
-      const q = query(collection(db, 'student'), where('authUid', '==', user.uid))
-      const snapshot = await getDocs(q)
+      try {
+        const q = query(collection(db, 'student'), where('authUid', '==', user.uid))
+        const snapshot = await getDocs(q)
 
-      if (!snapshot.empty) {
-        const data = snapshot.docs[0].data()
-        userData.value.name = data.voornaam || 'Student'
-        userFoto.value = data.foto || null
+        if (!snapshot.empty) {
+          const data = snapshot.docs[0].data()
+          userData.value.name = data.voornaam || 'Student'
+          
+          // Verbeterde foto logica - probeer verschillende velden
+          if (data.foto) {
+            userFoto.value = data.foto
+          } else if (data.fotoUrl) {
+            userFoto.value = data.fotoUrl
+          } else if (data.photoUrl) {
+            userFoto.value = data.photoUrl
+          } else {
+            userFoto.value = null
+          }
+          
+          console.log('Student foto geladen:', userFoto.value)
+        }
+      } catch (error) {
+        console.error('Fout bij ophalen student data:', error)
       }
     }
   })
@@ -175,6 +194,11 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+.ehb-logo-img-header {
+  height: 40px;
+  margin-right: 20px;
+}
+
 .mobile-header {
   display: none;
 }
@@ -259,18 +283,18 @@ onBeforeUnmount(() => {
 }
 .dashboard-header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  background: #fff;
+  align-items: center;
+  padding: 1.5rem 2rem;
+  background-color: #fff;
   border-bottom: 1px solid #e5e7eb;
-  padding: 1.5rem 2rem 1.5rem 2rem;
 }
 .header-content {
   display: flex;
-  flex-direction: column;
+  align-items: center;
 }
-.dashboard-header h1 {
-  font-size: 1.3rem;
+.header-content h1 {
+  font-size: 1.5rem;
   font-weight: 600;
   color: #c20000;
 }
@@ -303,8 +327,8 @@ onBeforeUnmount(() => {
   border-radius: 50%;
 }
 .dashboard-profile-avatar {
-  width: 2rem;
-  height: 2rem;
+  width: 2.5rem;
+  height: 2.5rem;
   background: rgba(255,255,255,0.6);
   color: #c20000;
   border-radius: 50%;
@@ -317,17 +341,21 @@ onBeforeUnmount(() => {
   cursor: pointer;
   overflow: hidden;
   border: 1.5px solid #222;
+  position: relative;
 }
 .dashboard-profile-avatar:hover {
   transform: scale(1.12);
   box-shadow: 0 4px 16px rgba(194,0,0,0.18);
 }
 .avatar-img {
-  width: 2rem;
-  height: 2rem;
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
   object-fit: cover;
   display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
 }
 .profile-dropdown {
   position: absolute;

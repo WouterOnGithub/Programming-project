@@ -5,6 +5,7 @@ import { useToast } from 'vue-toastification'
 import { auth, db } from '../../firebase/config'
 import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth'
 import { collection, doc, setDoc, query, where, getDocs, getDoc } from 'firebase/firestore'
+import Navbar from '../../components/Navbar.vue'
 import '../../css/register.css'
 
 const router = useRouter()
@@ -146,15 +147,7 @@ const goToLogin = () => {
 </script>
 
 <template>
-  <nav class="navbar">
-    <router-link to="/">
-      <img src="/Images/ehb-logo.png" alt="Erasmus logo" class="logo" />
-    </router-link>
-    <div class="menu">
-      <router-link to="/login" class="btn">Log In</router-link>
-      <router-link to="/register" class="btn">Registratie</router-link>
-    </div>
-  </nav>
+  <Navbar />
 
   <!-- Toast Container voor meldingen -->
 

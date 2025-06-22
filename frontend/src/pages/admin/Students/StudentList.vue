@@ -63,8 +63,8 @@
             <td class="student-info">
               <div class="student-photo">
                 <img 
-                  v-if="student.photoUrl" 
-                  :src="student.photoUrl" 
+                  v-if="student.foto || student.photoUrl || student.fotoUrl" 
+                  :src="student.foto || student.photoUrl || student.fotoUrl" 
                   :alt="`${student.voornaam} ${student.achternaam}`"
                 >
                 <div v-else class="no-photo">

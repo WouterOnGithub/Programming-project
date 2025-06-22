@@ -1,9 +1,6 @@
 <script setup>
 import { useRoute } from 'vue-router'
 const route = useRoute()
-
-const showLogin = route.path === '/';
-const showBoth = !['/login', '/register', '/'].includes(route.path);
 </script>
 
 <template>
@@ -12,9 +9,7 @@ const showBoth = !['/login', '/register', '/'].includes(route.path);
       <img src="/Images/ehb-logo.png" alt="Erasmus logo" class="logo" />
     </router-link>
     <div class="menu">
-      <router-link v-if="showLogin" to="/login" class="btn">Log In</router-link>
-      <router-link v-if="showBoth" to="/login" class="btn">Log In</router-link>
-      <router-link v-if="showBoth" to="/register" class="btn">Registratie</router-link>
+      <router-link v-if="route.path === '/'" to="/login" class="btn">Log In</router-link>
     </div>
   </nav>
 </template>

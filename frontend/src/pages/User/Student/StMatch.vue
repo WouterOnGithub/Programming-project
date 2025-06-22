@@ -59,7 +59,7 @@
             <button
               v-if="bedrijf.status === 'geaccepteerd'"
               class="knop-rood"
-              @click="planAfspraak(bedrijf.id)"
+              @click="planAfspraak(bedrijf)"
             >
               <Calendar :size="14" />
               <span>Gesprek</span>
@@ -75,23 +75,32 @@
         </div>
       </div>
       <!-- Modal voor tijdslot selectie -->
-      <div v-if="showTimeModal" class="modal-overlay">
+      <div v-if="showTimeSlotModal" class="modal-overlay">
         <div class="modal-content">
-          <h3>Kies een tijdslot voor je gesprek</h3>
+          <h3 class="modal-title">
+            Kies een tijdslot voor je afspraak met {{ geselecteerdeBedrijfNaam }}
+          </h3>
           <div class="timeslot-grid">
             <button
               v-for="slot in timeSlots"
-              :key="slot"
-              :disabled="isSlotTaken(slot)"
-              :class="['timeslot-btn', { 'pauze': slot === 'Pauze', taken: isSlotTaken(slot) && slot !== 'Pauze', selected: selectedTimeSlot === slot }]"
-              @click="slot !== 'Pauze' && selectTimeSlot(slot)"
+              :key="slot.tijd"
+              class="timeslot-btn"
+              :class="{ 
+                'selected': geselecteerdeTijdslot === slot.tijd,
+                'geboekt': slot.isGeboekt || slot.isOverlap
+              }"
+              :disabled="slot.isGeboekt || slot.isOverlap"
+              @click="geselecteerdeTijdslot = slot.tijd"
             >
-              {{ slot }}
+              <span v-if="!slot.isOverlap">{{ slot.tijd }}</span>
+              <span v-else class="conflict-info">{{ slot.conflictInfo }}</span>
             </button>
           </div>
           <div class="modal-actions">
-            <button class="action-btn btn-save" :disabled="!selectedTimeSlot" @click="bevestigAfspraak">Bevestig</button>
-            <button class="action-btn btn-cancel-edit" @click="closeTimeModal">Annuleren</button>
+            <button @click="showTimeSlotModal = false" class="annuleer-btn">Annuleren</button>
+            <button @click="bevestigAfspraak" class="bevestig-btn" :disabled="!geselecteerdeTijdslot">
+              Bevestig
+            </button>
           </div>
         </div>
       </div>
@@ -116,15 +125,17 @@ import { Heart, Calendar, User, Search, Building } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import StudentDashboardLayout from '../../../components/StudentDashboardLayout.vue'
 import { getAuth } from 'firebase/auth'
-import { getFirestore, collection, getDocs, doc, getDoc, addDoc, updateDoc, query, where, deleteDoc, onSnapshot } from 'firebase/firestore'
+import { getFirestore, collection, getDocs, doc, getDoc, addDoc, updateDoc, query, where, deleteDoc, onSnapshot, documentId } from 'firebase/firestore'
 import { notificationService } from '../../../services/notificationService'
+import { useToast } from 'vue-toastification'
 
 const db = getFirestore();
 const auth = getAuth();
 const router = useRouter();
+const toast = useToast();
 const matchBedrijven = ref([])
 const zoekterm = ref('')
-const showTimeModal = ref(false)
+const showTimeSlotModal = ref(false)
 const selectedTimeSlot = ref(null)
 const timeSlots = ref([])
 const takenSlots = ref([])
@@ -133,6 +144,42 @@ const showConfirm = ref(false)
 const matchToDelete = ref(null)
 const studentTakenSlots = ref([]); // Alle tijden van de student, bij alle bedrijven
 let unsubscribe = null; // Voor de realtime listener
+const geselecteerdeBedrijfId = ref(null);
+const geselecteerdeBedrijfNaam = ref(null);
+const geselecteerdeTijdslot = ref(null);
+const studentNaam = ref('');
+const studentData = ref(null);
+const alleAfspraken = ref([]); // Voor het bijhouden van alle afspraken van de student
+
+const genereerTijdsloten = (start, eind, duur) => {
+  const sloten = [];
+  if (!start || !eind || !duur) return sloten;
+  let [startUur, startMin] = start.split(':').map(Number);
+  const [eindUur, eindMin] = eind.split(':').map(Number);
+
+  while (startUur < eindUur || (startUur === eindUur && startMin < eindMin)) {
+    let eindSlotMin = startMin + duur;
+    let eindSlotUur = startUur;
+    if (eindSlotMin >= 60) {
+      eindSlotUur += Math.floor(eindSlotMin / 60);
+      eindSlotMin %= 60;
+    }
+
+    if (eindSlotUur > eindUur || (eindSlotUur === eindUur && eindSlotMin > eindMin)) {
+      break;
+    }
+
+    const formatTijd = (uur, min) => `${String(uur).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+    sloten.push(`${formatTijd(startUur, startMin)} - ${formatTijd(eindSlotUur, eindSlotMin)}`);
+
+    startMin += duur;
+    if (startMin >= 60) {
+      startUur += Math.floor(startMin / 60);
+      startMin %= 60;
+    }
+  }
+  return sloten;
+};
 
 onMounted(async () => {
   const user = auth.currentUser;
@@ -250,51 +297,82 @@ function generateTimeSlots(startTime, endTime, durationString) {
   return slots;
 }
 
-const planAfspraak = async (id) => {
-  selectedBedrijfId.value = id;
-  selectedTimeSlot.value = null;
+// Functie om tijdsloten te parsen naar Date-objecten
+const parseTime = (timeStr) => {
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  const date = new Date();
+  date.setHours(hours, minutes, 0, 0);
+  return date;
+};
+
+// Functie om te checken op overlappende afspraken
+const checkOverlap = (slot1, slot2) => {
+  const [start1, end1] = slot1.split(' - ').map(parseTime);
+  const [start2, end2] = slot2.split(' - ').map(parseTime);
+  return start1 < end2 && start2 < end1;
+};
+
+const planAfspraak = async (bedrijf) => {
+  if (!bedrijf || !bedrijf.id) return;
+  geselecteerdeBedrijfId.value = bedrijf.id;
+  geselecteerdeBedrijfNaam.value = bedrijf.naam;
 
   try {
-    // 1. Haal bedrijfsdata op voor tijden en duur
-    const bedrijfDocRef = doc(db, 'bedrijf', id);
-    const bedrijfDoc = await getDoc(bedrijfDocRef);
+    // 1. Haal alle afspraken van de student op
+    const afsprakenQuery = query(collection(db, 'afspraken'), where('studentUid', '==', auth.currentUser.uid));
+    const afsprakenSnap = await getDocs(afsprakenQuery);
+    const bestaandeAfspraken = afsprakenSnap.docs.map(doc => ({ ...doc.data(), id: doc.id }));
 
+    // Haal bedrijfsnamen op voor bestaande afspraken
+    const bedrijfIds = [...new Set(bestaandeAfspraken.map(a => a.bedrijfId).filter(Boolean))];
+    const bedrijvenData = {};
+    if (bedrijfIds.length > 0) {
+      const bedrijvenQuery = query(collection(db, 'bedrijf'), where(documentId(), 'in', bedrijfIds));
+      const bedrijvenSnap = await getDocs(bedrijvenQuery);
+      bedrijvenSnap.forEach(doc => {
+        bedrijvenData[doc.id] = doc.data().bedrijfsnaam;
+      });
+    }
+    
+    alleAfspraken.value = bestaandeAfspraken.map(a => ({
+      ...a,
+      bedrijfsnaam: bedrijvenData[a.bedrijfId] || 'een ander bedrijf'
+    }));
+
+    // 2. Haal tijdsloten voor het geselecteerde bedrijf op
+    const bedrijfDoc = await getDoc(doc(db, 'bedrijf', bedrijf.id));
     if (!bedrijfDoc.exists()) {
-      console.error("Bedrijf niet gevonden");
+      toast.error("Kon bedrijfsdetails niet vinden.");
       return;
     }
     const bedrijfData = bedrijfDoc.data();
-    const { starttijd, eindtijd, gesprekDuur } = bedrijfData;
-
-    if (!starttijd || !eindtijd || !gesprekDuur) {
-        console.error("Tijd of duur niet ingesteld voor dit bedrijf.");
-        // Fallback naar standaard tijden?
-        timeSlots.value = ['Geen tijden beschikbaar'];
-        showTimeModal.value = true;
-        return;
-    }
-
-    // 2. Genereer de tijdsloten
-    timeSlots.value = generateTimeSlots(starttijd, eindtijd, gesprekDuur);
-
-    // 3. Haal reeds geboekte tijdsloten op voor dit bedrijf
-    const afsprakenSnap = await getDocs(
-      query(collection(db, 'afspraken'), where('bedrijfId', '==', id))
+    
+    const alleTijdsloten = genereerTijdsloten(
+      bedrijfData.starttijd,
+      bedrijfData.eindtijd,
+      bedrijfData.gesprekDuur
     );
-    takenSlots.value = afsprakenSnap.docs.map(docu => docu.data().time);
 
-    // 4. Haal ALLE afspraken van de student op (voor alle bedrijven)
-    const studentId = auth.currentUser?.uid;
-    if (studentId) {
-      const studentAfsprakenSnap = await getDocs(query(collection(db, 'afspraken'), where('studentUid', '==', studentId)));
-      studentTakenSlots.value = studentAfsprakenSnap.docs.map(docu => docu.data().time);
-    } else {
-      studentTakenSlots.value = [];
-    }
+    const geboekteTijdslotenQuery = query(collection(db, 'afspraken'), where('bedrijfId', '==', bedrijf.id));
+    const geboekteTijdslotenSnap = await getDocs(geboekteTijdslotenQuery);
+    const geboekteTijden = new Set(geboekteTijdslotenSnap.docs.map(d => d.data().tijd));
 
-    showTimeModal.value = true;
+    timeSlots.value = alleTijdsloten.map(slot => {
+      // Check of de student zelf een overlappende afspraak heeft
+      const overlappendeAfspraak = alleAfspraken.value.find(afspraak => afspraak.status === 'upcoming' && checkOverlap(slot, afspraak.tijd));
+      
+      return {
+        tijd: slot,
+        isGeboekt: geboekteTijden.has(slot),
+        isOverlap: !!overlappendeAfspraak,
+        conflictInfo: overlappendeAfspraak ? `U heeft al een afspraak met ${overlappendeAfspraak.bedrijfsnaam}` : ''
+      };
+    });
+
+    showTimeSlotModal.value = true;
   } catch (error) {
     console.error("Fout bij voorbereiden afspraak:", error);
+    toast.error("Kon tijdsloten niet laden.");
   }
 };
 
@@ -302,23 +380,30 @@ function selectTimeSlot(slot) {
   selectedTimeSlot.value = slot
 }
 
-async function bevestigAfspraak() {
-  if (!selectedTimeSlot.value || !selectedBedrijfId.value) return
-  const studentId = auth.currentUser?.uid
-  if (!studentId) return
-  
+const bevestigAfspraak = async () => {
+  if (!geselecteerdeTijdslot.value) {
+    console.error("Tijdslot is niet geselecteerd.");
+    return;
+  }
+
+  const studentId = auth.currentUser?.uid;
+  if (!studentId) {
+    console.error("Geen gebruiker ingelogd.");
+    return;
+  }
+
   try {
     // Sla afspraak op in Firestore
-    await addDoc(collection(db, 'afspraken'), {
+    const docRef = await addDoc(collection(db, 'afspraken'), {
       studentUid: studentId,
-      bedrijfId: selectedBedrijfId.value,
-      time: selectedTimeSlot.value,
+      bedrijfId: geselecteerdeBedrijfId.value,
+      time: geselecteerdeTijdslot.value,
       status: 'upcoming',
       aangemaaktOp: new Date()
-    })
+    });
     
     // Update de match-status in student_swipes naar 'gepland'
-    const swipeId = selectedBedrijfId.value;
+    const swipeId = geselecteerdeBedrijfId.value;
     await updateDoc(doc(db, 'student', studentId, 'swipes', swipeId), { status: 'gepland' });
     
     // Haal studentgegevens op voor notificatie
@@ -327,26 +412,25 @@ async function bevestigAfspraak() {
     const studentName = `${studentData.voornaam || 'Onbekende'} ${studentData.achternaam || 'Student'}`;
     
     // Haal bedrijfsgegevens op voor notificatie
-    const bedrijfDoc = await getDoc(doc(db, 'bedrijf', selectedBedrijfId.value));
+    const bedrijfDoc = await getDoc(doc(db, 'bedrijf', geselecteerdeBedrijfId.value));
     const bedrijfData = bedrijfDoc.exists() ? bedrijfDoc.data() : {};
     const bedrijfNaam = bedrijfData.bedrijfsnaam || 'Onbekend Bedrijf';
     
     // Stuur notificatie naar bedrijf
     await notificationService.createCompanyAppointmentScheduledNotification(
-      selectedBedrijfId.value, 
+      geselecteerdeBedrijfId.value, 
       studentName, 
-      selectedTimeSlot.value
+      geselecteerdeTijdslot.value
     );
     
-    showTimeModal.value = false
-    selectedTimeSlot.value = null
-    selectedBedrijfId.value = null
+    showTimeSlotModal.value = false;
+    geselecteerdeTijdslot.value = null;
     // Herlaad matches zodat de geplande match verdwijnt
     await reloadMatches();
   } catch (error) {
     console.error('Fout bij bevestigen van afspraak:', error);
   }
-}
+};
 
 // Helper: check of een object leeg is
 function isEmpty(obj) {
@@ -359,7 +443,7 @@ async function reloadMatches() {
 }
 
 function closeTimeModal() {
-  showTimeModal.value = false
+  showTimeSlotModal.value = false
   selectedTimeSlot.value = null
   selectedBedrijfId.value = null
 }

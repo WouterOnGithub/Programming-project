@@ -79,7 +79,7 @@
                 <div v-if="dropdownOpen" class="dropdown-list">
                   <div v-for="locationName in availableLocationNames" :key="locationName" class="dropdown-item">
                     <span class="dropdown-label" @click="selectLocation(locationName)">
-                      {{ locationName }}
+                  {{ locationName }}
                       <span v-if="getLocationInUseBy(locationName)" class="in-use">(in gebruik door: {{ getLocationInUseBy(locationName) }})</span>
                     </span>
                     <button type="button"
@@ -338,35 +338,73 @@ export default {
     }
     
     const saveLocation = async () => {
-      if (saving.value || deleting.value) return;
+      if (!selectedCompanyId.value || !locationData.value.locationName) {
+        alert('Selecteer een bedrijf en een locatienaam.');
+        return;
+      }
       saving.value = true;
+
       try {
+        // Stap 1: Controleer of de doellocatienaam al door een ANDER bedrijf wordt gebruikt.
+        const allLocationsQuery = query(
+            collection(db, 'companyLocations'),
+            where('grondplanId', '==', props.floor),
+            where('locationName', '==', locationData.value.locationName)
+        );
+        const snapshot = await getDocs(allLocationsQuery);
+        if (!snapshot.empty) {
+            const isTakenByOther = snapshot.docs.some(doc => doc.data().companyId !== selectedCompanyId.value);
+            if (isTakenByOther) {
+                alert(`Fout: Locatie "${locationData.value.locationName}" is al in gebruik door een ander bedrijf.`);
+                saving.value = false;
+                return;
+            }
+        }
+
+        // Stap 2: Zoek naar een bestaand document voor DIT bedrijf op dit grondplan.
+        const existingLocationQuery = query(
+          collection(db, 'companyLocations'),
+          where('companyId', '==', selectedCompanyId.value),
+          where('grondplanId', '==', props.floor)
+        );
+        const existingDocsSnap = await getDocs(existingLocationQuery);
+        
         const dataToSave = {
           companyId: selectedCompanyId.value,
           grondplanId: props.floor,
+          locationName: locationData.value.locationName,
           x: locationData.value.x,
           y: locationData.value.y,
-          locationName: locationData.value.locationName,
-          notes: locationData.value.notes,
-          companyName: selectedCompany.value?.bedrijfsnaam || selectedCompany.value?.name || '',
-          floorName: props.floorName || '',
+          notes: locationData.value.notes || ''
         };
-        
-        const savedLocation = await companyLocationService.saveLocation(isEditing.value ? props.location.id : null, dataToSave);
-        
-        // Notification logic
-        await handleStudentNotifications(
-          selectedCompanyId.value,
-          selectedCompany.value?.bedrijfsnaam,
-          locationData.value.locationName,
-          props.floorName
-        );
+
+        let savedLocation;
+        if (!existingDocsSnap.empty) {
+          // Update het bestaande document (er zou er maar één moeten zijn).
+          const docToUpdateId = existingDocsSnap.docs[0].id;
+          savedLocation = await companyLocationService.saveLocation(docToUpdateId, dataToSave);
+        } else {
+          // Maak een nieuw document aan.
+          savedLocation = await companyLocationService.saveLocation(null, dataToSave);
+        }
+
+        // Stap 3: Notificeer studenten over de (nieuwe of gewijzigde) locatie.
+        const companyData = props.companies.find(c => c.id === selectedCompanyId.value);
+        if (companyData) {
+            await handleStudentNotifications(
+                selectedCompanyId.value,
+                companyData.bedrijfsnaam,
+                locationData.value.locationName,
+                props.floorName
+            );
+        }
 
         emit('save', savedLocation);
         closeModal();
+
       } catch (error) {
-        console.error('Error saving location:', error);
-        // TODO: show error message to user
+        console.error("Fout bij opslaan van locatie:", error);
+        alert('Er is een fout opgetreden bij het opslaan van de locatie.');
       } finally {
         saving.value = false;
       }
@@ -503,10 +541,16 @@ export default {
     function closeDropdown() {
       dropdownOpen.value = false
     }
-    function selectLocation(locationName) {
-      locationData.value.locationName = locationName
-      closeDropdown()
-    }
+    const selectLocation = (name) => {
+      // Prevent selecting a location that is in use by another company.
+      const usedBy = getLocationInUseBy(name);
+      if (usedBy && selectedCompany.value?.name !== usedBy) {
+        alert(`Deze locatie is al in gebruik door ${usedBy}.`);
+        return; // Do not select the location
+      }
+      locationData.value.locationName = name;
+      dropdownOpen.value = false;
+    };
     // Buiten klikken sluit dropdown
     function handleClickOutside(event) {
       if (dropdownRef.value && !dropdownRef.value.contains(event.target)) {

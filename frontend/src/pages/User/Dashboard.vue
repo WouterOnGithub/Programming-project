@@ -57,30 +57,6 @@
             </div>
           </div>
         </div>
-        <div class="dashboard-card">
-          <div class="dashboard-card-header">
-            <h3>Recente Activiteit</h3>
-            <i class="fas fa-chart-line"></i>
-          </div>
-          <div v-if="loading.activity" class="dashboard-loading">
-            <div class="loading-spinner"></div>
-          </div>
-          <div v-else-if="error.activity" class="dashboard-error">
-            {{ error.activity }}
-          </div>
-          <div v-else class="dashboard-activity">
-            <div v-if="recentActivity.length === 0" class="no-data">
-              Geen recente activiteit
-            </div>
-            <div v-else v-for="(activity, index) in recentActivity" :key="index" class="activity-row">
-              <div :class="['activity-dot', activity.type]"></div>
-              <div>
-                <p class="activity-action">{{ activity.action }}</p>
-                <p class="activity-time">{{ activity.time }}</p>
-              </div>
-            </div>
-          </div>
-        </div>
       </section>
       <!-- Quick Actions -->
       <section class="dashboard-card dashboard-actions">
@@ -113,25 +89,21 @@ const auth = getAuth();
 const loading = ref({
   stats: true,
   appointments: true,
-  activity: true
 });
 
 const error = ref({
   stats: null,
   appointments: null,
-  activity: null
 });
 
 const statsData = ref([]);
 const appointments = ref([]);
-const recentActivity = ref([]);
 
 const fetchDashboardData = async () => {
   const userId = auth.currentUser?.uid;
   if (!userId) {
     error.value.stats = 'Gebruiker niet ingelogd';
     error.value.appointments = 'Gebruiker niet ingelogd';
-    error.value.activity = 'Gebruiker niet ingelogd';
     toast.error('Je bent niet ingelogd.');
     return;
   }
@@ -211,59 +183,6 @@ const fetchDashboardData = async () => {
     error.value.stats = 'Kon statistieken niet ophalen.';
     loading.value.stats = false;
     toast.error('Er ging iets mis bij het ophalen van je statistieken.');
-  }
-
-  try {
-    const activityPromises = [
-      getDocs(query(
-        collection(db, 'matches'),
-        where('studentId', '==', userId),
-        orderBy('createdAt', 'desc'),
-        limit(5)
-      )),
-      getDocs(query(
-        collection(db, 'appointments'),
-        where('studentId', '==', userId),
-        orderBy('createdAt', 'desc'),
-        limit(5)
-      ))
-    ];
-
-    const [matches, appointmentsDocs] = await Promise.all(activityPromises);
-
-    const activities = [
-      ...matches.docs.map(doc => {
-        const data = doc.data();
-        return {
-          type: 'match',
-          action: `Match met ${data.companyName || 'een bedrijf'}`,
-          time: data.createdAt ? data.createdAt.toDate() : new Date()
-        };
-      }),
-      ...appointmentsDocs.docs.map(doc => {
-        const data = doc.data();
-        return {
-          type: 'appointment',
-          action: `Afspraak met ${data.companyName || 'een bedrijf'}`,
-          time: data.createdAt ? data.createdAt.toDate() : new Date()
-        };
-      })
-    ];
-
-    recentActivity.value = activities
-      .sort((a, b) => b.time - a.time)
-      .slice(0, 10)
-      .map(act => ({
-        ...act,
-        time: formatTimeAgo(act.time)
-      }));
-
-    loading.value.activity = false;
-  } catch (err) {
-    console.error('Fout bij laden van activiteit:', err);
-    error.value.activity = 'Kon activiteit niet ophalen.';
-    loading.value.activity = false;
-    toast.error('Er ging iets mis bij het ophalen van je activiteit.');
   }
 };
 
@@ -527,30 +446,6 @@ onMounted(() => {
 .status-badge.geannuleerd {
   background: #fee2e2;
   color: #991b1b;
-}
-.dashboard-activity .activity-row {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  margin-bottom: 0.7rem;
-}
-.activity-dot {
-  width: 0.7rem;
-  height: 0.7rem;
-  border-radius: 50%;
-}
-.activity-dot.match { background: #16a34a; }
-.activity-dot.view { background: #2563eb; }
-.activity-dot.appointment { background: #7c3aed; }
-.activity-dot.like { background: #ea580c; }
-.activity-action {
-  font-size: 0.95rem;
-  font-weight: 500;
-  color: #111827;
-}
-.activity-time {
-  font-size: 0.8rem;
-  color: #6b7280;
 }
 .dashboard-actions {
   margin: 2rem 2rem 0 2rem;

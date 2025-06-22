@@ -29,6 +29,7 @@
             <div class="rij ruimte-tussen">
               <div class="flex-1">
                 <div class="rij ruimte mb">
+                  <img :src="gesprek.studentFoto || '/images/profielfoto.jpg'" alt="Student foto" class="avatar" />
                   <div class="tijd-label">
                     {{ gesprek.tijd }}
                   </div>
@@ -198,64 +199,67 @@ onMounted(async () => {
   const bedrijfId = user.uid;
 
   try {
-    loading.value = true;
-    const afsprakenQuery = query(collection(db, "afspraken"), where("bedrijfId", "==", bedrijfId));
+    // Haal de bedrijfslocatie op
+    const locatieQuery = query(collection(db, 'companyLocations'), where('companyId', '==', bedrijfId));
+    const locatieSnap = await getDocs(locatieQuery);
+    const locatieData = locatieSnap.empty ? null : locatieSnap.docs[0].data();
+
+    const afsprakenQuery = query(collection(db, 'afspraken'), where('bedrijfId', '==', bedrijfId));
     const afsprakenSnap = await getDocs(afsprakenQuery);
 
     if (afsprakenSnap.empty) {
-      gesprekken.value = [];
       loading.value = false;
       return;
     }
 
-    const afsprakenPromises = afsprakenSnap.docs
-      .filter(doc => {
-        const data = doc.data();
-        if (!data.studentUid) {
-          console.warn(`Afspraak document ${doc.id} wordt overgeslagen omdat het geen studentUid heeft.`);
-          return false;
-        }
-        return true;
-      })
-      .map(async (afspraakDoc) => {
-        const afspraakData = afspraakDoc.data();
+    const gesprekkenPromises = afsprakenSnap.docs.map(async (docSnap) => {
+      const afspraak = docSnap.data();
 
-        const tijdString = afspraakData.time || 'N/A';
-        let duurString = 'N/A';
+      if (!afspraak || !afspraak.studentUid) {
+        console.warn(`Afspraak document ${docSnap.id} wordt overgeslagen omdat het geen studentUid heeft.`);
+        return null;
+      }
 
-        if (tijdString.includes(' - ')) {
-          const [start, end] = tijdString.split(' - ').map(t => t.trim());
-          const startDate = new Date(`1970-01-01T${start}`);
-          const endDate = new Date(`1970-01-01T${end}`);
-          if (!isNaN(startDate) && !isNaN(endDate)) {
-            const diffInMinutes = (endDate.getTime() - startDate.getTime()) / (1000 * 60);
-            duurString = `${diffInMinutes} min`;
-          }
-        }
+      const studentDoc = await getDoc(doc(db, 'student', afspraak.studentUid));
 
-        const studentDocRef = doc(db, 'student', afspraakData.studentUid);
-        const studentSnap = await getDoc(studentDocRef);
-        const studentData = studentSnap.exists() ? studentSnap.data() : {};
+      const basisGesprek = {
+        id: docSnap.id,
+        studentId: afspraak.studentUid,
+        tijd: afspraak.tijd,
+        duur: afspraak.duur || '15 min',
+        status: afspraak.status || 'upcoming',
+        annuleringsReden: afspraak.annuleringsReden || '',
+        locatie: [locatieData?.floorName, `Stand ${locatieData?.locationName}`].filter(Boolean).join(' - ') || 'Nog niet toegewezen'
+      };
 
+      if (studentDoc.exists()) {
+        const studentData = studentDoc.data();
         return {
-          id: afspraakDoc.id,
-          studentId: afspraakData.studentUid,
-          tijd: tijdString,
+          ...basisGesprek,
           student: `${studentData.voornaam || 'Onbekende'} ${studentData.achternaam || 'Student'}`,
-          duur: duurString,
-          domein: studentData.domein?.join(', ') || 'Geen domein',
+          domein: studentData.domein ? studentData.domein.join(', ') : 'Geen domein',
           studiejaar: studentData.studiejaar || 'N/A',
-          locatie: 'Aula B - Stand 14',
-          status: afspraakData.status || 'upcoming',
-          annuleringsReden: afspraakData.annuleringsReden || 'Geen reden opgegeven.'
+          studentFoto: studentData.foto || studentData.fotoUrl || studentData.photoUrl || null
         };
-      });
+      } else {
+        console.warn(`Student met ID ${afspraak.studentUid} niet gevonden voor afspraak ${docSnap.id}.`);
+        return {
+          ...basisGesprek,
+          student: 'Onbekende Student',
+          domein: 'N/A',
+          studiejaar: 'N/A',
+          studentFoto: null
+        };
+      }
+    });
 
-    gesprekken.value = await Promise.all(afsprakenPromises);
+    const geladenGesprekken = (await Promise.all(gesprekkenPromises)).filter(Boolean);
+    gesprekken.value = geladenGesprekken;
 
   } catch (e) {
-    console.error("Fout bij ophalen van afspraken: ", e);
-    error.value = "Kon de afspraken niet laden.";
+    console.error("Fout bij ophalen van gesprekken:", e);
+    error.value = "Kon de gesprekken niet laden. Probeer het later opnieuw.";
+    toast.error("Er is een fout opgetreden bij het laden van de gesprekken.");
   } finally {
     loading.value = false;
   }
@@ -268,9 +272,18 @@ const gefilterdeGesprekken = computed(() => {
   return gesprekken.value.filter(g => g.status === activeFilter.value);
 });
 
-const gesorteerdeGesprekken = computed(() =>
-  [...gefilterdeGesprekken.value].sort((a, b) => a.tijd.localeCompare(b.tijd))
-);
+const gesorteerdeGesprekken = computed(() => {
+  let gefilterde = gesprekken.value;
+  if (activeFilter.value !== 'all') {
+    gefilterde = gesprekken.value.filter(g => g.status === activeFilter.value);
+  }
+  return [...gefilterde].sort((a, b) => {
+    // Fallback for undefined or null times
+    const tijdA = a.tijd || '00:00';
+    const tijdB = b.tijd || '00:00';
+    return tijdA.localeCompare(tijdB);
+  });
+});
 
 const setFilter = (filter) => {
   activeFilter.value = filter;
@@ -612,6 +625,15 @@ if (typeof window !== 'undefined') {
   border: 1px solid #e5e7eb;
   border-radius: 0.75rem;
   padding: 1.25rem;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 12px;
+  background-color: #e5e7eb;
 }
 
 .rij {
