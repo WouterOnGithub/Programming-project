@@ -144,7 +144,6 @@ async function bevestigGegevens() {
   }
 
   isUploading.value = true
-  v = ''
   
   try {
     const studentDocRef = doc(db, 'student', user.uid)
