@@ -615,4 +615,11 @@ export default {
   border-color: #c20000;
   background-color: #fff;
 }
+
+@media (max-width: 768px) {
+  .dashboard-2col {
+    grid-template-columns: 1fr;
+    margin: 1rem;
+  }
+}
 </style> 

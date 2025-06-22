@@ -622,8 +622,9 @@ const verwijderFavoriet = async (bedrijf) => {
 }
 
 .geen-resultaten {
-  text-align: center;
-  padding: 4rem 2rem;
+  display: flex;
+  text-align: column;
+  align-items: center;
 }
 
 .emoji {
@@ -678,6 +679,48 @@ const verwijderFavoriet = async (bedrijf) => {
   transition: background 0.2s;
 }
 .knop-nee:hover {
-  background: #e5e7eb;
+  background-color: #e2e8f0;
+}
+
+@media (max-width: 768px) {
+  .pagina {
+    padding: 1rem;
+  }
+
+  .hoofding {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .statistieken {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .studentenlijst {
+    padding: 1.5rem 1rem;
+  }
+
+  .student-kaart {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.5rem;
+  }
+
+  .student-info {
+    width: 100%;
+  }
+
+  .acties {
+    width: 100%;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .acties .knop-grijs,
+  .acties .knop-rood,
+  .acties .knop-verwijder {
+    width: 100%;
+  }
 }
 </style>

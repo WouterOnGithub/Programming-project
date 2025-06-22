@@ -138,11 +138,11 @@
 <div v-if="!showAllCompanies" class="carousel-section">
   <div class="carousel-main-container">
     <div class="carousel-container">
-      <button
+       <button
         class="carousel-nav carousel-nav-prev"
-        @click="prevSlide"
-        :disabled="currentSlide === 0"
-        :class="{ disabled: currentSlide === 0 }"
+        @click="prevPage"
+        :disabled="currentPage === 1"
+        :class="{ disabled: currentPage === 1 }"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="15,18 9,12 15,6"></polyline>
@@ -172,9 +172,33 @@
 
       <button
         class="carousel-nav carousel-nav-next"
-        @click="nextSlide"
-        :disabled="currentSlide >= maxSlide"
-        :class="{ disabled: currentSlide >= maxSlide }"
+        @click="nextPage"
+        :disabled="currentPage >= totalPages"
+        :class="{ disabled: currentPage >= totalPages }"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="9,18 15,12 9,6"></polyline>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Mobile-only navigation -->
+    <div class="carousel-navigation-mobile">
+      <button
+        class="carousel-nav carousel-nav-prev-mobile"
+        @click="prevPage"
+        :disabled="currentPage === 1"
+        :class="{ disabled: currentPage === 1 }"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="15,18 9,12 15,6"></polyline>
+        </svg>
+      </button>
+      <button
+        class="carousel-nav carousel-nav-next-mobile"
+        @click="nextPage"
+        :disabled="currentPage >= totalPages"
+        :class="{ disabled: currentPage >= totalPages }"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="9,18 15,12 9,6"></polyline>
@@ -184,11 +208,11 @@
 
     <div class="carousel-indicators" v-if="filteredCompanies.length > slidesToShow">
       <button
-        v-for="(page, index) in totalPages"
+        v-for="(_, index) in totalPages"
         :key="index"
         class="carousel-dot"
         :class="{ active: currentPage === index + 1 }"
-        @click="goToSlide(index)"
+        @click="goToPage(index + 1)"
       ></button>
     </div>
 
@@ -227,7 +251,7 @@
 </template>
 
 <script>
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, ref, computed, onBeforeUnmount, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import Navbar from '../../components/Navbar.vue'
 import '../../css/Home.css'
@@ -238,89 +262,123 @@ export default {
   name: 'Homepage',
   components: { Navbar },
   setup() {
-
     const toast = useToast()
-
     const router = useRouter()
-
     const db = getFirestore()
+
     const bedrijven = ref([])
     const loading = ref(true)
     const error = ref(null)
     const showAllCompanies = ref(false)
     const companySearch = ref('')
-    const currentSlide = ref(0)
+
+    const currentPage = ref(1)
     const slidesToShow = ref(5)
 
+    const updateSlidesToShow = () => {
+      if (typeof window !== 'undefined') {
+        const width = window.innerWidth;
+        if (width <= 576) {
+          slidesToShow.value = 1;
+        } else if (width <= 768) {
+          slidesToShow.value = 2;
+        } else if (width <= 992) {
+          slidesToShow.value = 3;
+        } else {
+          slidesToShow.value = 5;
+        }
+      }
+    };
+
+    onMounted(() => {
+      fetchBedrijven();
+      updateSlidesToShow();
+      window.addEventListener('resize', updateSlidesToShow);
+    });
+
+    onBeforeUnmount(() => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('resize', updateSlidesToShow);
+      }
+    });
+
     const goToRegister = () => {
-      router.push('/register')
-    }
+      router.push('/register');
+    };
 
     const fetchBedrijven = async () => {
       try {
-        const bedrijvenRef = collection(db, 'bedrijf')
-        const q = query(bedrijvenRef, where('verificatieStatus', '==', 'goedgekeurd'))
-        const snapshot = await getDocs(q)
+        const bedrijvenRef = collection(db, 'bedrijf');
+        const q = query(bedrijvenRef, where('verificatieStatus', '==', 'goedgekeurd'));
+        const snapshot = await getDocs(q);
 
         bedrijven.value = snapshot.docs.map(doc => ({
           id: doc.id,
           naam: doc.data().bedrijfsnaam || 'Onbekende Bedrijfsnaam',
           foto: doc.data().foto || '/Images/placeholder-logo.png',
           linkedin: doc.data().linkedin || '#',
-        }))
+        }));
       } catch (err) {
-        error.value = 'Fout bij ophalen van bedrijven.'
-        console.error(err)
-        toast.error('Er ging iets mis bij het laden van de bedrijven.')
+        error.value = 'Fout bij ophalen van bedrijven.';
+        console.error(err);
+        toast.error('Er ging iets mis bij het laden van de bedrijven.');
       } finally {
-        loading.value = false
+        loading.value = false;
       }
-    }
+    };
 
     const filteredCompanies = computed(() => {
       if (!companySearch.value) {
-        return bedrijven.value
+        return bedrijven.value;
       }
-      const searchLower = companySearch.value.toLowerCase()
+      const searchLower = companySearch.value.toLowerCase();
       return bedrijven.value.filter(
         company =>
           company.naam &&
           typeof company.naam === 'string' &&
           company.naam.toLowerCase().includes(searchLower)
-      )
-    })
+      );
+    });
+    
+    watch(filteredCompanies, () => {
+        currentPage.value = 1;
+    });
 
-    const maxSlide = computed(() => Math.max(0, filteredCompanies.value.length - slidesToShow.value))
-    const carouselStyle = computed(() => ({
-      transform: `translateX(-${currentSlide.value * (100 / slidesToShow.value)}%)`,
-      transition: 'transform 0.4s ease'
-    }))
-    const totalPages = computed(() =>
-      Math.ceil(filteredCompanies.value.length / slidesToShow.value)
-    )
-    const currentPage = computed(() =>
-      Math.floor(currentSlide.value / slidesToShow.value) + 1
-    )
+    const totalPages = computed(() => {
+      if (!filteredCompanies.value.length) return 1;
+      return Math.ceil(filteredCompanies.value.length / slidesToShow.value);
+    });
 
-    const nextSlide = () => {
-      if (currentSlide.value < maxSlide.value) {
-        currentSlide.value = Math.min(currentSlide.value + slidesToShow.value, maxSlide.value)
+    const carouselStyle = computed(() => {
+        const maxSlideIndex = Math.max(0, filteredCompanies.value.length - slidesToShow.value);
+        const slideIndex = Math.min(
+            (currentPage.value - 1) * slidesToShow.value,
+            maxSlideIndex
+        );
+        
+        const movePercentage = slideIndex * (100 / slidesToShow.value);
+
+        return {
+            transform: `translateX(-${movePercentage}%)`,
+            transition: 'transform 0.4s ease'
+        }
+    });
+
+    const nextPage = () => {
+      if (currentPage.value < totalPages.value) {
+        currentPage.value++;
       }
-    }
+    };
 
-    const prevSlide = () => {
-      if (currentSlide.value > 0) {
-        currentSlide.value = Math.max(currentSlide.value - slidesToShow.value, 0)
+    const prevPage = () => {
+      if (currentPage.value > 1) {
+        currentPage.value--;
       }
-    }
+    };
 
-    const goToSlide = (index) => {
-      currentSlide.value = Math.min(index * slidesToShow.value, maxSlide.value)
-    }
-
-    onMounted(() => {
-      fetchBedrijven()
-    })
+    const goToPage = (pageNumber) => {
+      currentPage.value = pageNumber;
+    };
 
     return {
       goToRegister,
@@ -328,15 +386,13 @@ export default {
       bedrijven,
       filteredCompanies,
       companySearch,
-      currentSlide,
       slidesToShow,
       carouselStyle,
-      maxSlide,
       totalPages,
       currentPage,
-      nextSlide,
-      prevSlide,
-      goToSlide,
+      nextPage,
+      prevPage,
+      goToPage,
       loading,
       error
     }
@@ -448,12 +504,13 @@ export default {
 }
 
 .carousel-main-container {
-  background: white;
-  border-radius: 20px;
-  padding: 3rem 2rem 2rem;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  padding: 2rem 1rem 1.5rem;
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.07);
   position: relative;
-  overflow: visible;
+  display: flex;
+  flex-direction: column;
 }
 
 .carousel-container {
@@ -505,7 +562,7 @@ export default {
   box-shadow: 0 8px 24px rgba(194, 0, 0, 0.12);
 }
 
-.company-logo-carousel {
+.company-logo {
   max-width: 100%;
   max-height: 80px;
   object-fit: contain;
@@ -649,7 +706,7 @@ export default {
 
 @media (max-width: 768px) {
   .company-card-carousel {
-    flex: 0 0 calc(100% / 2);
+    flex: 0 0 50%;
   }
 
   .carousel-nav {
@@ -665,15 +722,101 @@ export default {
 @media (max-width: 576px) {
   .company-card-carousel {
     flex: 0 0 100%;
+    padding: 0 1rem;
+    box-sizing: border-box;
   }
 
   .carousel-main-container {
-    padding: 1rem;
-    border-radius: 16px;
+    padding: 2rem 1rem 1.5rem;
+    border-radius: 24px;
+    background: #fff;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.07);
+    position: relative;
+    display: flex;
+    flex-direction: column;
   }
 
   .carousel-wrapper {
-    margin: 0 1rem;
+    margin: 0;
+    padding: 0;
+  }
+
+  .carousel-container {
+    position: static;
+  }
+  
+  .carousel-container > .carousel-nav {
+      display: none;
+  }
+
+  .company-logo-container {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    margin: 0 auto;
+    padding: 1rem;
+    background: #fff;
+    border: 1px solid #f0f0f0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .company-logo {
+    max-height: 100%;
+    max-width: 100%;
+    object-fit: contain;
+  }
+  
+  .company-details {
+    margin-top: 1.25rem;
+    margin-bottom: 2rem;
+  }
+
+  .carousel-navigation-mobile {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    width: 100%;
+    margin: 0 auto 1rem;
+    position: relative;
+    order: 2;
+  }
+
+  .carousel-navigation-mobile .carousel-nav {
+    position: static;
+    transform: none;
+    width: 48px;
+    height: 48px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    color: #334155;
+    border-radius: 8px;
+  }
+  
+  .carousel-navigation-mobile .carousel-nav:hover:not(.disabled) {
+    background: #c20000;
+    color: white;
+    transform: none;
+  }
+  
+  .carousel-indicators {
+    order: 3;
+    margin-top: 0;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .carousel-info {
+    order: 4;
+    margin-top: 0;
+  }
+
+  .carousel-counter {
+    font-size: 1rem;
+    color: #64748b;
   }
 
   .search-with-toggle {
@@ -681,4 +824,11 @@ export default {
     align-items: stretch;
   }
 }
+
+@media (min-width: 577px) {
+  .carousel-navigation-mobile {
+    display: none;
+  }
+}
+
 </style>

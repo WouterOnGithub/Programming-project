@@ -399,7 +399,7 @@ function downloadCV() {
 }
 
 .download-cv-btn:hover {
-  background: #990000;
+  background-color: #a60000;
 }
 
 .header-info .domein {
@@ -411,6 +411,48 @@ function downloadCV() {
 .linkedin-link a {
   color: white;
   text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+  .dashboard-main {
+    padding: 1rem;
+  }
+
+  .hero-banner {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 1.5rem;
+  }
+
+  .hero-photo {
+    width: 100px;
+    height: 100px;
+    margin-bottom: 1rem;
+  }
+
+  .wijzig-knop {
+    position: static;
+    margin-top: 1rem;
+    width: 100%;
+    max-width: 200px;
+  }
+
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .section-card {
+    padding: 1.5rem;
+  }
+
+  h1 {
+    font-size: 1.8rem;
+  }
+
+  h2 {
+    font-size: 1.2rem;
+  }
 }
 </style>
   

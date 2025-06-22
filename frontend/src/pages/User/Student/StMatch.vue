@@ -986,4 +986,62 @@ const goToProfile = (bedrijfId) => {
 .knop-nee:hover {
   background: #d1d5db;
 }
+
+@media (max-width: 768px) {
+  .pagina {
+    padding: 1rem;
+  }
+
+  .hoofding {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .statistieken {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .studentenlijst {
+    padding: 1.5rem 1rem;
+  }
+
+  .student-kaart {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.5rem;
+  }
+
+  .student-info {
+    width: 100%;
+  }
+
+  .acties {
+    width: 100%;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: stretch;
+  }
+  
+  .acties .knop-grijs,
+  .acties .knop-rood,
+  .acties .status-wacht {
+    width: 100%;
+    text-align: center;
+  }
+
+  .verwijder-btn-rond {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+  }
+  
+  .modal-content {
+    width: 90vw;
+  }
+
+  .timeslot-grid {
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  }
+}
 </style>

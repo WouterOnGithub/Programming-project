@@ -740,4 +740,57 @@ export default {
 .btn-icon {
   font-size: 18px;
 }
+
+@media (max-width: 960px) {
+  .job-card {
+    flex-direction: column;
+  }
+
+  .left-section,
+  .right-section {
+    min-width: unset;
+  }
+}
+
+@media (max-width: 768px) {
+  .swiping-content {
+    min-height: auto;
+    padding: 1rem;
+  }
+
+  .job-card-container {
+    margin-top: 0;
+    min-height: auto;
+  }
+
+  .left-section,
+  .right-section {
+    padding: 20px;
+  }
+
+  .company-name {
+    font-size: 24px;
+    margin-top: 15px;
+  }
+
+  .job-title {
+    font-size: 20px;
+  }
+
+  .action-buttons {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .action-btn {
+    max-width: 100%;
+  }
+
+  .favorite-btn {
+    top: 15px;
+    right: 15px;
+    width: 45px;
+    height: 45px;
+  }
+}
 </style>

@@ -23,8 +23,44 @@ body, #app {
   border-bottom: 1px solid #e5e5e5;
 }
  
+/* Navbar Stijlen */
 .navbar {
-  padding: 1rem 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background-color: #fff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+.navbar-logo img {
+  height: 40px;
+}
+.nav-links {
+  display: flex;
+  gap: 1.5rem;
+}
+.nav-links a {
+  text-decoration: none;
+  color: #333;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 5px;
+  transition: background-color 0.3s;
+}
+.nav-links a:hover {
+  background-color: #f0f0f0;
+}
+.nav-links .btn {
+  background-color: #c20000;
+  color: #fff;
+  padding: 0.5rem 1.5rem;
+  border-radius: 5px;
+}
+.nav-links .btn:hover {
+  background-color: #a00000;
 }
  
 .nav-container {
@@ -121,7 +157,7 @@ body, #app {
 /* Hero Section */
 .hero {
   padding: 8rem 0 4rem;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  background-image: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
   min-height: 100vh;
   display: flex;
   align-items: center;

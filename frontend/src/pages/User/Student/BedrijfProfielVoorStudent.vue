@@ -358,22 +358,41 @@ onMounted(async () => {
 }
 
 @media (max-width: 768px) {
-  .detail-grid {
-    grid-template-columns: 1fr;
+  .dashboard-main {
+    padding: 1rem;
   }
-  
+
   .profiel-header {
     flex-direction: column;
     text-align: center;
+    padding-top: 4rem;
   }
   
   .avatar-container {
     margin-left: 0;
   }
   
+  .terug-knop-container {
+    top: 1rem;
+    left: 1rem;
+  }
+  
   .header-acties {
-    margin-left: 0;
+    position: static;
+    width: 100%;
     margin-top: 1rem;
+  }
+
+  .actie-knop {
+    width: 100%;
+  }
+  
+  .profiel-details {
+    padding: 1rem;
+  }
+  
+  .detail-grid, .contact-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style> 

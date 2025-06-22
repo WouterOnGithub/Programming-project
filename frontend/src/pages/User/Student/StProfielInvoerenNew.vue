@@ -497,5 +497,16 @@ const possibleTalen = [
       font-size: 2rem;
     }
   }
+
+  @media (max-width: 768px) {
+    .formulier-grid {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+
+    .form-column:last-child {
+      grid-row: 1;
+    }
+  }
 </style> 
 
