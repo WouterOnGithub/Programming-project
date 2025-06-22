@@ -69,6 +69,54 @@
           </div>
           
           <div class="form-group">
+            <label for="location-name">Locatienaam: *</label>
+            <div class="location-name-input">
+              <select 
+                v-if="!showCustomLocationInput"
+                id="location-name"
+                v-model="locationData.locationName" 
+                required
+                class="form-select"
+                @change="onLocationNameChange"
+              >
+                <option value="">Selecteer een locatie...</option>
+                <option 
+                  v-for="locationName in availableLocationNames" 
+                  :key="locationName" 
+                  :value="locationName"
+                >
+                  {{ locationName }}
+                </option>
+                <option value="__custom__">+ Nieuwe locatie toevoegen</option>
+              </select>
+              
+              <div v-else class="custom-location-input">
+                <input 
+                  id="custom-location-name"
+                  type="text" 
+                  v-model="customLocationName"
+                  placeholder="Voer nieuwe locatienaam in..."
+                  required
+                  class="form-input"
+                  @blur="onCustomLocationBlur"
+                  @keyup.enter="onCustomLocationBlur"
+                />
+                <button 
+                  type="button" 
+                  @click="cancelCustomLocation" 
+                  class="cancel-custom-btn"
+                  title="Annuleren"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+            <small class="form-note">
+              Selecteer een bestaande locatie of voeg een nieuwe toe
+            </small>
+          </div>
+          
+          <div class="form-group">
             <label for="notes">Notities (optioneel):</label>
             <textarea 
               id="notes"
@@ -126,7 +174,8 @@
 </template>
 
 <script>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { locationService } from '../../../services/locationService'
 // Companies will be passed as props from parent component
 
 export default {
@@ -159,10 +208,17 @@ export default {
     const saving = ref(false)
     const deleting = ref(false)
     
+    // Location name related reactive variables
+    const availableLocationNames = ref([])
+    const showCustomLocationInput = ref(false)
+    const customLocationName = ref('')
+    const locationNamesUnsubscribe = ref(null)
+    
     const locationData = ref({
       x: props.location.x || 50,
       y: props.location.y || 50,
-      notes: ''
+      notes: '',
+      locationName: ''
     })
     
     const isEditing = computed(() => !!props.existingMarker)
@@ -189,12 +245,80 @@ export default {
       });
     })
     
+    // Location name functions
+    const loadLocationNames = async () => {
+      try {
+        const names = await locationService.getLocationNames(props.floor)
+        availableLocationNames.value = names
+      } catch (error) {
+        console.error('Error loading location names:', error)
+      }
+    }
+    
+    const onLocationNameChange = () => {
+      if (locationData.value.locationName === '__custom__') {
+        showCustomLocationInput.value = true
+        customLocationName.value = ''
+        locationData.value.locationName = ''
+        // Focus on the custom input after Vue updates the DOM
+        setTimeout(() => {
+          const customInput = document.getElementById('custom-location-name')
+          if (customInput) customInput.focus()
+        }, 100)
+      }
+    }
+    
+    const onCustomLocationBlur = async () => {
+      const trimmedName = customLocationName.value.trim()
+      if (trimmedName) {
+        // Check if location name already exists
+        const nameExists = availableLocationNames.value.some(name => 
+          name.toLowerCase() === trimmedName.toLowerCase()
+        )
+        
+        if (nameExists) {
+          alert('Deze locatienaam bestaat al. Kies een andere naam.')
+          return
+        }
+        
+        // Add new location name to Firebase
+        const success = await locationService.addLocationName(props.floor, trimmedName)
+        if (success) {
+          locationData.value.locationName = trimmedName
+          showCustomLocationInput.value = false
+          customLocationName.value = ''
+          // Reload location names to get the updated list
+          await loadLocationNames()
+        } else {
+          alert('Er is een fout opgetreden bij het toevoegen van de locatienaam.')
+        }
+      } else {
+        cancelCustomLocation()
+      }
+    }
+    
+    const cancelCustomLocation = () => {
+      showCustomLocationInput.value = false
+      customLocationName.value = ''
+      locationData.value.locationName = ''
+    }
+    
     const closeModal = () => {
+      // Cleanup subscription when closing modal
+      if (locationNamesUnsubscribe.value) {
+        locationNamesUnsubscribe.value()
+        locationNamesUnsubscribe.value = null
+      }
       emit('close')
     }
     
     const saveLocation = async () => {
-      if (!selectedCompanyId.value) return
+      if (!selectedCompanyId.value || !locationData.value.locationName) {
+        if (!locationData.value.locationName) {
+          alert('Selecteer een locatienaam voordat u opslaat.')
+        }
+        return
+      }
       
       saving.value = true
       
@@ -204,6 +328,7 @@ export default {
           x: locationData.value.x,
           y: locationData.value.y,
           notes: locationData.value.notes.trim(),
+          locationName: locationData.value.locationName,
           grondplanId: props.floor
         }
         
@@ -236,29 +361,48 @@ export default {
     }
     
     // Initialize form data when editing
-    onMounted(() => {
+    onMounted(async () => {
+      // Load available location names
+      await loadLocationNames()
+      
+      // Set up real-time subscription for location names
+      locationNamesUnsubscribe.value = await locationService.subscribeToLocationNames(
+        props.floor, 
+        (names) => {
+          availableLocationNames.value = names
+        }
+      )
+      
       if (props.existingMarker) {
         selectedCompanyId.value = props.existingMarker.companyId
         locationData.value = {
-          x: props.existingMarker.x,
-          y: props.existingMarker.y,
-          notes: props.existingMarker.notes || ''
+          x: props.location.x,
+          y: props.location.y,
+          notes: props.existingMarker.notes || '',
+          locationName: props.existingMarker.locationName || ''
         }
       } else {
         locationData.value = {
           x: props.location.x,
           y: props.location.y,
-          notes: ''
+          notes: '',
+          locationName: ''
         }
       }
     })
     
-    // Watch for location prop changes (when user clicks on map)
-    watch(() => props.location, (newLocation) => {
-      if (!isEditing.value) {
-        locationData.value.x = newLocation.x
-        locationData.value.y = newLocation.y
+    // Cleanup subscription when component unmounts
+    onUnmounted(() => {
+      if (locationNamesUnsubscribe.value) {
+        locationNamesUnsubscribe.value()
+        locationNamesUnsubscribe.value = null
       }
+    })
+    
+    // Watch for location prop changes (when user clicks on map or drags marker)
+    watch(() => props.location, (newLocation) => {
+      locationData.value.x = newLocation.x
+      locationData.value.y = newLocation.y
     }, { deep: true })
     
     return {
@@ -266,9 +410,15 @@ export default {
       saving,
       deleting,
       locationData,
+      availableLocationNames,
+      showCustomLocationInput,
+      customLocationName,
       isEditing,
       selectedCompany,
       availableCompanies,
+      onLocationNameChange,
+      onCustomLocationBlur,
+      cancelCustomLocation,
       closeModal,
       saveLocation,
       deleteLocation
@@ -588,6 +738,47 @@ export default {
     width: 60px;
     height: 60px;
   }
+}
+
+/* Location name input styles */
+.location-name-input {
+  position: relative;
+}
+
+.custom-location-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.custom-location-input .form-input {
+  flex: 1;
+}
+
+.cancel-custom-btn {
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1.2rem;
+  font-weight: bold;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.cancel-custom-btn:hover {
+  background: #c82333;
+  transform: scale(1.05);
+}
+
+.cancel-custom-btn:active {
+  transform: scale(0.95);
 }
 
 /* Animation for modal entrance */
