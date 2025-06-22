@@ -823,6 +823,37 @@ export default {
     flex-direction: column;
     align-items: stretch;
   }
+
+  .all-companies-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+
+  .company-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    text-align: left;
+  }
+
+  .company-logo--grid {
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    margin: 0;
+    flex-shrink: 0;
+    border-radius: 50%;
+  }
+
+  .company-logo-img {
+    max-height: 100%;
+  }
+
+  .company-name {
+    margin-bottom: 0;
+  }
 }
 
 @media (min-width: 577px) {
