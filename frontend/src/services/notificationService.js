@@ -1,5 +1,7 @@
 // Notification service for handling company verification notifications
 
+import { doc } from 'firebase/firestore'
+
 export class NotificationService {
   constructor() {
     this.listeners = new Map()

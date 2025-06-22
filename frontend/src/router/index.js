@@ -24,6 +24,7 @@ import SettingsBe from '../pages/User/Bedrijf/SettingsBe.vue'
 import StudentProfielVoorBedrijf from '../pages/User/Bedrijf/StudentProfielVoorBedrijf.vue'
 import NotFound from '../pages/User/NotFound.vue'
 import BedrijfProfielVoorStudent from '../pages/User/Student/BedrijfProfielVoorStudent.vue'
+import BedrijfGrondplan from '../pages/User/Bedrijf/Grondplan.vue'
 
 const userRoutes = [
   { path: '/', name: 'Home', component: HomePage },
@@ -51,6 +52,7 @@ const userRoutes = [
   { path: '/bedrijf/student/:id', name: 'StudentProfielVoorBedrijf', component: StudentProfielVoorBedrijf },
   { path: '/test', name: 'TestPage', component: () => import('../pages/User/TestPage.vue') },
   { path: '/student/bedrijf/:id', name: 'BedrijfProfielVoorStudent', component: BedrijfProfielVoorStudent },
+  { path: '/bedrijf/grondplan', name: 'BedrijfGrondplan', component: BedrijfGrondplan },
 ]
 
 // Combineer alles in één routerconfig
@@ -125,7 +127,7 @@ router.beforeEach(async (to, from, next) => {
 
   // Bedrijf-only routes
   const bedrijfOnly = [
-    '/BedrijfDashboard', '/WijzigBd', '/WeergaveBd', '/GesprekkenBd', '/Favorietenbd', '/InvoerenBd', '/bedrijfmatch', '/SettingsBe'
+    '/BedrijfDashboard', '/WijzigBd', '/WeergaveBd', '/GesprekkenBd', '/Favorietenbd', '/InvoerenBd', '/bedrijfmatch', '/SettingsBe', '/bedrijf/grondplan'
   ];
   if (bedrijfOnly.some(p => to.path.startsWith(p))) {
     if (to.path === '/InvoerenBd' && to.query.fromRegister === '1') {

@@ -259,7 +259,7 @@
 import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { db, storage } from '../../../firebase/config'
-import { collection, getDocs, addDoc, updateDoc, doc, getDoc, query, where, deleteDoc } from 'firebase/firestore'
+import { collection, getDocs, addDoc, updateDoc, doc, getDoc, query, where, deleteDoc, serverTimestamp } from 'firebase/firestore'
 import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'
 import CompanyLocationModal from './CompanyLocationModal.vue'
 import CompanySearch from './CompanySearch.vue'
@@ -650,7 +650,7 @@ export default {
     const loadGrondplannen = async () => {
       loading.value = true
       try {
-        const querySnapshot = await getDocs(collection(db, 'grondplan'))
+        const querySnapshot = await getDocs(collection(db, 'grondplannen'))
         grondplannen.value = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
         
         if (grondplannen.value.length > 0) {
@@ -678,7 +678,7 @@ export default {
       
       loading.value = true
       try {
-        const grondplanDoc = await getDoc(doc(db, 'grondplan', currentGrondplanId.value))
+        const grondplanDoc = await getDoc(doc(db, 'grondplannen', currentGrondplanId.value))
         if (grondplanDoc.exists()) {
           currentGrondplan.value = { id: grondplanDoc.id, ...grondplanDoc.data() }
           await loadCompanyMarkers()
@@ -922,23 +922,43 @@ export default {
       try {
         const file = selectedFile.value
         const fileSize = formatFileSize(file.size)
-        
+
+        // Lees eerst de afmetingen uit
+        let imageWidth = null
+        let imageHeight = null
+        if (file.type.startsWith('image/')) {
+          const img = await new Promise((resolve, reject) => {
+            const reader = new FileReader()
+            reader.onload = e => {
+              const image = new window.Image()
+              image.onload = () => resolve(image)
+              image.onerror = reject
+              image.src = e.target.result
+            }
+            reader.onerror = reject
+            reader.readAsDataURL(file)
+          })
+          imageWidth = img.width
+          imageHeight = img.height
+        }
+
         // Create a unique filename
         const timestamp = Date.now()
         const fileExtension = file.name.split('.').pop()
         const fileName = `grondplan_${timestamp}.${fileExtension}`
-        
+        const storagePath = `grondplannen/${fileName}`
+
         // Upload to Firebase Storage
-        const storageRef = ref(storage, `grondplannen/${fileName}`)
-        const uploadResult = await uploadBytes(storageRef, file)
+        const storageRefInst = storageRef(storage, storagePath)
+        const uploadResult = await uploadBytes(storageRefInst, file)
         const downloadURL = await getDownloadURL(uploadResult.ref)
-        
+
         // Create thumbnail for images
         let thumbnailURL = downloadURL
         if (file.type.startsWith('image/')) {
           thumbnailURL = downloadURL
         }
-        
+
         // Save to Firestore
         const grondplanData = {
           name: newGrondplan.name,
@@ -946,23 +966,24 @@ export default {
           floors: newGrondplan.floors,
           description: newGrondplan.description || '',
           imageUrl: downloadURL,
-          thumbnailUrl: thumbnailURL,
+          storagePath: storagePath,
           fileSize: fileSize,
-          uploadDate: new Date(),
-          createdAt: serverTimestamp()
+          createdAt: serverTimestamp(),
+          imageWidth,
+          imageHeight
         }
-        
+
         await addDoc(collection(db, 'grondplannen'), grondplanData)
-        
+
         // Reset form and close modal
         closeModal()
-        
+
         // Reload grondplannen
         await loadGrondplannen()
-        
+
         // Show success message
         console.log('Grondplan successfully uploaded!')
-        
+
       } catch (error) {
         console.error('Error uploading grondplan:', error)
         alert('Er is een fout opgetreden bij het uploaden van het grondplan.')
@@ -996,9 +1017,9 @@ export default {
         await deleteDoc(doc(db, 'grondplannen', currentGrondplan.value.id))
         
         // Delete from Storage
-        if (currentGrondplan.value.imageUrl) {
+        if (currentGrondplan.value.storagePath) {
           try {
-            const imageRef = ref(storage, currentGrondplan.value.imageUrl)
+            const imageRef = storageRef(storage, currentGrondplan.value.storagePath)
             await deleteObject(imageRef)
           } catch (storageError) {
             console.warn('Could not delete image from storage:', storageError)
