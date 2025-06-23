@@ -123,6 +123,10 @@ Database: Firebase firestore,
 
 Het project moet afgewerkt en gepresenteerd worden tegen het einde van het semester (23/06/2025).
 
+<H2> DOCUMENTATIE</H2>
+
+![ERD-papier](https://github.com/user-attachments/assets/e394f730-ecb6-40fd-8983-eccfc35bf5f3)
+
 <H2> 🔗 BRONNEN</H2>
 - ChatGPT
 
