@@ -4,6 +4,16 @@
 
 Deze webapplicatie is ontwikkeld voor de Career Launch beurs aan de Erasmushogeschool Brussel. Onze website brengt studenten en bedrijven digitaal samen en laat hen via een Tinder-achtig systeem communiceren. Studenten kunnen bedrijven bekijken, een gesprek aanvragen, en indien beide partijen akkoord gaan, volgt een match met locatie-informatie van de beursstand. De applicatie stimuleert werkgelegenheid en investeert tegelijk in de reputatie van de school.
 
+<H2> Project openen in VSCode </H2>
+
+1. Clone de repository en ga naar de map:  
+   ```bash
+   git clone https://github.com/WouterOnGithub/Programming-project.git
+   cd frontend
+2. npm install
+3. npm run dev
+
+
 <H2> 🎯 FUNCTIONALITEITEN </H2>
 
 <H3> 🔐 LOGIN- EN REGISTRATIEPAGINA</H3>
@@ -115,6 +125,10 @@ Het project moet afgewerkt en gepresenteerd worden tegen het einde van het semes
 
 <H2> 🔗 BRONNEN</H2>
 - ChatGPT
+
+- Cursor AI
+
+- Manus AI
 
 - W3Schools.com. (s. d.). https://www.w3schools.com/
 
