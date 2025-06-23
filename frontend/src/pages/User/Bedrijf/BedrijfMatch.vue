@@ -34,7 +34,7 @@
         </div>
         <div class="studentenlijst">
           <div class="lijst-hoofding">
-            <h2>Overzicht Matchs</h2>
+            <h2>Overzicht Matches</h2>
             <p>Klik op een student voor profiel of gesprek</p>
           </div>
           <div

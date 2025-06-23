@@ -33,7 +33,7 @@
       </div>
       <div class="studentenlijst">
         <div class="lijst-hoofding">
-          <h2>Overzicht Matchs</h2>
+          <h2>Overzicht Matches</h2>
           <p>Klik op een bedrijf voor profiel of gesprek</p>
         </div>
         <div
@@ -153,26 +153,24 @@ const alleAfspraken = ref([]); // Voor het bijhouden van alle afspraken van de s
 
 const genereerTijdsloten = (start, eind, duur) => {
   const sloten = [];
-  if (!start || !eind || !duur) return sloten;
+  // Duur als getal extraheren
+  let duurMinuten = typeof duur === 'string' ? parseInt(duur.match(/\d+/)?.[0], 10) : Number(duur);
+  if (!start || !eind || !duurMinuten || duurMinuten <= 0 || isNaN(duurMinuten)) return sloten;
   let [startUur, startMin] = start.split(':').map(Number);
   const [eindUur, eindMin] = eind.split(':').map(Number);
-
   while (startUur < eindUur || (startUur === eindUur && startMin < eindMin)) {
-    let eindSlotMin = startMin + duur;
+    let eindSlotMin = startMin + duurMinuten;
     let eindSlotUur = startUur;
     if (eindSlotMin >= 60) {
       eindSlotUur += Math.floor(eindSlotMin / 60);
       eindSlotMin %= 60;
     }
-
     if (eindSlotUur > eindUur || (eindSlotUur === eindUur && eindSlotMin > eindMin)) {
       break;
     }
-
     const formatTijd = (uur, min) => `${String(uur).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
     sloten.push(`${formatTijd(startUur, startMin)} - ${formatTijd(eindSlotUur, eindSlotMin)}`);
-
-    startMin += duur;
+    startMin += duurMinuten;
     if (startMin >= 60) {
       startUur += Math.floor(startMin / 60);
       startMin %= 60;
@@ -307,6 +305,7 @@ const parseTime = (timeStr) => {
 
 // Functie om te checken op overlappende afspraken
 const checkOverlap = (slot1, slot2) => {
+  if (!slot1 || !slot2 || typeof slot1 !== 'string' || typeof slot2 !== 'string') return false;
   const [start1, end1] = slot1.split(' - ').map(parseTime);
   const [start2, end2] = slot2.split(' - ').map(parseTime);
   return start1 < end2 && start2 < end1;
@@ -397,7 +396,7 @@ const bevestigAfspraak = async () => {
     const docRef = await addDoc(collection(db, 'afspraken'), {
       studentUid: studentId,
       bedrijfId: geselecteerdeBedrijfId.value,
-      time: geselecteerdeTijdslot.value,
+      tijd: geselecteerdeTijdslot.value,
       status: 'upcoming',
       aangemaaktOp: new Date()
     });
@@ -1139,5 +1138,45 @@ const goToProfile = (bedrijfId) => {
   .timeslot-grid {
     grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
   }
+}
+
+.annuleer-btn {
+  background: #f3f4f6;
+  color: #374151;
+  border: none;
+  padding: 0.6rem 1.4rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  font-size: 1rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  transition: background 0.18s, color 0.18s;
+  margin-right: 0.5rem;
+}
+
+.annuleer-btn:hover {
+  background: #e5e7eb;
+  color: #222;
+}
+
+.bevestig-btn {
+  background: #c20000;
+  color: #fff;
+  border: none;
+  padding: 0.6rem 1.4rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 1rem;
+  box-shadow: 0 2px 8px rgba(194,0,0,0.08);
+  transition: background 0.18s, color 0.18s;
+  margin-left: 0.5rem;
+}
+.bevestig-btn:disabled {
+  background: #f3f4f6;
+  color: #b91c1c;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+.bevestig-btn:not(:disabled):hover {
+  background: #a50000;
 }
 </style>

@@ -2,7 +2,7 @@
 
 <H2>📌 PROJECTBESCHRIJVING</H2>
 
-Deze webapplicatie is ontwikkeld voor de Career Launch beurs aan de Erasmushogeschool Brussel. Onze website brengt studenten en bedrijven digitaal samen en laat hen via een Tinder-achtig systeem communiceren. Studenten kunnen bedrijven bekijken, een gesprek aanvragen, en indien beide partijen akkoord gaan, volgt een match met locatie-informatie van de beursstand. De applicatie stimuleert werkgelegenheid en investeert tegelijk in de reputatie van de school.
+Deze webapplicatie is ontwikkeld voor de Career Launch beurs aan de Erasmushogeschool Brussel, als einwerk voor het vak Programming Project. Onze website brengt studenten en bedrijven digitaal samen en laat hen via een Tinder-achtig systeem communiceren. Studenten kunnen bedrijven bekijken, een gesprek aanvragen, en indien beide partijen akkoord gaan, volgt een match met locatie-informatie van de beursstand. De applicatie stimuleert werkgelegenheid en investeert tegelijk in de reputatie van de school.
 
 <H2> Project openen in VSCode </H2>
 
@@ -10,9 +10,11 @@ Deze webapplicatie is ontwikkeld voor de Career Launch beurs aan de Erasmushoges
    ```bash
    git clone https://github.com/WouterOnGithub/Programming-project.git
    cd frontend
-2. npm install
-3. npm run dev
+2. ```bash
+   npm install
 
+3. ```bash
+   npm run dev
 
 <H2> 🎯 FUNCTIONALITEITEN </H2>
 
@@ -20,8 +22,17 @@ Deze webapplicatie is ontwikkeld voor de Career Launch beurs aan de Erasmushoges
 
 - studenten en bedrijven kunnen zich veilig aanmelden of registreren
 - Firebase Authentication met Google Sign-in
-- Rol-gebaseerde toegang (Student, Bedrijf, Admin)
+- Rol-gebaseerde toegang (Student, Bedrijf)
 - Wachtwoord reset functionaliteit
+
+*Voor admin, ga naar 
+
+http://localhost:5173/admin
+
+login-gegevens
+ 
+mail: admin@test.be 
+wachtwoord: test123
 
 <H3> 👤 PROFIEL </H3>
 
@@ -56,14 +67,12 @@ Kleine preview met de belangrijkste informatie uit het volledige profiel.
 - **Match notificaties:** Real-time notificaties bij matches
 - **Locatie informatie:** Automatische notificatie met beursstand locatie bij match
 - **Gesprek planning:** Mogelijkheid om afspraken in te plannen
-- **Status updates:** Notificaties wanneer student onderweg is naar stand
 
 <H3> 📍 BEURSLOCATIE (bron nog af te wachten)</H3>
 
 - **Interactieve kaart:** Leaflet.js implementatie voor beurslocatie
 - **Grondplan weergave:** Visuele weergave van beursstands
 - **Locatie tracking:** Real-time locatie van bedrijven op beurs
-- **Navigatie:** Wegwijzer naar specifieke stands
 
 <H3> FOOTER </H3>
 
@@ -104,10 +113,12 @@ Database: Firebase firestore,
   - `bedrijf` - Bedrijfsprofielen
   - `admin` - Admin gebruikers
   - `notifications` - Notificaties
-  - `matches` - Matches tussen studenten en bedrijven
-  - `appointments` - Afspraken
   - `grondplannen` - Beurslocatie data
   - `companyLocations` - Bedrijfslocaties op beurs
+  - `locationNames` - Array met herbruikbare standlocaties
+  - `rejectionComments` - Commentaar bij een door admin afgewezen bedrijf
+  - `studentenvoorkeur` - Lijst van wat interessant is voor bedrijf
+  - `swipes`- Matches tussen studenten en bedrijven
  
        
 <H2> 👨‍💻 TEAM</H2>
